@@ -1,113 +1,224 @@
-const boardEl = document.getElementById('board');
-const statusEl = document.getElementById('status');
-const newGameBtn = document.getElementById('new-game');
-const gameId = location.pathname.match(/\/game\/([^/]+)/)?.[1];
-let ws;
-let boardData = [];
-let selected = null;
-let highlights = [];
-let myColor = null;
+// static/app.js
+import { renderPreview } from '/static/games/checkers/preview.js';
+import { CheckersGame } from '/static/games/checkers/board.js';
 
-if (gameId) {
-  connect(gameId);
-} else {
-  statusEl.textContent = 'Click "New Game" to start.';
-  newGameBtn.style.display = 'inline-block';
+// ===== STATE =====
+const STATE = {
+  currentView: 'landing',
+  selectedGame: null,
+  game: {
+    id: null,
+    ws: null,
+    myColor: null,
+    board: null,
+    history: [],
+    captured: { w: [], b: [] },
+    turn: 'w',
+    status: 'waiting'
+  }
+};
+
+// ===== DOM REFS =====
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+const landing = $('#landing');
+const modal = $('#game-modal');
+const gameView = $('#game-view');
+const gameGrid = $('#game-grid');
+const modalTitle = $('#modal-title');
+const modalDesc = $('#modal-desc');
+const modalSpecs = $('#modal-specs');
+const modalRules = $('#modal-rules');
+const modalPlayBtn = $('#modal-play-btn');
+const modalClose = $('.modal-close');
+const modalBackdrop = $('.modal-backdrop');
+const turnIndicator = $('#turn-indicator');
+const timerEl = $('#timer');
+const btnBack = $('#btn-back-to-landing');
+const btnNewGame = $('#btn-new-game');
+const btnResign = $('#btn-resign');
+const sidebar = $('#sidebar');
+const sidebarToggle = $('#sidebar-toggle');
+const historyList = $('#history-list');
+const capturedWhite = $('#captured-white-pieces');
+const capturedBlack = $('#captured-black-pieces');
+const boardCanvas = $('#board-canvas');
+const boardOverlay = $('#board-overlay');
+
+// ===== GAME DATA =====
+const GAMES = {
+  checkers: {
+    id: 'checkers',
+    title: 'Checkers',
+    desc: 'Classic 8×8 English draughts. Capture all opponent pieces or block them completely.',
+    shortDesc: 'Classic 8×8 draughts. Play vs AI or friend.',
+    players: 2,
+    modes: ['Local', 'AI', 'Online'],
+    duration: '5–15 min',
+    difficulty: ['Easy', 'Medium', 'Hard'],
+    rules: [
+      'Move diagonally forward on dark squares only',
+      'Capture by jumping over an adjacent opponent piece',
+      'Multiple jumps allowed in a single turn',
+      'Reach the back row → become a King (moves backward too)',
+      'Win by capturing all enemy pieces or blocking all moves'
+    ]
+  }
+};
+
+// ===== VIEW MANAGEMENT =====
+function showView(view) {
+  [landing, modal, gameView].forEach(v => v.classList.remove('active'));
+  STATE.currentView = view;
+  if (view === 'landing') landing.classList.add('active');
+  else if (view === 'modal') modal.classList.remove('hidden');
+  else if (view === 'game') gameView.classList.add('active');
 }
 
-newGameBtn.addEventListener('click', async () => {
+function openModal(gameId) {
+  const game = GAMES[gameId];
+  if (!game) return;
+  STATE.selectedGame = gameId;
+  modalTitle.textContent = game.title;
+  modalDesc.textContent = game.desc;
+  modalSpecs.innerHTML = `
+    <dt>Players</dt><dd>${game.players}</dd>
+    <dt>Modes</dt><dd>${game.modes.join(', ')}</dd>
+    <dt>Duration</dt><dd>${game.duration}</dd>
+    <dt>AI Difficulty</dt><dd>${game.difficulty.join(' / ')}</dd>
+  `;
+  modalRules.innerHTML = `
+    <h4>Rules Summary</h4>
+    <ul>${game.rules.map(r => `<li>${r}</li>`).join('')}</ul>
+  `;
+  // Render preview
+  renderPreview('modal-board-preview');
+  showView('modal');
+}
+
+function closeModal() {
+  modal.classList.add('hidden');
+  showView('landing');
+  STATE.selectedGame = null;
+}
+
+async function startGame(gameId) {
+  closeModal();
+  showView('game');
+  STATE.game.id = gameId;
+  // Create game on server
   const resp = await fetch('/games', { method: 'POST' });
-  const { id } = await resp.json();
-  history.pushState(null, '', `/game/${id}`);
-  connect(id);
-  newGameBtn.style.display = 'none';
+  const data = await resp.json();
+  STATE.game.id = data.id;
+  connectWebSocket();
+}
+
+function backToLanding() {
+  if (STATE.game.ws) {
+    STATE.game.ws.close();
+  }
+  STATE.game = { id: null, ws: null, myColor: null, board: null, history: [], captured: { w: [], b: [] }, turn: 'w', status: 'waiting' };
+  showView('landing');
+}
+
+// ===== EVENT LISTENERS =====
+// Landing: game cards (delegated)
+gameGrid.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-game]');
+  if (btn) openModal(btn.dataset.game);
 });
 
-function connect(gid) {
-  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(`${proto}://${location.host}/ws/${gid}`);
-  ws.onmessage = (ev) => {
-    const msg = JSON.parse(ev.data);
-    if (msg.type === 'board') {
-      boardData = msg.board;
-      render();
-    } else if (msg.type === 'game_over') {
-      statusEl.textContent = msg.winner === 'w' ? 'White wins!' : 'Black wins!';
-      ws.close();
-      newGameBtn.style.display = 'inline-block';
-    } else if (msg.type === 'error') {
-      statusEl.textContent = msg.message;
-    }
-  };
-  ws.onopen = () => statusEl.textContent = 'Connected. Make a move.';
-  ws.onclose = () => {
-    if (statusEl.textContent === 'Connected. Make a move.') {
-      statusEl.textContent = 'Disconnected.';
-    }
-  };
+// Modal
+modalClose?.addEventListener('click', closeModal);
+modalBackdrop?.addEventListener('click', closeModal);
+modalPlayBtn?.addEventListener('click', () => startGame(STATE.selectedGame));
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal(); });
+
+// Game view
+btnBack?.addEventListener('click', backToLanding);
+btnNewGame?.addEventListener('click', () => startGame(STATE.game.id));
+btnResign?.addEventListener('click', () => { /* TODO: resign logic */ });
+sidebarToggle?.addEventListener('click', () => sidebar.classList.toggle('open'));
+
+// ===== INIT =====
+function init() {
+  renderGameGrid();
+}
+function renderGameGrid() {
+  gameGrid.innerHTML = Object.values(GAMES).map(game => `
+    <article class="game-card" data-game="${game.id}">
+      <div class="game-thumb">
+        <svg class="checkers-preview" viewBox="0 0 80 80" width="80" height="80">
+          ${generateCheckersPreviewSVG()}
+        </svg>
+      </div>
+      <div class="game-info">
+        <h3>${game.title}</h3>
+        <p class="game-desc">${game.shortDesc}</p>
+        <div class="game-meta">
+          <span class="badge">${game.players} Players</span>
+          <span class="badge ai">AI Opponent</span>
+          <span class="badge">${game.duration}</span>
+        </div>
+      </div>
+      <button class="btn-play" data-game="${game.id}">Play</button>
+    </article>
+  `).join('');
 }
 
-function render() {
-  boardEl.innerHTML = '';
+function generateCheckersPreviewSVG() {
+  // Simple 8x8 preview with a few pieces
+  let svg = '';
+  const square = 10;
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
-      const cell = document.createElement('div');
-      cell.className = `cell ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
-      cell.dataset.row = r;
-      cell.dataset.col = c;
-      const piece = boardData[r]?.[c];
-      if (piece) {
-        const div = document.createElement('div');
-        div.className = `piece ${piece.toLowerCase() === 'w' ? 'white' : 'black'}`;
-        if (piece === piece.toUpperCase()) div.classList.add('king');
-        cell.appendChild(div);
+      if ((r + c) % 2 === 0) {
+        svg += `<rect x="${c*square}" y="${r*square}" width="${square}" height="${square}" fill="#b58863"/>`;
       }
-      if (selected && selected[0] === r && selected[1] === c) cell.classList.add('selected');
-      if (highlights.some(h => h[0] === r && h[1] === c)) cell.classList.add('highlight');
-      cell.addEventListener('click', () => cellClick(r, c));
-      boardEl.appendChild(cell);
     }
   }
+  // Place a few pieces
+  const pieces = [
+    {r:1,c:1,col:'w'},{r:1,c:3,col:'w'},{r:1,c:5,col:'w'},{r:1,c:7,col:'w'},
+    {r:6,c:0,col:'b'},{r:6,c:2,col:'b'},{r:6,c:4,col:'b'},{r:6,c:6,col:'b'},
+    {r:3,c:3,col:'w'},{r:4,c:4,col:'b'}
+  ];
+  pieces.forEach(p => {
+    const cx = p.c*square + square/2;
+    const cy = p.r*square + square/2;
+    const col = p.col === 'w' ? '#fff' : '#111';
+    svg += `<circle cx="${cx}" cy="${cy}" r="3.5" fill="${col}" stroke="#333" stroke-width="0.5"/>`;
+  });
+  return svg;
 }
 
-function cellClick(r, c) {
-  if (!ws || ws.readyState !== WebSocket.OPEN) return;
-  if (!selected && boardData[r]?.[c] && boardData[r][c].toLowerCase() === myColor) {
-    selected = [r, c];
-    // compute legal moves for this piece
-    const moves = legalMovesFor(r, c);
-    highlights = moves.map(m => m.to);
-    render();
-    return;
-  }
-  if (selected) {
-    const fr = selected;
-    const to = [r, c];
-    ws.send(JSON.stringify({ type: 'move', from: fr, to: to }));
-    selected = null;
-    highlights = [];
-    render();
-  }
-}
+// ===== WEBSOCKET =====
+let checkersGame = null;
 
-function legalMovesFor(r, c) {
-  // simplified: just return immediate captures and moves based on delta
-  const piece = boardData[r][c];
-  if (!piece) return [];
-  const color = piece.toLowerCase();
-  const dirs = color === 'w' ? [[-1,-1],[-1,1]] : [[1,-1],[1,1]];
-  if (piece === piece.toUpperCase()) dirs.push(...(color === 'w' ? [[1,-1],[1,1]] : [[-1,-1],[-1,1]]));
-  const moves = [];
-  for (const [dr, dc] of dirs) {
-    const nr = r+dr, nc = c+dc;
-    if (nr < 0 || nr > 7 || nc < 0 || nc > 7) continue;
-    if (!boardData[nr][nc]) moves.push({ from: [r,c], to: [nr,nc] });
-    const cr = r+2*dr, cc = c+2*dc;
-    if (cr < 0 || cr > 7 || cc < 0 || cc > 7) continue;
-    const mid = boardData[nr][nc];
-    if (mid && mid.toLowerCase() !== color && !boardData[cr][cc]) {
-      moves.push({ from: [r,c], to: [cr,cc] });
+async function connectWebSocket() {
+  const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
+  const ws = new WebSocket(`${protocol}://${location.host}/ws/${STATE.game.id}`);
+  STATE.game.ws = ws;
+
+  ws.onopen = () => console.log('WebSocket opened');
+  ws.onmessage = (event) => {
+    const msg = JSON.parse(event.data);
+    if (msg.type === 'color') {
+      STATE.game.myColor = msg.color;
+      // Initialize game UI
+      if (!checkersGame) {
+        checkersGame = new CheckersGame('board-canvas');
+      }
+      checkersGame.init(STATE.game.id, ws);
+      checkersGame.setMyColor(msg.color);
+    } else if (checkersGame) {
+      checkersGame.handleMessage(msg);
     }
-  }
-  return moves;
+  };
+  ws.onclose = () => {
+    console.log('WebSocket closed');
+  };
 }
+
+init();
