@@ -1,12 +1,13 @@
 from __future__ import annotations
 from uuid import uuid4
-from fastapi import FastAPI, HTTPException
-from sqlmodel import SQLModel, create_engine, Session, select
+from fastapi import FastAPI, HTTPException, WebSocket
+from sqlmodel import Session, select
 from app.models import Game
 from app.schemas import GameRead
+from app.websocket import websocket_endpoint
+from app.database import engine, init_db
 
-engine = create_engine("sqlite:///./games.db", connect_args={"check_same_thread": False})
-SQLModel.metadata.create_all(engine)
+init_db()
 
 app = FastAPI()
 
@@ -26,3 +27,5 @@ async def get_game(game_id: str):
         if not game:
             raise HTTPException(status_code=404, detail="Game not found")
         return game
+
+app.websocket("/ws/{game_id}")(websocket_endpoint)
