@@ -44,7 +44,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .game-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: var(--accent); }
 .game-card:hover::before { opacity: 1; }
 .game-thumb { width: 100%; aspect-ratio: 1; border-radius: calc(var(--radius) - 4px); background: linear-gradient(135deg, var(--wood-dark), var(--wood-light)); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; position: relative; overflow: hidden; }
-.checkers-preview { width: 80%; height: 80%; }
+.checkers-preview { width: 80%; height: 80%; display: block; }
 .game-info { flex: 1; display: flex; flex-direction: column; }
 .game-info h3 { font-size: 1.25rem; margin-bottom: 0.5rem; }
 .game-desc { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem; flex: 1; }
@@ -54,3 +54,30 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-play { width: 100%; padding: 0.75rem; background: var(--accent); color: white; border-radius: calc(var(--radius) - 4px); font-weight: 600; font-size: 1rem; transition: background var(--transition), transform 0.1s; }
 .btn-play:hover { background: var(--accent-hover); transform: scale(1.02); }
 .btn-play:active { transform: scale(0.98); }
+
+/* ===== MODAL ===== */
+.modal { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.modal.hidden { display: none; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.7); animation: fadeIn 0.2s var(--transition); }
+.modal-content { position: relative; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius); max-width: 720px; width: 100%; max-height: 90vh; overflow-y: auto; display: grid; grid-template-columns: 1fr; animation: slideUp 0.3s var(--transition); }
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+@media (min-width: 640px) { .modal-content { grid-template-columns: 320px 1fr; } }
+.modal-close { position: absolute; top: 1rem; right: 1rem; width: 36px; height: 36px; border-radius: 50%; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); font-size: 1.5rem; display: flex; align-items: center; justify-content: center; z-index: 1; transition: all var(--transition); }
+.modal-close:hover { background: var(--accent); color: white; border-color: var(--accent); }
+.modal-visual { background: var(--bg-primary); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+@media (min-width: 640px) { .modal-visual { border-bottom: none; border-right: 1px solid var(--border); min-height: 400px; } }
+#modal-board-preview { max-width: 100%; height: auto; }
+.modal-info { padding: 1.5rem 2rem; }
+.modal-info h2 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+#modal-desc { color: var(--text-secondary); margin-bottom: 1.5rem; line-height: 1.6; }
+.modal-specs { display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1.5rem; margin-bottom: 1.5rem; font-size: 0.9rem; }
+.modal-specs dt { color: var(--text-secondary); }
+.modal-specs dd { font-weight: 500; }
+.modal-rules { background: var(--bg-card); border: 1px solid var(--border); border-radius: calc(var(--radius) - 4px); padding: 1rem; margin-bottom: 1.5rem; }
+.modal-rules h4 { margin-bottom: 0.75rem; font-size: 0.95rem; }
+.modal-rules ul { list-style: none; display: grid; gap: 0.4rem; }
+.modal-rules li { position: relative; padding-left: 1.5rem; font-size: 0.85rem; color: var(--text-secondary); }
+.modal-rules li::before { content: '→'; position: absolute; left: 0; color: var(--accent); }
+.btn-primary { width: 100%; padding: 1rem; background: linear-gradient(135deg, var(--accent), #c0392b); color: white; border-radius: calc(var(--radius) - 4px); font-weight: 600; font-size: 1.1rem; transition: transform var(--transition), box-shadow var(--transition); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(233, 69, 96, 0.4); }
+.btn-primary:active { transform: translateY(0); }
