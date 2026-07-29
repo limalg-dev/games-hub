@@ -1,0 +1,10 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "checkers-platform"
+version = "0.1.0"
+description = "Lightweight FastAPI checkers platform"
+requires-python = ">=3.11"
+dependencies = ["fastapi==0.115", "uvicorn==0.30", "sqlmodel==0.0.21"]
