@@ -1,5 +1,35 @@
 <!DOCTYPE html>
-<html>
-<head><title>Checkers</title></head>
-<body><div id="board"></div><script src="app.js"></script></body>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Checkers</title>
+<style>
+  body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #222; color: #eee; }
+  .container { text-align: center; }
+  .board { display: grid; grid-template-columns: repeat(8, 60px); grid-template-rows: repeat(8, 60px); border: 2px solid #444; }
+  .cell { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; }
+  .cell.dark { background: #769656; }
+  .cell.light { background: #eeeed2; }
+  .piece { border-radius: 50%; width: 45px; height: 45px; }
+  .piece.white { background: #fff; box-shadow: 1px 1px 3px rgba(0,0,0,.3); }
+  .piece.black { background: #222; box-shadow: 1px 1px 3px rgba(0,0,0,.3); }
+  .piece.king::after { content: "♛"; font-size: 20px; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: gold; }
+  .cell.selected { background: #f6f669 !important; }
+  .cell.highlight { background: #aaffaa !important; }
+  #controls { margin-top: 20px; }
+  button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Checkers</h1>
+  <div id="board" class="board"></div>
+  <div id="controls">
+    <p id="status">Loading...</p>
+    <button id="new-game" style="display:none">New Game</button>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
 </html>
