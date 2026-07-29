@@ -1,35 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Checkers</title>
-<style>
-  body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #222; color: #eee; }
-  .container { text-align: center; }
-  .board { display: grid; grid-template-columns: repeat(8, 60px); grid-template-rows: repeat(8, 60px); border: 2px solid #444; }
-  .cell { width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; }
-  .cell.dark { background: #769656; }
-  .cell.light { background: #eeeed2; }
-  .piece { border-radius: 50%; width: 45px; height: 45px; }
-  .piece.white { background: #fff; box-shadow: 1px 1px 3px rgba(0,0,0,.3); }
-  .piece.black { background: #222; box-shadow: 1px 1px 3px rgba(0,0,0,.3); }
-  .piece.king::after { content: "♛"; font-size: 20px; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; color: gold; }
-  .cell.selected { background: #f6f669 !important; }
-  .cell.highlight { background: #aaffaa !important; }
-  #controls { margin-top: 20px; }
-  button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GameHub — Play Classic Games Online</title>
+  <link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
-<div class="container">
-  <h1>Checkers</h1>
-  <div id="board" class="board"></div>
-  <div id="controls">
-    <p id="status">Loading...</p>
-    <button id="new-game" style="display:none">New Game</button>
+  <!-- ===== LANDING PAGE ===== -->
+  <section id="landing" class="page active" aria-label="Game selection">
+    <header class="hero">
+      <h1>GameHub</h1>
+      <p class="hero-tagline">Play classic board games online — free, no install.</p>
+    </header>
+    <main class="game-grid" id="game-grid" role="list"></main>
+  </section>
+
+  <!-- ===== GAME DETAIL MODAL ===== -->
+  <div id="game-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-backdrop" tabindex="-1"></div>
+    <div class="modal-content">
+      <button class="modal-close" aria-label="Close modal">&times;</button>
+      <div class="modal-visual">
+        <canvas id="modal-board-preview" width="320" height="320" aria-label="Checkers board preview"></canvas>
+      </div>
+      <div class="modal-info">
+        <h2 id="modal-title"></h2>
+        <p id="modal-desc"></p>
+        <dl class="modal-specs" id="modal-specs"></dl>
+        <div class="modal-rules" id="modal-rules"></div>
+        <button class="btn-primary btn-play-large" id="modal-play-btn">Play Now</button>
+      </div>
+    </div>
   </div>
-</div>
-<script src="app.js"></script>
+
+  <!-- ===== GAME VIEW ===== -->
+  <section id="game-view" class="page hidden" aria-label="Game in progress">
+    <header class="game-header">
+      <button class="btn-back" id="btn-back-to-landing" aria-label="Back to game selection">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div class="game-status">
+        <span id="turn-indicator" aria-live="polite">White to move</span>
+        <span id="timer" class="hidden" aria-live="off">00:00</span>
+      </div>
+      <div class="game-menu">
+        <button id="btn-new-game" class="btn-secondary">New Game</button>
+        <button id="btn-resign" class="btn-danger">Resign</button>
+      </div>
+    </header>
+    <main class="game-main">
+      <aside class="sidebar" id="sidebar" aria-label="Game info">
+        <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="false">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+        </button>
+        <section class="panel captured" id="captured-white">
+          <h4>Captured (White)</h4>
+          <div class="pieces" id="captured-white-pieces"></div>
+        </section>
+        <section class="panel history" id="move-history">
+          <h4>Move History</h4>
+          <ol id="history-list"></ol>
+        </section>
+        <section class="panel captured" id="captured-black">
+          <h4>Captured (Black)</h4>
+          <div class="pieces" id="captured-black-pieces"></div>
+        </section>
+      </aside>
+      <div class="board-wrapper">
+        <canvas id="board-canvas" width="640" height="640" aria-label="Checkers game board"></canvas>
+        <div class="board-overlay" id="board-overlay" aria-hidden="true"></div>
+      </div>
+    </main>
+  </section>
+
+  <script type="module" src="/static/app.js"></script>
 </body>
 </html>
