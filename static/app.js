@@ -47,6 +47,16 @@ const capturedWhite = $('#captured-white-pieces');
 const capturedBlack = $('#captured-black-pieces');
 const boardCanvas = $('#board-canvas');
 const boardOverlay = $('#board-overlay');
+const boardWrapper = $('#board-wrapper');
+
+// Save original board/sidebar HTML for restoration after wordsearch
+const ORIGINAL_BOARD_HTML = boardWrapper ? boardWrapper.innerHTML : '';
+const ORIGINAL_SIDEBAR_HTML = sidebar ? sidebar.innerHTML : '';
+
+function restoreBoard() {
+  if (boardWrapper) boardWrapper.innerHTML = ORIGINAL_BOARD_HTML;
+  if (sidebar) sidebar.innerHTML = ORIGINAL_SIDEBAR_HTML;
+}
 
 // ===== GAME DATA =====
 const GAMES = {
@@ -88,11 +98,19 @@ const GAMES = {
 
 // ===== VIEW MANAGEMENT =====
 function showView(view) {
-  [landing, modal, gameView].forEach(v => v.classList.remove('active'));
+  landing.classList.add('hidden');
+  modal.classList.add('hidden');
+  gameView.classList.add('hidden');
   STATE.currentView = view;
-  if (view === 'landing') landing.classList.add('active');
-  else if (view === 'modal') modal.classList.remove('hidden');
-  else if (view === 'game') gameView.classList.add('active');
+  if (view === 'landing') {
+    landing.classList.remove('hidden');
+    landing.classList.add('active');
+  } else if (view === 'modal') {
+    modal.classList.remove('hidden');
+  } else if (view === 'game') {
+    gameView.classList.remove('hidden');
+    gameView.classList.add('active');
+  }
 }
 
 function openModal(gameId) {
@@ -167,6 +185,7 @@ async function startGame(gameId) {
   showView('game');
   STATE.game.id = gameId;
   STATE.currentGameType = gameId;
+  restoreBoard();
   // Create game on server
   const resp = await fetch('/games', { method: 'POST' });
   const data = await resp.json();
@@ -187,9 +206,8 @@ async function startWordSearch(config) {
   STATE.currentGameType = 'wordsearch';
   STATE.game.id = 'wordsearch-' + Date.now();
   
-  // Initialize word search game
+  const { startTimer, stopTimer, saveScore } = await import('/games/wordsearch/static/timer.js');
   const { WordSearchGame } = await import('/games/wordsearch/static/board.js');
-  const { stopTimer, saveScore } = await import('/games/wordsearch/static/timer.js');
   wordSearchGame = new WordSearchGame({ containerId: 'board-wrapper', ...config });
   wordSearchGame.onGameComplete = (time, difficulty) => {
     stopTimer();
@@ -198,11 +216,8 @@ async function startWordSearch(config) {
   };
   wordSearchGame.init();
   
-  // Update game view for wordsearch
   updateGameViewForWordSearch();
   
-  // Start timer
-  const { startTimer } = await import('/games/wordsearch/static/timer.js');
   startTimer((seconds) => {
     const el = document.getElementById('timer');
     if (el) el.textContent = formatTime(seconds * 1000);
@@ -260,6 +275,7 @@ function backToLanding() {
     wordSearchGame.destroy();
     wordSearchGame = null;
   }
+  restoreBoard();
   STATE.game = { id: null, ws: null, myColor: null, board: null, history: [], captured: { w: [], b: [] }, turn: 'w', status: 'waiting' };
   showView('landing');
 }
@@ -280,17 +296,22 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.c
 // Game view
 btnBack?.addEventListener('click', backToLanding);
 btnNewGame?.addEventListener('click', () => {
-  // Create a completely new game of the same type
   if (checkersGame) {
     checkersGame = null;
   }
+  if (wordSearchGame) {
+    wordSearchGame.destroy();
+    wordSearchGame = null;
+  }
+  const hintBtn = document.getElementById('btn-hint');
+  if (hintBtn) hintBtn.remove();
+  restoreBoard();
   startGame(STATE.currentGameType || STATE.selectedGame);
 });
 btnResign?.addEventListener('click', () => { /* TODO: resign logic */ });
 sidebarToggle?.addEventListener('click', () => sidebar.classList.toggle('open'));
 
 async function startNewGame() {
-  // Close existing WebSocket and reset game instance
   if (STATE.game.ws) {
     STATE.game.ws.close();
   }
@@ -301,6 +322,9 @@ async function startNewGame() {
     wordSearchGame.destroy();
     wordSearchGame = null;
   }
+  const hintBtn = document.getElementById('btn-hint');
+  if (hintBtn) hintBtn.remove();
+  restoreBoard();
   STATE.game = { id: null, ws: null, myColor: null, board: null, history: [], captured: { w: [], b: [] }, turn: 'w', status: 'waiting' };
   await startGame(STATE.currentGameType || STATE.selectedGame);
 }

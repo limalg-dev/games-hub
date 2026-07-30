@@ -214,4 +214,18 @@ export class WordSearchGame {
     clearInterval(this.timerInterval);
     this.container.innerHTML = '';
   }
+
+  useHint() {
+    if (!this.isPlaying) return;
+    const unfound = this.placedWords.filter(p => !p.found);
+    if (unfound.length === 0) return;
+    const hint = unfound[Math.floor(Math.random() * unfound.length)];
+    this.highlightFoundWord(hint);
+    hint.found = true;
+    this.foundWords.add(hint.word);
+    this.onWordFound(hint.word);
+    if (this.foundWords.size === this.placedWords.length) {
+      this.completeGame();
+    }
+  }
 }

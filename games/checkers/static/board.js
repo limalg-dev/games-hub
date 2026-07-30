@@ -306,15 +306,14 @@ export class CheckersGame {
 
   render(options = {}) {
     if (!this.board) return;
-    const { selectedSquare, validMoves, lastMove } = options;
-    import('./board.js').then(m => m.drawBoard(this.ctx, this.board, {
-      selectedSquare: selectedSquare ?? this.selectedSquare,
-      validMoves: validMoves ?? this.validMoves,
-      lastMove: lastMove ?? this.lastMove,
+    drawBoard(this.ctx, this.board, {
+      selectedSquare: options.selectedSquare ?? this.selectedSquare,
+      validMoves: options.validMoves ?? this.validMoves,
+      lastMove: options.lastMove ?? this.lastMove,
       animateFrom: options.animateFrom,
       animateTo: options.animateTo,
       animateProgress: options.animateProgress
-    }));
+    });
   }
 
   async handleClick(e) {
