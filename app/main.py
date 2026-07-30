@@ -1,8 +1,8 @@
 from __future__ import annotations
 from uuid import uuid4
-from fastapi import FastAPI, HTTPException, WebSocket
+from fastapi import FastAPI, HTTPException, WebSocket, Request
 from fastapi.staticfiles import StaticFiles
-from starlette.responses import FileResponse
+from starlette.responses import FileResponse, Response
 from sqlmodel import Session, select
 from app.models import Game
 from app.schemas import GameRead
@@ -13,6 +13,15 @@ import os
 init_db()
 
 app = FastAPI()
+
+@app.middleware("http")
+async def add_no_cache_headers(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.endswith(('.js', '.html', '.css')):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 # Mount game static files directories
