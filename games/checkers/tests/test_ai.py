@@ -1,5 +1,5 @@
-from app.game import Board
-from app.ai import choose_move
+from games.checkers.game import Board
+from games.checkers.ai import choose_move
 
 def test_choose_move_returns_valid():
     board = Board()

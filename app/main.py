@@ -8,12 +8,19 @@ from app.models import Game
 from app.schemas import GameRead
 from app.websocket import websocket_endpoint
 from app.database import engine, init_db
+import os
 
 init_db()
 
 app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+# Mount game static files directories
+games_dir = "games"
+for game_name in os.listdir(games_dir):
+    game_static = os.path.join(games_dir, game_name, "static")
+    if os.path.isdir(game_static) and not game_name.startswith("."):
+        app.mount(f"/games/{game_name}/static", StaticFiles(directory=game_static), name=f"{game_name}_static")
 
 @app.get("/")
 async def root():

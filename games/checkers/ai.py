@@ -1,5 +1,5 @@
 from __future__ import annotations
-from app.game import Board
+from games.checkers.game import Board
 
 def choose_move(board: Board, color: str) -> tuple[tuple[int, int], tuple[int, int]] | None:
     moves = board.legal_moves(color)

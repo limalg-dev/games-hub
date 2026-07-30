@@ -2,9 +2,9 @@ from __future__ import annotations
 import json
 from fastapi import WebSocket, WebSocketDisconnect
 from typing import Dict, List, Tuple
-from app.game import Board
+from games.checkers.game import Board
 from app.models import Game
-from app.ai import choose_move
+from games.checkers.ai import choose_move
 from sqlmodel import Session, select
 from app.database import engine
 

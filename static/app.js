@@ -1,7 +1,7 @@
 // static/app.js
-import { renderPreview } from '/static/games/checkers/preview.js';
-import { CheckersGame } from '/static/games/checkers/board.js';
-import { DIFFICULTIES } from '/static/games/wordsearch/words.js';
+import { renderPreview } from '/games/checkers/static/preview.js';
+import { CheckersGame } from '/games/checkers/static/board.js';
+import { DIFFICULTIES } from '/games/wordsearch/static/words.js';
 
 // ===== STATE =====
 const STATE = {
@@ -140,7 +140,7 @@ function openModal(gameId) {
       </div>
     `;
     // Render wordsearch preview
-    import('/static/games/wordsearch/preview.js').then(m => m.renderPreview('modal-board-preview'));
+    import('/games/wordsearch/static/preview.js').then(m => m.renderPreview('modal-board-preview'));
   } else {
     // Render checkers preview
     renderPreview('modal-board-preview');
@@ -188,8 +188,8 @@ async function startWordSearch(config) {
   STATE.game.id = 'wordsearch-' + Date.now();
   
   // Initialize word search game
-  const { WordSearchGame } = await import('/static/games/wordsearch/board.js');
-  const { stopTimer, saveScore } = await import('/static/games/wordsearch/timer.js');
+  const { WordSearchGame } = await import('/games/wordsearch/static/board.js');
+  const { stopTimer, saveScore } = await import('/games/wordsearch/static/timer.js');
   wordSearchGame = new WordSearchGame({ containerId: 'board-wrapper', ...config });
   wordSearchGame.onGameComplete = (time, difficulty) => {
     stopTimer();
@@ -202,7 +202,7 @@ async function startWordSearch(config) {
   updateGameViewForWordSearch();
   
   // Start timer
-  const { startTimer } = await import('/static/games/wordsearch/timer.js');
+  const { startTimer } = await import('/games/wordsearch/static/timer.js');
   startTimer((seconds) => {
     const el = document.getElementById('timer');
     if (el) el.textContent = formatTime(seconds * 1000);

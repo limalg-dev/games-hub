@@ -1,4 +1,4 @@
-from app.game import Board
+from games.checkers.game import Board
 
 def test_initial_board():
     b = Board()
