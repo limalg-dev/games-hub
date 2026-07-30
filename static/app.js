@@ -221,6 +221,28 @@ function updateGameViewForWordSearch() {
   // Update status
   const turnIndicator = document.getElementById('turn-indicator');
   if (turnIndicator) turnIndicator.textContent = 'Encontre palavras!';
+  
+  // Replace sidebar with word list for wordsearch
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar) {
+    sidebar.innerHTML = `
+      <section class="panel word-list-panel">
+        <h4>Palavras</h4>
+        <ul class="word-list" id="word-list"></ul>
+      </section>
+    `;
+  }
+  
+  // Add hint button
+  const gameMenu = document.querySelector('.game-menu');
+  if (gameMenu && !document.getElementById('btn-hint')) {
+    const hintBtn = document.createElement('button');
+    hintBtn.id = 'btn-hint';
+    hintBtn.className = 'btn-secondary';
+    hintBtn.textContent = 'Dica';
+    hintBtn.addEventListener('click', () => wordSearchGame?.useHint());
+    gameMenu.prepend(hintBtn);
+  }
 }
 
 function formatTime(ms) {
@@ -291,8 +313,8 @@ function renderGameGrid() {
   gameGrid.innerHTML = Object.values(GAMES).map(game => `
     <article class="game-card" data-game="${game.id}">
       <div class="game-thumb">
-        <svg class="checkers-preview" viewBox="0 0 80 80" width="80" height="80">
-          ${generateCheckersPreviewSVG()}
+        <svg class="game-preview" viewBox="0 0 80 80" width="80" height="80">
+          ${generateGamePreviewSVG(game.id)}
         </svg>
       </div>
       <div class="game-info">
@@ -300,7 +322,7 @@ function renderGameGrid() {
         <p class="game-desc">${game.shortDesc}</p>
         <div class="game-meta">
           <span class="badge">${game.players} Players</span>
-          <span class="badge ai">AI Opponent</span>
+          ${game.id === 'checkers' ? '<span class="badge ai">AI Opponent</span>' : ''}
           <span class="badge">${game.duration}</span>
         </div>
       </div>
@@ -309,10 +331,23 @@ function renderGameGrid() {
   `).join('');
 }
 
-function generateCheckersPreviewSVG() {
-  // Simple 8x8 preview with a few pieces
-  let svg = '';
+function generateGamePreviewSVG(gameId) {
   const square = 10;
+  if (gameId === 'wordsearch') {
+    // Show a letter grid pattern for word search
+    let svg = '';
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const x = c*square, y = r*square;
+        svg += `<rect x="${x}" y="${y}" width="${square}" height="${square}" fill="#0f3460" stroke="#2a2a4a" stroke-width="0.5"/>`;
+        const letter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[(r*8+c) % 26];
+        svg += `<text x="${x+5}" y="${y+7}" font-size="7" fill="#eaeaea" text-anchor="middle" font-family="monospace">${letter}</text>`;
+      }
+    }
+    return svg;
+  }
+  // Checkers board preview
+  let svg = '';
   for (let r = 0; r < 8; r++) {
     for (let c = 0; c < 8; c++) {
       if ((r + c) % 2 === 0) {
@@ -320,7 +355,6 @@ function generateCheckersPreviewSVG() {
       }
     }
   }
-  // Place a few pieces
   const pieces = [
     {r:1,c:1,col:'w'},{r:1,c:3,col:'w'},{r:1,c:5,col:'w'},{r:1,c:7,col:'w'},
     {r:6,c:0,col:'b'},{r:6,c:2,col:'b'},{r:6,c:4,col:'b'},{r:6,c:6,col:'b'},

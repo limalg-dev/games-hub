@@ -11,3 +11,5 @@ dependencies = ["fastapi==0.115", "uvicorn==0.30", "sqlmodel==0.0.21"]
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+asyncio_mode = "auto"
+filterwarnings = ["ignore::pytest.PytestDeprecationWarning"]
