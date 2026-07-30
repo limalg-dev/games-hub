@@ -30,7 +30,9 @@ export class WordSearchGame {
     this.placedWords = placedWords;
     this.foundWords.clear();
     this.selectedCells = [];
+    this.isPlaying = true; // Allow selection immediately after init
     this.render();
+    this.start(); // Start timer automatically
   }
 
   start() {

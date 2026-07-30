@@ -317,7 +317,7 @@ export class CheckersGame {
     }));
   }
 
-  handleClick(e) {
+  async handleClick(e) {
     if (this.animating || this.turn !== this.myColor) return;
     const rect = this.canvas.getBoundingClientRect();
     const squareSize = this.canvas.width / 8;
@@ -326,10 +326,13 @@ export class CheckersGame {
     if (r < 0 || r >= 8 || c < 0 || c >= 8) return;
 
     const piece = this.board[r][c];
+    const { getLegalMoves } = await import('./logic.js');
+    
     if (!this.selectedSquare) {
       if (piece && piece.color === this.myColor) {
         this.selectedSquare = [r, c];
-        this.validMoves = this.getValidMovesForPiece(r, c);
+        const allMoves = getLegalMoves(this.board, this.myColor);
+        this.validMoves = allMoves.filter(move => move.from[0] === r && move.from[1] === c);
         this.render();
       }
     } else {
@@ -343,16 +346,20 @@ export class CheckersGame {
         this.validMoves = [];
       } else if (piece && piece.color === this.myColor) {
         this.selectedSquare = [r, c];
-        this.validMoves = this.getValidMovesForPiece(r, c);
+        const allMoves = getLegalMoves(this.board, this.myColor);
+        this.validMoves = allMoves.filter(move => move.from[0] === r && move.from[1] === c);
         this.render();
       }
     }
   }
 
   getValidMovesForPiece(r, c) {
-    // Use logic module
-    // For now, return all legal moves from this piece
-    // Full implementation would filter getLegalMoves
+    import('./logic.js').then(m => {
+      const allMoves = m.getLegalMoves(this.board, this.myColor);
+      return allMoves.filter(move => move.from[0] === r && move.from[1] === c);
+    });
+    // Return empty for now - the async import won't work synchronously
+    // We'll handle this in handleClick by calling getLegalMoves directly
     return [];
   }
 

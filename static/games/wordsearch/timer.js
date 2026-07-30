@@ -58,6 +58,10 @@ export function getLeaderboard(difficulty) {
   return JSON.parse(localStorage.getItem(key) || '[]');
 }
 
+export function getStorageKeyForExport(difficulty) {
+  return getStorageKey(difficulty);
+}
+
 export function renderLeaderboard(containerId, difficulty) {
   const container = document.getElementById(containerId);
   if (!container) return;

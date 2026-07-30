@@ -1,11 +1,13 @@
 // static/app.js
 import { renderPreview } from '/static/games/checkers/preview.js';
 import { CheckersGame } from '/static/games/checkers/board.js';
+import { DIFFICULTIES } from '/static/games/wordsearch/words.js';
 
 // ===== STATE =====
 const STATE = {
   currentView: 'landing',
   selectedGame: null,
+  currentGameType: null,
   game: {
     id: null,
     ws: null,
@@ -64,6 +66,23 @@ const GAMES = {
       'Reach the back row → become a King (moves backward too)',
       'Win by capturing all enemy pieces or blocking all moves'
     ]
+  },
+  wordsearch: {
+    id: 'wordsearch',
+    title: 'Caça-Palavras',
+    desc: 'Encontre palavras escondidas na grade. Múltiplas categorias e níveis de dificuldade.',
+    shortDesc: 'Encontre palavras na grade. Várias categorias.',
+    players: 1,
+    modes: ['Solo', 'Timer', 'Ranking'],
+    duration: '5–20 min',
+    difficulty: ['Fácil', 'Médio', 'Difícil'],
+    rules: [
+      'Palavras podem estar horizontais, verticais ou diagonais',
+      'Podem ser lidas da esquerda para direita ou vice-versa',
+      'Arraste para selecionar letras da palavra',
+      'Palavras encontradas ficam marcadas na lista',
+      'Complete todas as palavras para vencer'
+    ]
   }
 };
 
@@ -86,14 +105,47 @@ function openModal(gameId) {
     <dt>Players</dt><dd>${game.players}</dd>
     <dt>Modes</dt><dd>${game.modes.join(', ')}</dd>
     <dt>Duration</dt><dd>${game.duration}</dd>
-    <dt>AI Difficulty</dt><dd>${game.difficulty.join(' / ')}</dd>
+    ${game.difficulty ? `<dt>Difficulty</dt><dd>${game.difficulty.join(' / ')}</dd>` : ''}
   `;
   modalRules.innerHTML = `
     <h4>Rules Summary</h4>
     <ul>${game.rules.map(r => `<li>${r}</li>`).join('')}</ul>
   `;
-  // Render preview
-  renderPreview('modal-board-preview');
+  
+  // Wordsearch specific config
+  if (gameId === 'wordsearch') {
+    modalRules.innerHTML += `
+      <div class="config-group">
+        <label>Dificuldade</label>
+        <div>
+          <label><input type="radio" name="ws-difficulty" value="easy" checked> Fácil (10×10, 6 palavras)</label>
+        </div>
+        <div>
+          <label><input type="radio" name="ws-difficulty" value="medium"> Médio (12×12, 10 palavras)</label>
+        </div>
+        <div>
+          <label><input type="radio" name="ws-difficulty" value="hard"> Difícil (15×15, 15 palavras)</label>
+        </div>
+      </div>
+      <div class="config-group">
+        <label>Categoria</label>
+        <select id="ws-category">
+          <option value="random">Aleatório</option>
+          <option value="animals">Animais</option>
+          <option value="countries">Países</option>
+          <option value="tech">Tecnologia</option>
+          <option value="food">Comida</option>
+          <option value="sports">Esportes</option>
+        </select>
+      </div>
+    `;
+    // Render wordsearch preview
+    import('/static/games/wordsearch/preview.js').then(m => m.renderPreview('modal-board-preview'));
+  } else {
+    // Render checkers preview
+    renderPreview('modal-board-preview');
+  }
+  
   showView('modal');
 }
 
@@ -103,10 +155,18 @@ function closeModal() {
   STATE.selectedGame = null;
 }
 
+let wordSearchGame = null;
+
 async function startGame(gameId) {
+  if (gameId === 'wordsearch') {
+    const config = getWordSearchConfig();
+    await startWordSearch(config);
+    return;
+  }
   closeModal();
   showView('game');
   STATE.game.id = gameId;
+  STATE.currentGameType = gameId;
   // Create game on server
   const resp = await fetch('/games', { method: 'POST' });
   const data = await resp.json();
@@ -114,9 +174,69 @@ async function startGame(gameId) {
   connectWebSocket();
 }
 
+function getWordSearchConfig() {
+  const difficulty = document.querySelector('input[name="ws-difficulty"]:checked')?.value || 'easy';
+  const category = document.getElementById('ws-category')?.value || 'random';
+  const diff = DIFFICULTIES[difficulty];
+  return { ...diff, difficulty, category };
+}
+
+async function startWordSearch(config) {
+  closeModal();
+  showView('game');
+  STATE.currentGameType = 'wordsearch';
+  STATE.game.id = 'wordsearch-' + Date.now();
+  
+  // Initialize word search game
+  const { WordSearchGame } = await import('/static/games/wordsearch/board.js');
+  const { stopTimer, saveScore } = await import('/static/games/wordsearch/timer.js');
+  wordSearchGame = new WordSearchGame({ containerId: 'board-wrapper', ...config });
+  wordSearchGame.onGameComplete = (time, difficulty) => {
+    stopTimer();
+    saveScore(config, time * 1000);
+    alert(`Parabéns! Você completou em ${formatTime(time * 1000)}`);
+  };
+  wordSearchGame.init();
+  
+  // Update game view for wordsearch
+  updateGameViewForWordSearch();
+  
+  // Start timer
+  const { startTimer } = await import('/static/games/wordsearch/timer.js');
+  startTimer((seconds) => {
+    const el = document.getElementById('timer');
+    if (el) el.textContent = formatTime(seconds * 1000);
+  });
+}
+
+function updateGameViewForWordSearch() {
+  // Show timer
+  const timerEl = document.getElementById('timer');
+  if (timerEl) {
+    timerEl.classList.remove('hidden');
+    timerEl.textContent = '00:00';
+  }
+  // Show game menu
+  document.querySelectorAll('.game-menu').forEach(m => m.style.display = 'flex');
+  // Update status
+  const turnIndicator = document.getElementById('turn-indicator');
+  if (turnIndicator) turnIndicator.textContent = 'Encontre palavras!';
+}
+
+function formatTime(ms) {
+  const totalSeconds = Math.floor(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
 function backToLanding() {
   if (STATE.game.ws) {
     STATE.game.ws.close();
+  }
+  if (wordSearchGame) {
+    wordSearchGame.destroy();
+    wordSearchGame = null;
   }
   STATE.game = { id: null, ws: null, myColor: null, board: null, history: [], captured: { w: [], b: [] }, turn: 'w', status: 'waiting' };
   showView('landing');
@@ -137,9 +257,31 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.c
 
 // Game view
 btnBack?.addEventListener('click', backToLanding);
-btnNewGame?.addEventListener('click', () => startGame(STATE.game.id));
+btnNewGame?.addEventListener('click', () => {
+  // Create a completely new game of the same type
+  if (checkersGame) {
+    checkersGame = null;
+  }
+  startGame(STATE.currentGameType || STATE.selectedGame);
+});
 btnResign?.addEventListener('click', () => { /* TODO: resign logic */ });
 sidebarToggle?.addEventListener('click', () => sidebar.classList.toggle('open'));
+
+async function startNewGame() {
+  // Close existing WebSocket and reset game instance
+  if (STATE.game.ws) {
+    STATE.game.ws.close();
+  }
+  if (checkersGame) {
+    checkersGame = null;
+  }
+  if (wordSearchGame) {
+    wordSearchGame.destroy();
+    wordSearchGame = null;
+  }
+  STATE.game = { id: null, ws: null, myColor: null, board: null, history: [], captured: { w: [], b: [] }, turn: 'w', status: 'waiting' };
+  await startGame(STATE.currentGameType || STATE.selectedGame);
+}
 
 // ===== INIT =====
 function init() {
