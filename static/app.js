@@ -71,6 +71,9 @@ const GAMES = {
     category: ['tabuleiro', 'estrategia', 'classicos'],
     duration: '5–15 min',
     difficulty: ['Easy', 'Medium', 'Hard'],
+    rating: 4.8,
+    plays: 125000,
+    featured: true,
     rules: [
       'Move diagonally forward on dark squares only',
       'Capture by jumping over an adjacent opponent piece',
@@ -89,6 +92,9 @@ const GAMES = {
     category: ['palavras', 'classicos'],
     duration: '5–20 min',
     difficulty: ['Fácil', 'Médio', 'Difícil'],
+    rating: 4.5,
+    plays: 98000,
+    featured: false,
     rules: [
       'Palavras podem estar horizontais, verticais ou diagonais',
       'Podem ser lidas da esquerda para direita ou vice-versa',
@@ -106,6 +112,9 @@ const GAMES = {
     modes: ['Solo', 'Online'],
     duration: '5–25 min',
     difficulty: ['Fácil', 'Médio', 'Difícil'],
+    rating: 4.7,
+    plays: 64000,
+    featured: false,
     rules: [
       'Clique numa dica ou célula para selecionar a palavra',
       'Digite a letra em cada célula; letras corretas ficam verdes',
@@ -444,7 +453,81 @@ categoryToggle?.addEventListener('click', () => {
 // ===== INIT =====
 function init() {
   renderGameGrid();
+  renderFeaturedSpotlight();
+  renderFeaturedSecondary();
 }
+
+function formatPlays(plays) {
+  if (plays >= 1000000) return (plays / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (plays >= 1000) return (plays / 1000).toFixed(0) + 'K';
+  return String(plays);
+}
+
+function renderFeaturedSpotlight() {
+  const container = $('#featured-spotlight');
+  if (!container) return;
+  const game = Object.values(GAMES).find(g => g.featured);
+  if (!game) {
+    container.classList.add('hidden');
+    return;
+  }
+  container.classList.remove('hidden');
+  container.innerHTML = `
+    <div class="featured-card featured-spotlight">
+      <div class="featured-badges">
+        <span class="badge">${game.players} Players</span>
+        ${game.id === 'checkers' ? '<span class="badge ai">AI Opponent</span>' : ''}
+        ${game.duration ? `<span class="badge">${game.duration}</span>` : ''}
+      </div>
+      <div class="featured-info">
+        <h3>${game.title}</h3>
+        <p class="featured-desc">${game.shortDesc}</p>
+        <div class="featured-meta">
+          <span>★ <span class="val">${game.rating.toFixed(1)}</span></span>
+          <span><span class="val">${formatPlays(game.plays)}</span> plays</span>
+        </div>
+        <button class="btn-play" data-game="${game.id}">Jogar Agora</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderFeaturedSecondary() {
+  const container = $('#featured-secondary');
+  if (!container) return;
+  const games = Object.values(GAMES)
+    .filter(g => !g.featured)
+    .sort((a, b) => b.plays - a.plays)
+    .slice(0, 2);
+  if (games.length < 2) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = games.map(game => `
+    <article class="featured-card" data-game="${game.id}">
+      <div class="featured-info">
+        <div class="featured-badges">
+          <span class="badge">${game.players} Players</span>
+          ${game.duration ? `<span class="badge">${game.duration}</span>` : ''}
+        </div>
+        <h3>${game.title}</h3>
+        <p class="featured-desc">${game.shortDesc}</p>
+        <div class="featured-meta">
+          <span>★ <span class="val">${game.rating.toFixed(1)}</span></span>
+          <span><span class="val">${formatPlays(game.plays)}</span> plays</span>
+        </div>
+        <button class="btn-play" data-game="${game.id}">Play</button>
+      </div>
+    </article>
+  `).join('');
+}
+
+// Featured play buttons live OUTSIDE #game-grid, so wire them explicitly.
+const featuredSection = $('.featured');
+featuredSection?.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-game]');
+  if (btn) openModal(btn.dataset.game);
+});
 function renderGameGrid(category) {
   const games = Object.values(GAMES).filter(game =>
     !category || category === 'all' || (game.category && game.category.includes(category))
