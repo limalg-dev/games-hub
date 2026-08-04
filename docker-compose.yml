@@ -8,5 +8,3 @@ services:
       - .:/app
     environment:
       - PYTHONUNBUFFERED=1
-    # In a real setup, you would add a service for workers.
-    # Workers could be started on-demand via the Docker SDK.
