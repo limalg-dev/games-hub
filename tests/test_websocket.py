@@ -59,10 +59,8 @@ def test_ws_crossword_init_and_solve():
     assert resp.status_code == 200
     game_id = resp.json()["id"]
     with client.websocket_connect(f"/ws/{game_id}") as ws:
-        # receive color
         color_msg = json.loads(ws.receive_text())
         assert color_msg["type"] == "color"
-        # receive crossword init
         init_msg = json.loads(ws.receive_text())
         assert init_msg["type"] == "crossword_init"
         assert init_msg["size"] > 0
@@ -76,7 +74,6 @@ def test_ws_crossword_wrong_letter_rejected():
     with client.websocket_connect(f"/ws/{game_id}") as ws:
         json.loads(ws.receive_text())  # color
         init_msg = json.loads(ws.receive_text())  # init
-        # find first playable cell (filled False means playable)
         filled = init_msg["filled"]
         row = col = None
         for r in range(init_msg["size"]):
@@ -87,9 +84,27 @@ def test_ws_crossword_wrong_letter_rejected():
             if row is not None:
                 break
         assert row is not None
-        # send wrong letter (guaranteed wrong: Z is rare; but use X which is unlikely)
-        ws.send_text(json.dumps({"type": "move", "row": row, "col": col, "letter": "Z"}))
-        # if wrong, server sends error. If somehow correct, it sends update.
+        ws.send_text(json.dumps({"type": "input", "row": row, "col": col, "letter": "Z"}))
         msg = json.loads(ws.receive_text())
-        # Either error (likely) or update. We just check it's a valid message type.
-        assert msg["type"] in ("error", "crossword_update")
+        assert msg["type"] in ("error", "incorrect", "correct")
+
+def test_ws_crossword_correct_input():
+    resp = client.post("/games", json={"game_type": "crossword", "difficulty": "easy"})
+    game_id = resp.json()["id"]
+    puzzle = resp.json().get("puzzle")
+    if not puzzle:
+        pytest.skip("No puzzle in response")
+    solution = puzzle["grid"]
+    with client.websocket_connect(f"/ws/{game_id}") as ws:
+        json.loads(ws.receive_text())  # color
+        init_msg = json.loads(ws.receive_text())  # init
+        filled = init_msg["filled"]
+        for r in range(init_msg["size"]):
+            for c in range(init_msg["size"]):
+                if not filled[r][c] and solution[r][c] is not None:
+                    letter = solution[r][c]
+                    ws.send_text(json.dumps({"type": "input", "row": r, "col": c, "letter": letter}))
+                    msg = json.loads(ws.receive_text())
+                    assert msg["type"] == "correct"
+                    return
+        pytest.skip("No playable cells found")
