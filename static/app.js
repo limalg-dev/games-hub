@@ -1,6 +1,7 @@
 // static/app.js
 import { renderPreview } from '/games/checkers/static/preview.js';
 import { CheckersGame } from '/games/checkers/static/board.js';
+import { CrosswordGame } from '/games/crossword/static/board.js';
 import { DIFFICULTIES } from '/games/wordsearch/static/words.js';
 
 // ===== STATE =====
@@ -93,6 +94,23 @@ const GAMES = {
       'Palavras encontradas ficam marcadas na lista',
       'Complete todas as palavras para vencer'
     ]
+  },
+  crossword: {
+    id: 'crossword',
+    title: 'Palavras Cruzadas',
+    desc: 'Resolva palavras cruzadas geradas dinamicamente pelo servidor. Dicas across/down e multijogador.',
+    shortDesc: 'Cruza palavras com dicas. Solo ou online.',
+    players: '1–2',
+    modes: ['Solo', 'Online'],
+    duration: '5–25 min',
+    difficulty: ['Fácil', 'Médio', 'Difícil'],
+    rules: [
+      'Clique numa dica ou célula para selecionar a palavra',
+      'Digite a letra em cada célula; letras corretas ficam verdes',
+      'Setas alternam entre horizontal e vertical',
+      'Células pretas são blocos (não preenchíveis)',
+      'Complete todo o grid para vencer. Dois jogadores podem resolver juntos'
+    ]
   }
 };
 
@@ -159,6 +177,23 @@ function openModal(gameId) {
     `;
     // Render wordsearch preview
     import('/games/wordsearch/static/preview.js').then(m => m.renderPreview('modal-board-preview'));
+  } else if (gameId === 'crossword') {
+    modalRules.innerHTML += `
+      <div class="config-group">
+        <label>Dificuldade</label>
+        <div>
+          <label><input type="radio" name="cw-difficulty" value="easy" checked> Fácil (8×8)</label>
+        </div>
+        <div>
+          <label><input type="radio" name="cw-difficulty" value="medium"> Médio (12×12)</label>
+        </div>
+        <div>
+          <label><input type="radio" name="cw-difficulty" value="hard"> Difícil (15×15)</label>
+        </div>
+      </div>
+    `;
+    // Render crossword preview
+    import('/games/crossword/static/preview.js').then(m => m.renderPreview('modal-board-preview'));
   } else {
     // Render checkers preview
     renderPreview('modal-board-preview');
@@ -174,11 +209,16 @@ function closeModal() {
 }
 
 let wordSearchGame = null;
+let crosswordGame = null;
 
 async function startGame(gameId) {
   if (gameId === 'wordsearch') {
     const config = getWordSearchConfig();
     await startWordSearch(config);
+    return;
+  }
+  if (gameId === 'crossword') {
+    await startCrossword();
     return;
   }
   closeModal();
@@ -222,6 +262,45 @@ async function startWordSearch(config) {
     const el = document.getElementById('timer');
     if (el) el.textContent = formatTime(seconds * 1000);
   });
+}
+
+async function startCrossword() {
+  const difficulty = document.querySelector('input[name="cw-difficulty"]:checked')?.value || 'easy';
+  closeModal();
+  showView('game');
+  STATE.currentGameType = 'crossword';
+  restoreBoard();
+  setupCrosswordView();
+
+  const resp = await fetch('/games', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ game_type: 'crossword', difficulty })
+  });
+  const data = await resp.json();
+  STATE.game.id = data.id;
+  connectWebSocket();
+}
+
+function setupCrosswordView() {
+  const timerEl = document.getElementById('timer');
+  if (timerEl) timerEl.classList.remove('hidden');
+  const turnIndicator = document.getElementById('turn-indicator');
+  if (turnIndicator) turnIndicator.textContent = 'Resolva as palavras cruzadas!';
+
+  const sidebar = document.getElementById('sidebar');
+  if (sidebar) {
+    sidebar.innerHTML = `
+      <section class="panel clues-panel">
+        <h4>Horizontal</h4>
+        <ol class="clue-list" id="cw-across-list"></ol>
+      </section>
+      <section class="panel clues-panel">
+        <h4>Vertical</h4>
+        <ol class="clue-list" id="cw-down-list"></ol>
+      </section>
+    `;
+  }
 }
 
 function updateGameViewForWordSearch() {
@@ -275,6 +354,10 @@ function backToLanding() {
     wordSearchGame.destroy();
     wordSearchGame = null;
   }
+  if (crosswordGame) {
+    crosswordGame.destroy();
+    crosswordGame = null;
+  }
   restoreBoard();
   STATE.game = { id: null, ws: null, myColor: null, board: null, history: [], captured: { w: [], b: [] }, turn: 'w', status: 'waiting' };
   showView('landing');
@@ -303,6 +386,10 @@ btnNewGame?.addEventListener('click', () => {
     wordSearchGame.destroy();
     wordSearchGame = null;
   }
+  if (crosswordGame) {
+    crosswordGame.destroy();
+    crosswordGame = null;
+  }
   const hintBtn = document.getElementById('btn-hint');
   if (hintBtn) hintBtn.remove();
   restoreBoard();
@@ -321,6 +408,10 @@ async function startNewGame() {
   if (wordSearchGame) {
     wordSearchGame.destroy();
     wordSearchGame = null;
+  }
+  if (crosswordGame) {
+    crosswordGame.destroy();
+    crosswordGame = null;
   }
   const hintBtn = document.getElementById('btn-hint');
   if (hintBtn) hintBtn.remove();
@@ -357,6 +448,23 @@ function renderGameGrid() {
 
 function generateGamePreviewSVG(gameId) {
   const square = 10;
+  if (gameId === 'crossword') {
+    const letters = { '1,1':'A','1,2':'P','1,3':'I','1,4':'O','1,5':'D','3,1':'C','4,1':'O','5,1':'D','5,2':'O','5,3':'M','5,4':'E','5,5':'S','2,3':'T','3,3':'A','4,3':'E' };
+    let svg = '';
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const x = c * square, y = r * square;
+        const key = `${r},${c}`;
+        if (letters[key]) {
+          svg += `<rect x="${x}" y="${y}" width="${square}" height="${square}" fill="#fff" stroke="#b58863" stroke-width="0.75"/>`;
+          svg += `<text x="${x+5}" y="${y+6.5}" font-size="6" fill="#0f3460" text-anchor="middle" font-family="monospace">${letters[key]}</text>`;
+        } else {
+          svg += `<rect x="${x}" y="${y}" width="${square}" height="${square}" fill="#0f3460"/>`;
+        }
+      }
+    }
+    return svg;
+  }
   if (gameId === 'wordsearch') {
     // Show a letter grid pattern for word search
     let svg = '';
@@ -404,21 +512,50 @@ async function connectWebSocket() {
   ws.onopen = () => console.log('WebSocket opened');
   ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
-    if (msg.type === 'color') {
-      STATE.game.myColor = msg.color;
-      // Initialize game UI
-      if (!checkersGame) {
-        checkersGame = new CheckersGame('board-canvas');
-      }
-      checkersGame.init(STATE.game.id, ws);
-      checkersGame.setMyColor(msg.color);
-    } else if (checkersGame) {
-      checkersGame.handleMessage(msg);
+    if (STATE.currentGameType === 'crossword') {
+      handleCrosswordMessage(msg, ws);
+    } else {
+      handleCheckersMessage(msg, ws);
     }
   };
   ws.onclose = () => {
     console.log('WebSocket closed');
   };
+}
+
+function handleCheckersMessage(msg, ws) {
+  if (msg.type === 'color') {
+    STATE.game.myColor = msg.color;
+    if (!checkersGame) {
+      checkersGame = new CheckersGame('board-canvas');
+    }
+    checkersGame.init(STATE.game.id, ws);
+    checkersGame.setMyColor(msg.color);
+  } else if (checkersGame) {
+    checkersGame.handleMessage(msg);
+  }
+}
+
+function handleCrosswordMessage(msg, ws) {
+  if (msg.type === 'color') {
+    STATE.game.myColor = msg.color;
+  } else if (msg.type === 'crossword_init') {
+    if (!crosswordGame) {
+      crosswordGame = new CrosswordGame('board-wrapper');
+    }
+    crosswordGame.ws = ws;
+    crosswordGame.onGameComplete = () => {
+      const el = document.getElementById('timer');
+      const turnIndicator = document.getElementById('turn-indicator');
+      if (turnIndicator) turnIndicator.textContent = 'Parabéns, você completou!';
+      if (el && crosswordGame.startTime) {
+        el.textContent = formatTime(Date.now() - crosswordGame.startTime);
+      }
+    };
+    crosswordGame.init(msg);
+  } else if (crosswordGame) {
+    crosswordGame.handleMessage(msg);
+  }
 }
 
 init();
