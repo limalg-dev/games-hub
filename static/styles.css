@@ -374,3 +374,70 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   .crossword-grid input { font-size: 0.8rem; }
   .cell-number { font-size: 0.45rem; }
 }
+
+/* ===== RESPONSIVE POLISH & ACCESSIBILITY ===== */
+@media (max-width: 768px) {
+  .featured-spotlight {
+    padding: 1.5rem;
+  }
+  .featured-spotlight .featured-info h3 {
+    font-size: clamp(1.4rem, 4vw, 1.8rem);
+  }
+  .featured-spotlight .featured-desc {
+    font-size: 0.9rem;
+  }
+  .featured-spotlight .btn-play {
+    padding: 0.875rem;
+    font-size: 1rem;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .collection-see-all {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* Focus-visible styles for accessibility */
+.btn-play:focus-visible,
+.category-tab:focus-visible,
+.category-toggle:focus-visible,
+.collection-see-all:focus-visible,
+.modal-close:focus-visible,
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-danger:focus-visible,
+.btn-back:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Ensure badge contrast on card background */
+.badge.ai {
+  background: rgba(233, 69, 96, 0.2);
+  color: var(--accent-hover);
+  border-color: var(--accent);
+}
+.badge-novo {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.badge-popular {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: var(--bg-primary);
+}
+.badge-destaque {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #fff;
+}
+
+/* Touch scrolling improvement for collection sliders */
+.collection-slider {
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+}

@@ -461,6 +461,10 @@ categoryTabs.forEach(tab => {
     activeCollectionFilteredGames = null;
     categoryTabs.forEach(t => t.classList.toggle('active', t === tab));
     renderGameGrid(activeCategory);
+    if (window.innerWidth <= 768) {
+      categoryList.classList.remove('open');
+      categoryToggle.setAttribute('aria-expanded', 'false');
+    }
   });
 });
 
