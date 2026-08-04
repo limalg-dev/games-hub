@@ -69,6 +69,7 @@ const GAMES = {
     players: 2,
     modes: ['Local', 'AI', 'Online'],
     category: ['tabuleiro', 'estrategia', 'classicos'],
+    collections: ['2-jogadores', 'classicos-atemporais'],
     duration: '5–15 min',
     difficulty: ['Easy', 'Medium', 'Hard'],
     rating: 4.8,
@@ -90,6 +91,7 @@ const GAMES = {
     players: 1,
     modes: ['Solo', 'Timer', 'Ranking'],
     category: ['palavras', 'classicos'],
+    collections: ['treine-sua-mente', 'classicos-atemporais'],
     duration: '5–20 min',
     difficulty: ['Fácil', 'Médio', 'Difícil'],
     rating: 4.5,
@@ -110,6 +112,8 @@ const GAMES = {
     shortDesc: 'Cruza palavras com dicas. Solo ou online.',
     players: '1–2',
     modes: ['Solo', 'Online'],
+    category: ['palavras', 'classicos'],
+    collections: ['treine-sua-mente'],
     duration: '5–25 min',
     difficulty: ['Fácil', 'Médio', 'Difícil'],
     rating: 4.7,
@@ -123,6 +127,14 @@ const GAMES = {
       'Complete todo o grid para vencer. Dois jogadores podem resolver juntos'
     ]
   }
+};
+
+// ===== COLLECTIONS DATA =====
+const COLLECTIONS = {
+  'treine-sua-mente':      { title: 'Treine sua Mente',    desc: 'Desafios que exercitam o cérebro' },
+  'acao-pura':             { title: 'Ação Pura',           desc: 'Jogos rápidos e intensos' },
+  '2-jogadores':           { title: '2 Jogadores',         desc: 'Jogue com um amigo' },
+  'classicos-atemporais':  { title: 'Clássicos Atemporais', desc: 'Jogos que todo mundo conhece' }
 };
 
 // ===== VIEW MANAGEMENT =====
@@ -440,6 +452,7 @@ const categoryToggle = $('.category-toggle');
 categoryTabs.forEach(tab => {
   tab.addEventListener('click', () => {
     activeCategory = tab.dataset.category;
+    activeCollectionFilteredGames = null;
     categoryTabs.forEach(t => t.classList.toggle('active', t === tab));
     renderGameGrid(activeCategory);
   });
@@ -455,6 +468,7 @@ function init() {
   renderGameGrid();
   renderFeaturedSpotlight();
   renderFeaturedSecondary();
+  renderCollections();
 }
 
 function formatPlays(plays) {
@@ -528,10 +542,76 @@ featuredSection?.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-game]');
   if (btn) openModal(btn.dataset.game);
 });
+// ===== COLLECTIONS =====
+const collectionsContainer = $('.collections');
+let activeCollectionFilteredGames = null;
+
+function gamesForCollection(category, collectFilter) {
+  return Object.values(GAMES).filter(game => {
+    if (collectFilter) {
+      return game.collections && game.collections.includes(collectFilter);
+    }
+    return !category || category === 'all' || (game.category && game.category.includes(category));
+  });
+}
+
+function renderCollections() {
+  if (!collectionsContainer) return;
+  collectionsContainer.innerHTML = Object.keys(COLLECTIONS).map(key => {
+    const games = Object.values(GAMES).filter(g => g.collections && g.collections.includes(key));
+    if (games.length === 0) return '';
+    const col = COLLECTIONS[key];
+    return `
+      <section class="collection-section" data-collection-section="${key}">
+        <div class="collection-title">
+          <div>
+            <h2>${col.title}</h2>
+            <p>${col.desc}</p>
+          </div>
+          <button class="collection-see-all" data-collection="${key}">Ver todos</button>
+        </div>
+        <div class="collection-slider">
+          ${games.map(game => `
+            <article class="game-card collection-card" data-game="${game.id}">
+              <div class="game-thumb">
+                <svg class="game-preview" viewBox="0 0 80 80" width="80" height="80">
+                  ${generateGamePreviewSVG(game.id)}
+                </svg>
+              </div>
+              <div class="game-info">
+                <h3>${game.title}</h3>
+                <p class="game-desc">${game.shortDesc}</p>
+                <div class="game-meta">
+                  <span class="badge">${game.players} Players</span>
+                  ${game.id === 'checkers' ? '<span class="badge ai">AI Opponent</span>' : ''}
+                </div>
+              </div>
+              <button class="btn-play" data-game="${game.id}">Play</button>
+            </article>
+          `).join('')}
+        </div>
+      </section>
+    `;
+  }).filter(Boolean).join('');
+}
+
+collectionsContainer?.addEventListener('click', (e) => {
+  const collectBtn = e.target.closest('[data-collection]');
+  if (collectBtn) {
+    activeCollectionFilteredGames = collectBtn.dataset.collection;
+    activeCategory = 'all';
+    categoryTabs.forEach(t => t.classList.toggle('active', t.dataset.category === 'all'));
+    renderGameGrid();
+    const grid = document.getElementById('game-grid');
+    if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  const card = e.target.closest('[data-game]');
+  if (card) openModal(card.dataset.game);
+});
+
 function renderGameGrid(category) {
-  const games = Object.values(GAMES).filter(game =>
-    !category || category === 'all' || (game.category && game.category.includes(category))
-  );
+  const games = gamesForCollection(category, activeCollectionFilteredGames);
   gameGrid.innerHTML = games.map(game => `
     <article class="game-card" data-game="${game.id}">
       <div class="game-thumb">

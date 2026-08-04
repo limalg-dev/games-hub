@@ -139,6 +139,24 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .featured-secondary:empty { display: none; }
 .featured-spotlight .btn-play { padding: 1rem; font-size: 1.1rem; max-width: 220px; }
 
+/* ===== COLLECTIONS ===== */
+.collections { max-width: 1200px; margin: 0 auto; padding: 2rem 2rem 0; display: grid; gap: 2rem; }
+.collection-section { display: grid; gap: 1rem; }
+.collection-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; }
+.collection-title h2 { font-size: 1.4rem; }
+.collection-title p { color: var(--text-secondary); font-size: 0.9rem; }
+.collection-see-all { flex: 0 0 auto; padding: 0.5rem 1rem; border-radius: 999px; background: transparent; border: 1px solid var(--accent); color: var(--accent); font-weight: 500; font-size: 0.85rem; transition: background var(--transition), color var(--transition); }
+.collection-see-all:hover { background: var(--accent); color: #fff; }
+.collection-slider { display: flex; overflow-x: auto; gap: 1rem; padding: 0.25rem 0 1rem; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.collection-slider::-webkit-scrollbar { display: none; }
+.collection-card { scroll-snap-align: start; }
+.collection-slider .game-card { flex: 0 0 auto; width: 200px; }
+
+@media (max-width: 768px) {
+  .collections { padding: 1.5rem 1rem 0; gap: 1.5rem; }
+  .collection-slider .game-card { width: 180px; }
+}
+
 /* ===== MODAL ===== */
 .modal { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 1rem; }
 .modal.hidden { display: none; }
