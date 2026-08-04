@@ -68,6 +68,7 @@ const GAMES = {
     shortDesc: 'Classic 8×8 draughts. Play vs AI or friend.',
     players: 2,
     modes: ['Local', 'AI', 'Online'],
+    category: ['tabuleiro', 'estrategia', 'classicos'],
     duration: '5–15 min',
     difficulty: ['Easy', 'Medium', 'Hard'],
     rules: [
@@ -85,6 +86,7 @@ const GAMES = {
     shortDesc: 'Encontre palavras na grade. Várias categorias.',
     players: 1,
     modes: ['Solo', 'Timer', 'Ranking'],
+    category: ['palavras', 'classicos'],
     duration: '5–20 min',
     difficulty: ['Fácil', 'Médio', 'Difícil'],
     rules: [
@@ -420,12 +422,34 @@ async function startNewGame() {
   await startGame(STATE.currentGameType || STATE.selectedGame);
 }
 
+// ===== LANDING CATEGORY NAV =====
+let activeCategory = 'all';
+const categoryTabs = $$('.category-tab');
+const categoryList = $('.category-list');
+const categoryToggle = $('.category-toggle');
+
+categoryTabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    activeCategory = tab.dataset.category;
+    categoryTabs.forEach(t => t.classList.toggle('active', t === tab));
+    renderGameGrid(activeCategory);
+  });
+});
+
+categoryToggle?.addEventListener('click', () => {
+  const open = categoryList.classList.toggle('open');
+  categoryToggle.setAttribute('aria-expanded', String(open));
+});
+
 // ===== INIT =====
 function init() {
   renderGameGrid();
 }
-function renderGameGrid() {
-  gameGrid.innerHTML = Object.values(GAMES).map(game => `
+function renderGameGrid(category) {
+  const games = Object.values(GAMES).filter(game =>
+    !category || category === 'all' || (game.category && game.category.includes(category))
+  );
+  gameGrid.innerHTML = games.map(game => `
     <article class="game-card" data-game="${game.id}">
       <div class="game-thumb">
         <svg class="game-preview" viewBox="0 0 80 80" width="80" height="80">

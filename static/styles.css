@@ -37,6 +37,23 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .hero h1 { font-size: clamp(2.5rem, 6vw, 4rem); font-weight: 700; margin-bottom: 0.5rem; background: linear-gradient(135deg, var(--text-primary), var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 .hero-tagline { font-size: clamp(1rem, 2.5vw, 1.25rem); color: var(--text-secondary); max-width: 600px; margin: 0 auto; }
 
+/* ===== CATEGORY NAV ===== */
+.category-nav { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 0.75rem 1rem; gap: 0.75rem; }
+.category-list { display: flex; gap: 0.5rem; overflow-x: auto; scrollbar-width: none; list-style: none; margin: 0; padding: 0; }
+.category-list::-webkit-scrollbar { display: none; }
+.category-tab { padding: 0.5rem 1rem; border-radius: 999px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); font-weight: 500; font-size: 0.9rem; white-space: nowrap; transition: border-color var(--transition), color var(--transition), background var(--transition); }
+.category-tab:hover { border-color: var(--accent); color: var(--accent-hover); }
+.category-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.category-toggle { display: none; padding: 0.5rem 1rem; border-radius: 999px; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); font-weight: 500; font-size: 0.9rem; }
+
+@media (max-width: 768px) {
+  .category-nav { justify-content: space-between; }
+  .category-toggle { display: block; }
+  .category-list { display: none; position: absolute; top: 100%; left: 0; right: 0; flex-direction: column; align-items: stretch; gap: 0.25rem; background: var(--bg-secondary); border-bottom: 1px solid var(--border); padding: 0.5rem 1rem; max-height: 60vh; overflow-y: auto; }
+  .category-list.open { display: flex; }
+  .category-tab { text-align: left; border-radius: calc(var(--radius) - 4px); }
+}
+
 /* ===== GAME GRID ===== */
 .game-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; padding: 2rem; max-width: 1200px; margin: 0 auto; }
 .game-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; display: flex; flex-direction: column; transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition); position: relative; overflow: hidden; }
