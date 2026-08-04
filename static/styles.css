@@ -61,13 +61,31 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .game-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: var(--accent); }
 .game-card:hover::before { opacity: 1; }
 .game-thumb { width: 100%; aspect-ratio: 1; border-radius: calc(var(--radius) - 4px); background: linear-gradient(135deg, var(--wood-dark), var(--wood-light)); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; position: relative; overflow: hidden; }
+.game-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.game-thumb svg { width: 100%; height: 100%; display: block; }
 .checkers-preview { width: 80%; height: 80%; display: block; }
 .game-info { flex: 1; display: flex; flex-direction: column; }
 .game-info h3 { font-size: 1.25rem; margin-bottom: 0.5rem; }
 .game-desc { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem; flex: 1; }
 .game-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
-.badge { font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: 999px; background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* ===== ENHANCED GAME CARDS ===== */
+.game-badges { position: absolute; top: 1rem; right: 1rem; z-index: 2; display: flex; flex-direction: column; gap: 0.25rem; pointer-events: none; }
+.badge { font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: 999px; background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
 .badge.ai { background: rgba(233, 69, 96, 0.15); color: var(--accent); border-color: var(--accent); }
+.badge-novo { background: var(--accent); border-color: var(--accent); color: #fff; }
+.badge-popular { background: var(--gold); border-color: var(--gold); color: var(--bg-primary); }
+.badge-destaque { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff; }
+
+.game-hover-overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; text-align: center; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; z-index: 10; border-radius: var(--radius); }
+.game-card:hover .game-hover-overlay { opacity: 1; pointer-events: auto; }
+.game-hover-overlay h3 { font-size: 1.25rem; margin-bottom: 0.5rem; color: #fff; }
+.game-hover-overlay .game-desc { color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem; max-width: 260px; }
+.game-hover-meta { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; color: var(--text-secondary); font-size: 0.85rem; }
+.game-hover-meta span { display: flex; align-items: center; gap: 0.35rem; }
+.game-hover-meta .val { color: var(--text-primary); font-weight: 600; }
+.game-hover-overlay .btn-play { width: auto; min-width: 160px; padding: 0.875rem 1.5rem; font-size: 1rem; }
+
 .btn-play { width: 100%; padding: 0.75rem; background: var(--accent); color: white; border-radius: calc(var(--radius) - 4px); font-weight: 600; font-size: 1rem; transition: background var(--transition), transform 0.1s; }
 .btn-play:hover { background: var(--accent-hover); transform: scale(1.02); }
 .btn-play:active { transform: scale(0.98); }
@@ -114,17 +132,6 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
 }
 .featured-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: var(--accent); }
-.featured-thumb {
-  width: 100%;
-  aspect-ratio: 16 / 9;
-  border-radius: calc(var(--radius) - 4px);
-  background: var(--bg-secondary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 1rem;
-  overflow: hidden;
-}
 .featured-info { flex: 1; display: flex; flex-direction: column; }
 .featured-info h3 { font-size: 1.4rem; margin-bottom: 0.5rem; }
 .featured-spotlight .featured-info h3 { font-size: clamp(1.6rem, 3vw, 2.2rem); }
@@ -138,6 +145,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 .featured-secondary:empty { display: none; }
 .featured-spotlight .btn-play { padding: 1rem; font-size: 1.1rem; max-width: 220px; }
+
+/* .featured-thumb removed (dead CSS from Phase 2) */
 
 /* ===== COLLECTIONS ===== */
 .collections { max-width: 1200px; margin: 0 auto; padding: 2rem 2rem 0; display: grid; gap: 2rem; }

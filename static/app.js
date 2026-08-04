@@ -75,6 +75,8 @@ const GAMES = {
     rating: 4.8,
     plays: 125000,
     featured: true,
+    badge: 'destaque',
+    thumbnail: '',
     rules: [
       'Move diagonally forward on dark squares only',
       'Capture by jumping over an adjacent opponent piece',
@@ -97,6 +99,8 @@ const GAMES = {
     rating: 4.5,
     plays: 98000,
     featured: false,
+    badge: 'popular',
+    thumbnail: '',
     rules: [
       'Palavras podem estar horizontais, verticais ou diagonais',
       'Podem ser lidas da esquerda para direita ou vice-versa',
@@ -119,6 +123,8 @@ const GAMES = {
     rating: 4.7,
     plays: 64000,
     featured: false,
+    badge: 'novo',
+    thumbnail: '',
     rules: [
       'Clique numa dica ou célula para selecionar a palavra',
       'Digite a letra em cada célula; letras corretas ficam verdes',
@@ -477,6 +483,42 @@ function formatPlays(plays) {
   return String(plays);
 }
 
+function getBadgeLabel(badge) {
+  const labels = { 'novo': 'Novo', 'popular': 'Popular', 'destaque': 'Em Destaque' };
+  return labels[badge] || '';
+}
+
+function getBadgeClass(badge) {
+  const classes = { 'novo': 'badge-novo', 'popular': 'badge-popular', 'destaque': 'badge-destaque' };
+  return classes[badge] || '';
+}
+
+function renderBadge(game) {
+  if (!game.badge) return '';
+  return `<div class="game-badges"><span class="badge ${getBadgeClass(game.badge)}">${getBadgeLabel(game.badge)}</span></div>`;
+}
+
+function renderThumbnail(game) {
+  if (game.thumbnail) {
+    return `<img src="${game.thumbnail}" alt="${game.title}" onerror="this.onerror=null; this.outerHTML='<svg class=\\'game-preview\\' viewBox=\\'0 0 80 80\\' width=\\'80\\' height=\\'80\\'>' + generateGamePreviewSVG('${game.id}') + '</svg>'">`;
+  }
+  return `<svg class="game-preview" viewBox="0 0 80 80" width="80" height="80">${generateGamePreviewSVG(game.id)}</svg>`;
+}
+
+function renderHoverOverlay(game) {
+  return `
+    <div class="game-hover-overlay">
+      <h3>${game.title}</h3>
+      <p class="game-desc">${game.shortDesc}</p>
+      <div class="game-hover-meta">
+        <span>★ <span class="val">${game.rating.toFixed(1)}</span></span>
+        <span><span class="val">${formatPlays(game.plays)}</span> plays</span>
+      </div>
+      <button class="btn-play" data-game="${game.id}">Jogar</button>
+    </div>
+  `;
+}
+
 function renderFeaturedSpotlight() {
   const container = $('#featured-spotlight');
   if (!container) return;
@@ -489,8 +531,8 @@ function renderFeaturedSpotlight() {
   container.innerHTML = `
     <div class="featured-card featured-spotlight">
       <div class="featured-badges">
+        ${renderBadge(game)}
         <span class="badge">${game.players} Players</span>
-        ${game.id === 'checkers' ? '<span class="badge ai">AI Opponent</span>' : ''}
         ${game.duration ? `<span class="badge">${game.duration}</span>` : ''}
       </div>
       <div class="featured-info">
@@ -518,20 +560,21 @@ function renderFeaturedSecondary() {
     return;
   }
   container.innerHTML = games.map(game => `
-    <article class="featured-card" data-game="${game.id}">
-      <div class="featured-info">
-        <div class="featured-badges">
-          <span class="badge">${game.players} Players</span>
-          ${game.duration ? `<span class="badge">${game.duration}</span>` : ''}
-        </div>
-        <h3>${game.title}</h3>
-        <p class="featured-desc">${game.shortDesc}</p>
-        <div class="featured-meta">
-          <span>★ <span class="val">${game.rating.toFixed(1)}</span></span>
-          <span><span class="val">${formatPlays(game.plays)}</span> plays</span>
-        </div>
-        <button class="btn-play" data-game="${game.id}">Play</button>
+    <article class="game-card" data-game="${game.id}">
+      <div class="game-thumb">
+        ${renderThumbnail(game)}
       </div>
+      ${renderBadge(game)}
+      <div class="game-info">
+        <h3>${game.title}</h3>
+        <p class="game-desc">${game.shortDesc}</p>
+        <div class="game-meta">
+          <span class="badge">${game.players} Players</span>
+          <span class="badge">${game.duration}</span>
+        </div>
+      </div>
+      <button class="btn-play" data-game="${game.id}">Play</button>
+      ${renderHoverOverlay(game)}
     </article>
   `).join('');
 }
@@ -574,19 +617,18 @@ function renderCollections() {
           ${games.map(game => `
             <article class="game-card collection-card" data-game="${game.id}">
               <div class="game-thumb">
-                <svg class="game-preview" viewBox="0 0 80 80" width="80" height="80">
-                  ${generateGamePreviewSVG(game.id)}
-                </svg>
+                ${renderThumbnail(game)}
               </div>
+              ${renderBadge(game)}
               <div class="game-info">
                 <h3>${game.title}</h3>
                 <p class="game-desc">${game.shortDesc}</p>
                 <div class="game-meta">
                   <span class="badge">${game.players} Players</span>
-                  ${game.id === 'checkers' ? '<span class="badge ai">AI Opponent</span>' : ''}
                 </div>
               </div>
               <button class="btn-play" data-game="${game.id}">Play</button>
+              ${renderHoverOverlay(game)}
             </article>
           `).join('')}
         </div>
@@ -615,20 +657,19 @@ function renderGameGrid(category) {
   gameGrid.innerHTML = games.map(game => `
     <article class="game-card" data-game="${game.id}">
       <div class="game-thumb">
-        <svg class="game-preview" viewBox="0 0 80 80" width="80" height="80">
-          ${generateGamePreviewSVG(game.id)}
-        </svg>
+        ${renderThumbnail(game)}
       </div>
+      ${renderBadge(game)}
       <div class="game-info">
         <h3>${game.title}</h3>
         <p class="game-desc">${game.shortDesc}</p>
         <div class="game-meta">
           <span class="badge">${game.players} Players</span>
-          ${game.id === 'checkers' ? '<span class="badge ai">AI Opponent</span>' : ''}
           <span class="badge">${game.duration}</span>
         </div>
       </div>
       <button class="btn-play" data-game="${game.id}">Play</button>
+      ${renderHoverOverlay(game)}
     </article>
   `).join('');
 }
