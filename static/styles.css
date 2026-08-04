@@ -200,3 +200,66 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (max-width: 480px) {
   .wordsearch-grid td { width: 30px; height: 30px; font-size: 0.8rem; }
 }
+
+/* ===== CROSSWORD ===== */
+.crossword-grid { border-collapse: collapse; margin: 0 auto; background: var(--bg-card); }
+.crossword-grid td {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid var(--border);
+}
+.crossword-grid td.white { background: #fdfbf7; cursor: pointer; }
+.crossword-grid td.black { background: var(--bg-card); }
+.crossword-grid td.white.highlighted { background: rgba(233, 69, 96, 0.25); }
+.crossword-grid td.white.active { outline: 2px solid var(--accent); }
+.crossword-grid td.white.filled { background: rgba(74, 222, 128, 0.25); }
+.crossword-grid td.white.wrong { background: rgba(255, 69, 96, 0.6); }
+.crossword-grid input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: transparent;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--bg-primary);
+  text-transform: uppercase;
+  caret-color: var(--accent);
+}
+.crossword-grid input:focus { outline: none; }
+.cell-number {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: var(--bg-primary);
+  z-index: 2;
+  pointer-events: none;
+}
+.clues-panel { overflow-y: auto; }
+.clue-list { list-style: none; margin: 0; padding: 0; }
+.clue {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 0.5rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: background var(--transition), color var(--transition);
+}
+.clue:hover { background: var(--bg-secondary); color: var(--text-primary); }
+.clue.active { background: var(--bg-secondary); color: var(--text-primary); }
+.clue-number { color: var(--accent); font-weight: 700; }
+.clue-text { line-height: 1.3; }
+
+@media (max-width: 640px) {
+  .crossword-grid td { width: 26px; height: 26px; }
+  .crossword-grid input { font-size: 0.8rem; }
+  .cell-number { font-size: 0.45rem; }
+}

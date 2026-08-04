@@ -47,3 +47,12 @@ def test_words_are_placed():
     result = generate_crossword(words, difficulty=1)
     grid_text = "".join(cell or "" for row in result["grid"] for cell in row)
     assert "PYTHON" in grid_text or "JAVA" in grid_text or "CODING" in grid_text
+
+def test_word_count_targets():
+    pool = [{"word": w, "hint": f"dica {i}"} for i, w in enumerate(["ALGORITHM", "DATABASE", "PYTHON", "BROWSER", "NETWORK", "MONITOR", "SERVER", "MOUSE", "BYTE", "LOOP", "PIXEL", "CLOUD", "WIFI", "JAVA", "FROG", "LION", "BEAR", "GOLF", "SWIM", "RUN", "JUDO", "SURF", "SKATE", "TENNIS"])]
+    r1 = generate_crossword(pool, difficulty=1)
+    r2 = generate_crossword(pool, difficulty=2)
+    r3 = generate_crossword(pool, difficulty=3)
+    assert 6 <= r1["words_placed"] <= 10
+    assert 10 <= r2["words_placed"] <= 15
+    assert 15 <= r3["words_placed"] <= 22
