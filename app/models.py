@@ -1,5 +1,6 @@
 from __future__ import annotations
-from sqlmodel import SQLModel, Field
+from sqlmodel import SQLModel, Field, Column
+import json
 from typing import Optional
 
 class Game(SQLModel, table=True):
@@ -7,6 +8,8 @@ class Game(SQLModel, table=True):
     player1: Optional[str] = None
     player2: Optional[str] = None
     status: str = Field(default="waiting")
+    game_type: str = Field(default="checkers")
+    puzzle_data: Optional[str] = Field(default=None)  # JSON string for crossword puzzle data
 
 class Move(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
