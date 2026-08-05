@@ -47,13 +47,19 @@
         <p id="modal-desc"></p>
         <dl class="modal-specs" id="modal-specs"></dl>
         <div class="modal-rules" id="modal-rules"></div>
-        <button class="btn-primary btn-play-large" id="modal-play-btn">Jogar Agora</button>
+        <a class="btn-primary btn-play-large" id="modal-play-btn" target="_blank" rel="noopener" href="/" aria-label="Jogar Agora (abre em nova aba)">Jogar Agora</a>
       </div>
     </div>
   </div>
 
   <!-- ===== GAME VIEW ===== -->
   <section id="game-view" class="page hidden" aria-label="Game in progress">
+    <div id="play-gate" class="play-gate hidden">
+      <div class="play-gate-inner">
+        <h2 id="play-gate-title"></h2>
+        <button class="btn-primary btn-play-large" id="play-gate-btn">Play</button>
+      </div>
+    </div>
     <header class="game-header">
       <button class="btn-back" id="btn-back-to-landing" aria-label="Back to game selection">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>

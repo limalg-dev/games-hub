@@ -3,12 +3,14 @@ import { renderPreview } from '/games/checkers/static/preview.js';
 import { CheckersGame } from '/games/checkers/static/board.js';
 import { CrosswordGame } from '/games/crossword/static/board.js';
 import { DIFFICULTIES } from '/games/wordsearch/static/words.js';
+import { buildPlayUrl, parsePlayUrl } from '/static/play-url.js';
 
 // ===== STATE =====
 const STATE = {
   currentView: 'landing',
   selectedGame: null,
   currentGameType: null,
+  playConfig: null,
   game: {
     id: null,
     ws: null,
@@ -144,20 +146,41 @@ const COLLECTIONS = {
 };
 
 // ===== VIEW MANAGEMENT =====
+// A visibilidade de uma `.page` vem só da classe `active`
+// (`.page { display: none }` / `.page.active { display: block }`). Portanto
+// esconder uma página exige REMOVER `active`: marcar `hidden` sozinho não
+// esconde nada, e era isso que fazia a landing continuar renderizada por cima
+// do jogo em /play/*.
+function setPageVisible(page, visible) {
+  if (!page) return;
+  page.classList.toggle('active', visible);
+  page.classList.toggle('hidden', !visible);
+}
+
 function showView(view) {
-  landing.classList.add('hidden');
-  modal.classList.add('hidden');
-  gameView.classList.add('hidden');
   STATE.currentView = view;
-  if (view === 'landing') {
-    landing.classList.remove('hidden');
-    landing.classList.add('active');
-  } else if (view === 'modal') {
-    modal.classList.remove('hidden');
-  } else if (view === 'game') {
-    gameView.classList.remove('hidden');
-    gameView.classList.add('active');
+  // O modal é uma sobreposição sobre a landing, não uma página própria: com ele
+  // aberto a página que fica atrás continua sendo a landing.
+  const gameActive = view === 'game';
+  setPageVisible(gameView, gameActive);
+  setPageVisible(landing, !gameActive);
+  modal.classList.toggle('hidden', view !== 'modal');
+}
+
+function refreshPlayLink() {
+  if (!modalPlayBtn || !STATE.selectedGame) return;
+  const difficulty =
+    document.querySelector('input[name="ws-difficulty"]:checked')?.value ||
+    document.querySelector('input[name="cw-difficulty"]:checked')?.value;
+  const category = document.getElementById('ws-category')?.value;
+  const url = buildPlayUrl(STATE.selectedGame, { difficulty, category });
+  // buildPlayUrl devolve null para um jogo fora de PLAYABLE_GAMES; sem href o
+  // link deixa de ser acionável em vez de levar a um 404.
+  if (!url) {
+    modalPlayBtn.removeAttribute('href');
+    return;
   }
+  modalPlayBtn.href = url;
 }
 
 function openModal(gameId) {
@@ -227,7 +250,8 @@ function openModal(gameId) {
     // Render checkers preview
     renderPreview('modal-board-preview');
   }
-  
+
+  refreshPlayLink();
   showView('modal');
 }
 
@@ -263,38 +287,58 @@ async function startGame(gameId) {
 }
 
 function getWordSearchConfig() {
-  const difficulty = document.querySelector('input[name="ws-difficulty"]:checked')?.value || 'easy';
-  const category = document.getElementById('ws-category')?.value || 'random';
+  const play = STATE.playConfig;
+  const difficulty = play?.difficulty
+    || document.querySelector('input[name="ws-difficulty"]:checked')?.value
+    || 'easy';
+  const category = play?.category
+    || document.getElementById('ws-category')?.value
+    || 'random';
   const diff = DIFFICULTIES[difficulty];
   return { ...diff, difficulty, category };
 }
 
-async function startWordSearch(config) {
+let wordSearchTimer = null;
+
+async function prepareWordSearch(config) {
   closeModal();
   showView('game');
   STATE.currentGameType = 'wordsearch';
   STATE.game.id = 'wordsearch-' + Date.now();
-  
-  const { startTimer, stopTimer, saveScore } = await import('/games/wordsearch/static/timer.js');
+
+  wordSearchTimer = await import('/games/wordsearch/static/timer.js');
   const { WordSearchGame } = await import('/games/wordsearch/static/board.js');
   wordSearchGame = new WordSearchGame({ containerId: 'board-wrapper', ...config });
-  wordSearchGame.onGameComplete = (time, difficulty) => {
-    stopTimer();
-    saveScore(config, time * 1000);
+  wordSearchGame.onGameComplete = (time) => {
+    wordSearchTimer.stopTimer();
+    wordSearchTimer.saveScore(config, time * 1000);
     alert(`Parabéns! Você completou em ${formatTime(time * 1000)}`);
   };
   wordSearchGame.init();
-  
   updateGameViewForWordSearch();
-  
-  startTimer((seconds) => {
+}
+
+function beginWordSearch() {
+  // `elapsedTime` vive no módulo do timer, que é importado uma única vez por
+  // aba. Sem o reset, um "New Game" retomaria o relógio da partida anterior.
+  wordSearchTimer.resetTimer();
+  wordSearchGame.start();
+  wordSearchTimer.startTimer((seconds) => {
     const el = document.getElementById('timer');
     if (el) el.textContent = formatTime(seconds * 1000);
   });
 }
 
-async function startCrossword() {
-  const difficulty = document.querySelector('input[name="cw-difficulty"]:checked')?.value || 'easy';
+async function startWordSearch(config) {
+  await prepareWordSearch(config);
+  beginWordSearch();
+}
+
+async function startCrossword(difficultyFromUrl) {
+  const difficulty = difficultyFromUrl
+    || STATE.playConfig?.difficulty
+    || document.querySelector('input[name="cw-difficulty"]:checked')?.value
+    || 'easy';
   closeModal();
   showView('game');
   STATE.currentGameType = 'crossword';
@@ -402,11 +446,18 @@ gameGrid.addEventListener('click', (e) => {
 // Modal
 modalClose?.addEventListener('click', closeModal);
 modalBackdrop?.addEventListener('click', closeModal);
-modalPlayBtn?.addEventListener('click', () => startGame(STATE.selectedGame));
+modalRules.addEventListener('change', refreshPlayLink);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal(); });
 
 // Game view
-btnBack?.addEventListener('click', backToLanding);
+btnBack?.addEventListener('click', () => {
+  // Uma aba aberta em /play não tem landing atrás dela para revelar.
+  if (parsePlayUrl(location.pathname, location.search)) {
+    location.href = '/';
+    return;
+  }
+  backToLanding();
+});
 btnNewGame?.addEventListener('click', () => { startNewGame(); });
 btnResign?.addEventListener('click', () => { /* TODO: resign logic */ });
 sidebarToggle?.addEventListener('click', () => sidebar.classList.toggle('open'));
@@ -463,6 +514,68 @@ function init() {
   renderFeaturedSpotlight();
   renderFeaturedSecondary();
   renderCollections();
+
+  const play = parsePlayUrl(location.pathname, location.search);
+  if (play) void openPlayGate(play);
+}
+
+async function openPlayGate(play) {
+  const gate = document.getElementById('play-gate');
+  const title = document.getElementById('play-gate-title');
+  const button = document.getElementById('play-gate-btn');
+  if (!gate || !button) return;
+  STATE.selectedGame = play.game;
+  STATE.currentGameType = play.game;
+  STATE.playConfig = play;
+  showView('game');
+  // parsePlayUrl já filtra por PLAYABLE_GAMES, mas as duas listas são
+  // independentes: sem o `?.` uma divergência viraria um TypeError dentro de
+  // init(), que derrubaria a renderização da landing inteira, inclusive em /.
+  if (title) title.textContent = GAMES[play.game]?.title || play.game;
+  gate.classList.remove('hidden');
+
+  // O listener entra ANTES de qualquer await: um clique durante a preparação
+  // não pode ser engolido, e uma falha na preparação não pode deixar o botão
+  // sem handler nenhum.
+  let ready = false;
+  let started = false;
+  button.disabled = true;
+  button.addEventListener('click', () => {
+    if (!ready || started) return;
+    started = true;
+    gate.classList.add('hidden');
+    if (play.game === 'wordsearch') {
+      beginWordSearch();
+    } else if (play.game === 'crossword') {
+      startCrossword(play.difficulty);
+    } else {
+      startGame(play.game);
+    }
+  });
+
+  try {
+    if (play.game === 'wordsearch') {
+      // Só o wordsearch tem o que mostrar antes do Play: o grid montado aqui é
+      // o mesmo que segue em jogo depois.
+      await prepareWordSearch(getWordSearchConfig());
+    } else if (play.game === 'crossword') {
+      // Sem isto o gate translúcido deixa legível a UI de damas ("White to
+      // move", "Captured (White)", "Move History") numa aba de cruzadas.
+      setupCrosswordView();
+      const indicator = document.getElementById('turn-indicator');
+      if (indicator) indicator.textContent = '';
+    }
+  } catch (err) {
+    console.error('[play] falha ao preparar o jogo', err);
+    if (title) title.textContent = 'Não foi possível carregar o jogo';
+    button.textContent = 'Recarregar';
+    button.disabled = false;
+    button.addEventListener('click', () => location.reload());
+    return;
+  }
+
+  ready = true;
+  button.disabled = false;
 }
 
 function formatPlays(plays) {
