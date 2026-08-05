@@ -54,6 +54,15 @@ for game_name in os.listdir(games_dir):
 async def root():
     return FileResponse("static/index.html")
 
+PLAYABLE_GAMES = ("checkers", "wordsearch", "crossword")
+
+
+@app.get("/play/{game}")
+async def play(game: str):
+    if game not in PLAYABLE_GAMES:
+        raise HTTPException(status_code=404, detail="Unknown game")
+    return FileResponse("static/index.html")
+
 @app.post("/api/words", response_model=WordRead)
 async def create_word(word_in: WordCreate):
     with Session(engine) as session:
