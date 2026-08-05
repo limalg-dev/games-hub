@@ -321,6 +321,7 @@ async function startWordSearch(config) {
 
 async function startCrossword(difficultyFromUrl) {
   const difficulty = difficultyFromUrl
+    || STATE.playConfig?.difficulty
     || document.querySelector('input[name="cw-difficulty"]:checked')?.value
     || 'easy';
   closeModal();
