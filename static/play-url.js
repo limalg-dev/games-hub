@@ -24,7 +24,12 @@ export function buildPlayUrl(game, options = {}) {
 export function parsePlayUrl(pathname, search = '') {
   const match = /^\/play\/([^/?#]+)\/?$/.exec(pathname || '');
   if (!match) return null;
-  const game = decodeURIComponent(match[1]);
+  let game;
+  try {
+    game = decodeURIComponent(match[1]);
+  } catch {
+    return null;
+  }
   if (!PLAYABLE_GAMES.includes(game)) return null;
   const params = new URLSearchParams(search);
   return {

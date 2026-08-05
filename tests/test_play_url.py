@@ -25,6 +25,7 @@ const results = {
   parsedBogusValues: parsePlayUrl('/play/wordsearch', '?difficulty=impossivel&category=nada'),
   parsedLanding: parsePlayUrl('/'),
   parsedUnknown: parsePlayUrl('/play/xadrez'),
+  parsedMalformed: parsePlayUrl('/play/%'),
 };
 console.log(JSON.stringify(results));
 """
@@ -92,3 +93,7 @@ def test_falls_back_to_defaults_for_values_outside_the_allowed_set(result):
 def test_returns_null_outside_the_play_route(result):
     assert result["parsedLanding"] is None
     assert result["parsedUnknown"] is None
+
+
+def test_returns_null_for_malformed_uri_segment(result):
+    assert result["parsedMalformed"] is None
