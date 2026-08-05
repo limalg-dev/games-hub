@@ -92,8 +92,18 @@ async def create_game(game_in: GameCreate = GameCreate()):
         puzzle_data = None
         if game_in.game_type == "crossword":
             diff_num = DIFFICULTY_MAP.get(game_in.difficulty, 1)
-            words_stmt = select(Word)
-            all_words = session.exec(words_stmt).all()
+            all_words = session.exec(select(Word)).all()
+            if not all_words:
+                # The bank is seeded at startup, so a long-running server can be
+                # left with an empty table (a dropped schema, a wiped database).
+                # Without words the generator returns an all-black grid, which
+                # the browser cannot render.
+                seed_words()
+                all_words = session.exec(select(Word)).all()
+            if not all_words:
+                raise HTTPException(
+                    status_code=503, detail="Word bank is empty; cannot build a crossword"
+                )
             word_dicts = [{"word": w.word, "hint": w.hint} for w in all_words]
             puzzle_data = generate_crossword(word_dicts, difficulty=diff_num)
 
