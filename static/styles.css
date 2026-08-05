@@ -192,6 +192,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-primary { width: 100%; padding: 1rem; background: linear-gradient(135deg, var(--accent), #c0392b); color: white; border-radius: calc(var(--radius) - 4px); font-weight: 600; font-size: 1.1rem; transition: transform var(--transition), box-shadow var(--transition); }
 .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(233, 69, 96, 0.4); }
 .btn-primary:active { transform: translateY(0); }
+/* #modal-play-btn is an <a>, not a <button>: it has no UA-default display/
+   text-align, so restore the box model .btn-primary's width: 100% depends on. */
+#modal-play-btn { display: inline-block; text-align: center; text-decoration: none; }
 
 /* ===== GAME VIEW ===== */
 .game-header { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.5rem; background: var(--bg-secondary); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
