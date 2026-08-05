@@ -310,8 +310,9 @@ async function prepareWordSearch(config) {
   const { WordSearchGame } = await import('/games/wordsearch/static/board.js');
   wordSearchGame = new WordSearchGame({ containerId: 'board-wrapper', ...config });
   wordSearchGame.onGameComplete = (time) => {
+    // completeGame() already saved the score, in seconds — the unit timer.js
+    // stores and formats. Saving again here wrote a second, 1000x entry.
     wordSearchTimer.stopTimer();
-    wordSearchTimer.saveScore(config, time * 1000);
     alert(`Parabéns! Você completou em ${formatTime(time * 1000)}`);
   };
   wordSearchGame.init();
@@ -460,7 +461,11 @@ btnBack?.addEventListener('click', () => {
 });
 btnNewGame?.addEventListener('click', () => { startNewGame(); });
 btnResign?.addEventListener('click', () => { /* TODO: resign logic */ });
-sidebarToggle?.addEventListener('click', () => sidebar.classList.toggle('open'));
+sidebarToggle?.addEventListener('click', () => {
+  const open = sidebar.classList.toggle('open');
+  sidebarToggle.setAttribute('aria-expanded', String(open));
+  sidebarToggle.setAttribute('aria-label', open ? 'Fechar painel do jogo' : 'Abrir painel do jogo');
+});
 
 async function startNewGame() {
   if (STATE.game.ws) {
