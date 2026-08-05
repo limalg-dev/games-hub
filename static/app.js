@@ -10,6 +10,7 @@ const STATE = {
   currentView: 'landing',
   selectedGame: null,
   currentGameType: null,
+  playConfig: null,
   game: {
     id: null,
     ws: null,
@@ -274,38 +275,54 @@ async function startGame(gameId) {
 }
 
 function getWordSearchConfig() {
-  const difficulty = document.querySelector('input[name="ws-difficulty"]:checked')?.value || 'easy';
-  const category = document.getElementById('ws-category')?.value || 'random';
+  const play = STATE.playConfig;
+  const difficulty = play?.difficulty
+    || document.querySelector('input[name="ws-difficulty"]:checked')?.value
+    || 'easy';
+  const category = play?.category
+    || document.getElementById('ws-category')?.value
+    || 'random';
   const diff = DIFFICULTIES[difficulty];
   return { ...diff, difficulty, category };
 }
 
-async function startWordSearch(config) {
+let wordSearchTimer = null;
+
+async function prepareWordSearch(config) {
   closeModal();
   showView('game');
   STATE.currentGameType = 'wordsearch';
   STATE.game.id = 'wordsearch-' + Date.now();
-  
-  const { startTimer, stopTimer, saveScore } = await import('/games/wordsearch/static/timer.js');
+
+  wordSearchTimer = await import('/games/wordsearch/static/timer.js');
   const { WordSearchGame } = await import('/games/wordsearch/static/board.js');
   wordSearchGame = new WordSearchGame({ containerId: 'board-wrapper', ...config });
-  wordSearchGame.onGameComplete = (time, difficulty) => {
-    stopTimer();
-    saveScore(config, time * 1000);
+  wordSearchGame.onGameComplete = (time) => {
+    wordSearchTimer.stopTimer();
+    wordSearchTimer.saveScore(config, time * 1000);
     alert(`Parabéns! Você completou em ${formatTime(time * 1000)}`);
   };
   wordSearchGame.init();
-  
   updateGameViewForWordSearch();
-  
-  startTimer((seconds) => {
+}
+
+function beginWordSearch() {
+  wordSearchGame.start();
+  wordSearchTimer.startTimer((seconds) => {
     const el = document.getElementById('timer');
     if (el) el.textContent = formatTime(seconds * 1000);
   });
 }
 
-async function startCrossword() {
-  const difficulty = document.querySelector('input[name="cw-difficulty"]:checked')?.value || 'easy';
+async function startWordSearch(config) {
+  await prepareWordSearch(config);
+  beginWordSearch();
+}
+
+async function startCrossword(difficultyFromUrl) {
+  const difficulty = difficultyFromUrl
+    || document.querySelector('input[name="cw-difficulty"]:checked')?.value
+    || 'easy';
   closeModal();
   showView('game');
   STATE.currentGameType = 'crossword';
@@ -417,7 +434,14 @@ modalRules.addEventListener('change', refreshPlayLink);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal(); });
 
 // Game view
-btnBack?.addEventListener('click', backToLanding);
+btnBack?.addEventListener('click', () => {
+  // Uma aba aberta em /play não tem landing atrás dela para revelar.
+  if (parsePlayUrl(location.pathname, location.search)) {
+    location.href = '/';
+    return;
+  }
+  backToLanding();
+});
 btnNewGame?.addEventListener('click', () => { startNewGame(); });
 btnResign?.addEventListener('click', () => { /* TODO: resign logic */ });
 sidebarToggle?.addEventListener('click', () => sidebar.classList.toggle('open'));
@@ -474,6 +498,38 @@ function init() {
   renderFeaturedSpotlight();
   renderFeaturedSecondary();
   renderCollections();
+
+  const play = parsePlayUrl(location.pathname, location.search);
+  if (play) void openPlayGate(play);
+}
+
+async function openPlayGate(play) {
+  const gate = document.getElementById('play-gate');
+  const title = document.getElementById('play-gate-title');
+  const button = document.getElementById('play-gate-btn');
+  STATE.selectedGame = play.game;
+  STATE.currentGameType = play.game;
+  STATE.playConfig = play;
+  showView('game');
+  title.textContent = GAMES[play.game].title;
+  gate.classList.remove('hidden');
+
+  // Só o wordsearch tem o que mostrar antes do Play: o grid montado aqui é o
+  // mesmo que segue em jogo depois.
+  if (play.game === 'wordsearch') {
+    await prepareWordSearch(getWordSearchConfig());
+  }
+
+  button.addEventListener('click', () => {
+    gate.classList.add('hidden');
+    if (play.game === 'wordsearch') {
+      beginWordSearch();
+    } else if (play.game === 'crossword') {
+      startCrossword(play.difficulty);
+    } else {
+      startGame(play.game);
+    }
+  }, { once: true });
 }
 
 function formatPlays(plays) {
