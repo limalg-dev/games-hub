@@ -1,4 +1,4 @@
-function inBounds(r, c, size) {
+export function inBounds(r, c, size) {
   return r >= 0 && r < size && c >= 0 && c < size;
 }
 
