@@ -36,8 +36,11 @@ export class CrosswordGame {
     }
     this.render();
     this.renderClues(msg.across_clues, msg.down_clues);
+    // A grid with no playable cell has nothing to focus. That should not
+    // happen — the server refuses to build one — but reading .row off null
+    // here replaced the whole board with a blank screen.
     const first = firstPlayable(this.playable);
-    this.focusCell(first.row, first.col);
+    if (first) this.focusCell(first.row, first.col);
     this.startTimer();
   }
 
