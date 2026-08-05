@@ -459,6 +459,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   z-index: 20;
 }
 
+.play-gate.hidden { display: none; }
+
 .play-gate-inner {
   display: grid;
   gap: 1rem;
