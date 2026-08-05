@@ -577,7 +577,7 @@ function renderFeaturedSecondary() {
           <span class="badge">${game.duration}</span>
         </div>
       </div>
-      <button class="btn-play" data-game="${game.id}">Play</button>
+      <button class="btn-play" data-game="${game.id}">Jogar Agora</button>
       ${renderHoverOverlay(game)}
     </article>
   `).join('');
@@ -631,7 +631,7 @@ function renderCollections() {
                   <span class="badge">${game.players} Players</span>
                 </div>
               </div>
-              <button class="btn-play" data-game="${game.id}">Play</button>
+              <button class="btn-play" data-game="${game.id}">Jogar Agora</button>
               ${renderHoverOverlay(game)}
             </article>
           `).join('')}
@@ -672,7 +672,7 @@ function renderGameGrid(category) {
           <span class="badge">${game.duration}</span>
         </div>
       </div>
-      <button class="btn-play" data-game="${game.id}">Play</button>
+      <button class="btn-play" data-game="${game.id}">Jogar Agora</button>
       ${renderHoverOverlay(game)}
     </article>
   `).join('');
