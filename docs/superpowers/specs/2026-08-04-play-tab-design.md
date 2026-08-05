@@ -59,13 +59,19 @@ delas é reescrita.
 
 | Jogo | Antes do Play | No Play |
 |---|---|---|
-| Damas | tabuleiro inicial desenhado localmente, sem `POST /games` e sem WebSocket | cria a partida e conecta |
+| Damas | tabuleiro vazio sob o overlay, sem `POST /games` e sem WebSocket | cria a partida e conecta |
 | Wordsearch | grid montado com a config da URL, cronômetro parado | inicia o cronômetro |
 | Crossword | tabuleiro vazio sob o overlay | cria a partida e conecta |
 
 O crossword aparece vazio porque o puzzle é gerado no servidor e só chega
 depois do `POST /games`. Criar a partida ao abrir a aba deixaria partidas órfãs
 no banco a cada aba aberta e abandonada.
+
+O damas também abre vazio. Desenhar o tabuleiro inicial antes do Play é
+possível, mas o início real recria a `#game-view` e o canvas, então a
+pré-renderização seria jogada fora e reconstruída — complexidade sem ganho
+visível. O wordsearch é a exceção porque o grid pré-montado é o mesmo que
+continua em jogo depois do Play.
 
 O portão vale igual para os três jogos, inclusive damas, que não tem nenhuma
 opção para configurar. Um caminho único é mais simples de manter do que uma
