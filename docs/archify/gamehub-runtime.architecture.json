@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "GameHub — Runtime Architecture",
+    "subtitle": "FastAPI + SQLite multigame platform (checkers, word search, crossword)",
+    "output": "gamehub-runtime.architecture.html",
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "request-path", "label": "Primary request path", "focus": ["users", "frontend", "api", "sqlite"], "note": "Follow a REST request from the browser to durable state." },
+      { "id": "realtime-path", "label": "Real-time path", "focus": ["users", "frontend", "ws-client", "ws-server", "checkers", "crossword-gen"], "note": "Trace a WebSocket game session to its engines." },
+      { "id": "security-view", "label": "Security perimeter", "focus": ["guard", "api", "ws-server"], "note": "Isolate the trust boundary and server-side validation." }
+    ]
+  },
+  "components": [
+    { "id": "users", "type": "external", "label": "Users", "sublabel": "Browser", "pos": [40, 340], "size": [120, 60] },
+    { "id": "frontend", "type": "frontend", "label": "GameHub SPA", "sublabel": "index.html · app.js · styles.css", "pos": [300, 180], "size": [150, 70] },
+    { "id": "ws-client", "type": "frontend", "label": "WebSocket Client", "sublabel": "app.js → /ws/{game_id}", "pos": [300, 470], "size": [150, 60] },
+    { "id": "api", "type": "backend", "label": "REST API", "sublabel": "FastAPI · /games · /api/words", "pos": [600, 180], "size": [150, 70] },
+    { "id": "ws-server", "type": "backend", "label": "WebSocket Server", "sublabel": "ConnectionManager", "pos": [820, 430], "size": [150, 70] },
+    { "id": "guard", "type": "security", "label": "Server-side Validation", "sublabel": "letters · turns · 2-player", "pos": [820, 680], "size": [150, 60] },
+    { "id": "crossword-gen", "type": "backend", "label": "Crossword Generator", "sublabel": "backtracking · 150-word seed", "pos": [1060, 160], "size": [150, 60] },
+    { "id": "checkers", "type": "backend", "label": "Checkers Engine", "sublabel": "board rules · AI", "pos": [1060, 440], "size": [150, 60] },
+    { "id": "sqlite", "type": "database", "label": "SQLite", "sublabel": "games.db · Game/Move/Word", "pos": [1300, 560], "size": [150, 70] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Browser (client-side)", "wraps": ["frontend", "ws-client"] },
+    { "kind": "security-group", "label": "Trust boundary — TLS / WS + no-cache", "wraps": ["api", "ws-server", "guard", "crossword-gen", "checkers", "sqlite"] },
+    { "kind": "region", "label": "Backend — Docker · uvicorn :8000", "wraps": ["api", "ws-server", "guard", "crossword-gen", "checkers", "sqlite"] }
+  ],
+"connections": [
+    { "id": "users-frontend", "from": "users", "to": "frontend", "label": "HTTPS", "variant": "emphasis" },
+    { "id": "frontend-api", "from": "frontend", "to": "api", "label": "REST", "variant": "emphasis" },
+    { "id": "frontend-wsclient", "from": "frontend", "to": "ws-client", "variant": "dashed" },
+    { "id": "wsclient-ws", "from": "ws-client", "to": "ws-server", "label": "WebSocket", "variant": "emphasis" },
+    { "id": "api-generate", "from": "api", "to": "crossword-gen", "variant": "dashed" },
+    { "id": "api-sql", "from": "api", "to": "sqlite", "label": "SQLModel", "fromSide": "top", "toSide": "left", "via": [[675, 90], [1240, 90], [1240, 595]] },
+    { "id": "ws-checkers", "from": "ws-server", "to": "checkers", "variant": "dashed" },
+    { "id": "ws-guard", "from": "ws-server", "to": "guard", "variant": "security" }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Frontend", "items": ["SPA shell rendered from static/ (index.html + app.js)", "Three game clients: checkers (canvas), word search, crossword", "Word-search leaderboard kept in browser localStorage"] },
+    { "dot": "emerald", "title": "Backend", "items": ["REST: create games, word dictionary CRUD", "WebSocket for real-time checkers + crossword", "Crossword backtracking generator; 150-word seed on startup", "REST and WebSocket both persist to SQLite via SQLModel (Game/Move/Word)"] },
+    { "dot": "rose", "title": "Security", "items": ["Server-side move/letter validation; solution stays server-hosted", "Two-player admission enforced on the WebSocket", "No-cache middleware on the TLS edge", "ORM-parameterized queries; Docker container isolation"] }
+  ]
+}

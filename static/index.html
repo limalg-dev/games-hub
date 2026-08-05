@@ -13,6 +13,24 @@
       <h1>GameHub</h1>
       <p class="hero-tagline">Play classic board games online — free, no install.</p>
     </header>
+    <nav class="category-nav" aria-label="Categorias de jogos">
+      <ul class="category-list">
+        <li><button class="category-tab active" data-category="all">Todos os Jogos</button></li>
+        <li><button class="category-tab" data-category="acao">Ação</button></li>
+        <li><button class="category-tab" data-category="tabuleiro">Tabuleiro</button></li>
+        <li><button class="category-tab" data-category="palavras">Palavras</button></li>
+        <li><button class="category-tab" data-category="estrategia">Estratégia</button></li>
+        <li><button class="category-tab" data-category="classicos">Clássicos</button></li>
+      </ul>
+      <button class="category-toggle" aria-label="Abrir categorias" aria-expanded="false">Categorias</button>
+    </nav>
+    <section class="featured" aria-label="Em destaque">
+      <div class="featured-spotlight hidden" id="featured-spotlight"></div>
+      <div class="featured-secondary" id="featured-secondary"></div>
+    </section>
+    <section class="collections" aria-label="Coleções de jogos">
+      <!-- collection slots rendered by JS -->
+    </section>
     <main class="game-grid" id="game-grid" role="list"></main>
   </section>
 
@@ -29,7 +47,7 @@
         <p id="modal-desc"></p>
         <dl class="modal-specs" id="modal-specs"></dl>
         <div class="modal-rules" id="modal-rules"></div>
-        <button class="btn-primary btn-play-large" id="modal-play-btn">Play Now</button>
+        <button class="btn-primary btn-play-large" id="modal-play-btn">Jogar Agora</button>
       </div>
     </div>
   </div>

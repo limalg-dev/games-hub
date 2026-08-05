@@ -160,7 +160,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
         while True:
             data = await websocket.receive_text()
             msg = json.loads(data)
-            if msg.get("type") != "move":
+            if msg.get("type") not in ("move", "input"):
                 continue
             if game.game_type == "checkers":
                 # Existing checkers move handling
@@ -206,46 +206,45 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                                             await manager.broadcast(game_id, {"type": "game_over", "winner": winner})
                                             break
             elif game.game_type == "crossword":
-                # Handle crossword move: expecting {type: "move", row: int, col: int, letter: str}
-                row = msg.get("row")
-                col = msg.get("col")
-                letter = msg.get("letter")
-                if row is None or col is None or letter is None:
-                    await manager.send_personal(websocket, {"type": "error", "message": "Invalid move format"})
-                    continue
-                if not (0 <= row < manager.crossword_state[game_id]["size"] and 0 <= col < manager.crossword_state[game_id]["size"]):
-                    await manager.send_personal(websocket, {"type": "error", "message": "Cell out of bounds"})
-                    continue
-                state = manager.crossword_state[game_id]
-                solution_letter = state["solution"][row][col]
-                if solution_letter is None:
-                    await manager.send_personal(websocket, {"type": "error", "message": "Cannot fill this cell"})
-                    continue
-                if state["filled"][row][col]:
-                    await manager.send_personal(websocket, {"type": "error", "message": "Cell already filled"})
-                    continue
-                if letter.upper() != solution_letter:
-                    await manager.send_personal(websocket, {"type": "error", "message": "Incorrect letter"})
-                    continue
-                # Correct letter: mark as filled
-                state["filled"][row][col] = True
-                # Check if puzzle is complete
-                all_filled = True
-                for r in range(state["size"]):
-                    for c in range(state["size"]):
-                        if state["solution"][r][c] is not None and not state["filled"][r][c]:
-                            all_filled = False
+                if msg.get("type") == "input":
+                    row = msg.get("row")
+                    col = msg.get("col")
+                    letter = msg.get("letter")
+                    if row is None or col is None or letter is None:
+                        await manager.send_personal(websocket, {"type": "error", "message": "Invalid input format"})
+                        continue
+                    if not (0 <= row < manager.crossword_state[game_id]["size"] and 0 <= col < manager.crossword_state[game_id]["size"]):
+                        await manager.send_personal(websocket, {"type": "error", "message": "Cell out of bounds"})
+                        continue
+                    state = manager.crossword_state[game_id]
+                    solution_letter = state["solution"][row][col]
+                    if solution_letter is None:
+                        await manager.send_personal(websocket, {"type": "error", "message": "Cannot fill this cell"})
+                        continue
+                    if state["filled"][row][col]:
+                        await manager.send_personal(websocket, {"type": "error", "message": "Cell already filled"})
+                        continue
+                    if letter.upper() != solution_letter:
+                        await manager.send_personal(websocket, {"type": "incorrect", "row": row, "col": col})
+                        continue
+                    state["filled"][row][col] = True
+                    await manager.send_personal(websocket, {"type": "correct", "row": row, "col": col})
+                    await manager.broadcast(game_id, {
+                        "type": "opponent_input",
+                        "row": row,
+                        "col": col,
+                        "letter": letter.upper(),
+                        "sender_color": color
+                    }, exclude=websocket)
+                    all_filled = True
+                    for r in range(state["size"]):
+                        for c in range(state["size"]):
+                            if state["solution"][r][c] is not None and not state["filled"][r][c]:
+                                all_filled = False
+                                break
+                        if not all_filled:
                             break
-                    if not all_filled:
-                        break
-                # Broadcast the update to all players
-                await manager.broadcast(game_id, {
-                    "type": "crossword_update",
-                    "row": row,
-                    "col": col,
-                    "letter": letter.upper()
-                })
-                if all_filled:
-                    await manager.broadcast(game_id, {"type": "game_over", "winner": "all"})
+                    if all_filled:
+                        await manager.broadcast(game_id, {"type": "complete"})
     except WebSocketDisconnect:
         manager.disconnect(game_id, websocket)

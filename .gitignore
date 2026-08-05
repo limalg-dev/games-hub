@@ -3,3 +3,8 @@ __pycache__/
 .env
 *.db
 *.backup
+.agents/
+node_modules/
+package-lock.json
+package.json
+skills-lock.json

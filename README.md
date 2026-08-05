@@ -1,85 +1,122 @@
-# Checkers Platform
+# GameHub
 
-A lightweight web‑based checkers platform built with **FastAPI** and **WebSockets**. Supports both multiplayer (online via WebSocket) and single‑player against a built‑in AI opponent. No login required.
+A lightweight web game platform built with **FastAPI** and **WebSockets**. Play **Checkers**, **Word Search**, and **Crossword** online — free, no login required.
+
+- **Checkers** – classic 8×8 draughts. Play against a built-in minimax AI or a friend over WebSocket.
+- **Caça-Palavras (Word Search)** – find hidden words across categories and difficulty levels, with a timer and local leaderboard.
+- **Palavras Cruzadas (Crossword)** – crosswords generated dynamically on the server (backtracking), solved solo or collaboratively online via WebSocket.
 
 ## Tech Stack
 
 - **Python 3.11+** – language
-- **FastAPI** – web framework
+- **FastAPI** – web framework (REST + WebSocket)
 - **SQLModel** – ORM for SQLite persistence
 - **Uvicorn** – ASGI server
-- **Pytest** – testing
-- **httpx** – HTTP test client
-- **Minimax** – AI algorithm
+- **Pytest + httpx** – testing
+- **Minimax** – checkers AI algorithm
+- **Docker / docker-compose** – containerized deployment
 
 ## Project Structure
 
 ```
 ├── app/
-│   ├── __init__.py
-│   ├── main.py         # FastAPI routes & server init
-│   ├── models.py       # DB models (Game, Move)
+│   ├── main.py         # FastAPI routes, static mounts, seeding & server init
+│   ├── models.py       # DB models (Game, Move, Word)
 │   ├── schemas.py      # Pydantic response schemas
 │   ├── database.py     # SQLAlchemy engine & init
-│   ├── game.py         # Checkers board logic
-│   ├── ai.py           # Minimax AI
-│   └── websocket.py    # WebSocket manager & handler
-├── static/
-│   ├── index.html      # Client UI
-│   └── app.js          # Client JS (board, WS, controls)
-├── tests/
-│   └── ...             # Test suites
+│   └── websocket.py    # ConnectionManager & WS handler (checkers + crossword)
+├── games/
+│   ├── checkers/
+│   │   ├── game.py     # Checkers board logic
+│   │   ├── ai.py       # Minimax AI
+│   │   ├── static/     # Canvas board UI
+│   │   └── tests/
+│   ├── crossword/
+│   │   ├── models.py   # Word model
+│   │   ├── words.py    # 150-word seed dictionary (5 categories)
+│   │   ├── generator.py# Backtracking crossword generator
+│   │   ├── static/     # Grid + clues UI
+│   │   └── tests/
+│   └── wordsearch/
+│       └── static/     # Client-side grid game + timer
+├── static/             # Shared SPA shell (index.html, app.js, styles.css)
+├── docs/
+│   └── archify/        # Runtime architecture diagram (frontend/backend/security)
+├── tests/              # API, WebSocket & integration suites
+├── Dockerfile
+├── docker-compose.yml
 ├── pyproject.toml
 └── requirements.txt
 ```
 
 ## Quick Start
 
-1. **Clone or navigate** to the project root.
-
-2. **Create a virtual environment** and install dependencies:
+1. **Create a virtual environment** and install dependencies:
    ```bash
    python3 -m venv .venv
    source .venv/bin/activate
    pip install -r requirements.txt
    ```
 
-3. **Run the server**:
+2. **Run the server**:
    ```bash
    uvicorn app.main:app --reload
    ```
 
-4. **Open** [http://localhost:8000](http://localhost:8000) in your browser.
+   Or with Docker:
+   ```bash
+   docker compose up --build
+   ```
 
-5. Click **New Game** to create a game. Share the URL to let another player join, or play locally against the AI.
+3. **Open** [http://localhost:8000](http://localhost:8000) in your browser.
+
+4. Pick a game card, choose the difficulty, and play. For online checkers/crossword, the game runs over a WebSocket.
 
 ## API Endpoints
 
-| Method | Path             | Description                    |
-|--------|------------------|--------------------------------|
-| POST   | `/games`         | Create a new game, returns UUID |
-| GET    | `/games/{id}`    | Get game status                |
-| WS     | `/ws/{id}`       | WebSocket for real‑time moves  |
-| GET    | `/`              | Serves the client UI           |
+| Method | Path              | Description                                          |
+|--------|-------------------|------------------------------------------------------|
+| POST   | `/games`          | Create a game (`game_type`: `checkers`\|`crossword`, `difficulty`) |
+| GET    | `/games/{id}`     | Get game status                                      |
+| POST   | `/api/words`      | Add a word to the dictionary                         |
+| GET    | `/api/words`      | List words (filters: `category`, `difficulty`)       |
+| WS     | `/ws/{id}`        | WebSocket for real-time moves                        |
+| GET    | `/`               | Serves the client UI                                 |
 
 ## WebSocket Protocol
 
-Messages are JSON:
+Messages are JSON. The payload type depends on the game:
 
+**Checkers**
 - **Client → Server**: `{"type": "move", "from": [r,c], "to": [r,c]}`
-- **Server → Client**: `{"type": "board", "board": [8][8]}` state after every move
+- **Server → Client**: `{"type": "board", "board": [8][8]}` after every move
 - **Server → Client**: `{"type": "game_over", "winner": "w"|"b"}`
+
+**Crossword**
+- **Server → Client** (on connect): `{"type": "crossword_init", "size", "num_grid", "across_clues", "down_clues", "filled"}`
+- **Client → Server**: `{"type": "move", "row", "col", "letter"}` (validated server-side against the solution)
+- **Server → Client**: `{"type": "crossword_update", "row", "col", "letter"}` broadcast to all players
+- **Server → Client**: `{"type": "game_over", "winner"}`
+
+**Common**
 - **Server → Client**: `{"type": "error", "message": "..."}`
+- **Server → Client**: `{"type": "color", "color": "w"|"b"}` player assignment (max 2 per game)
 
 ## Architecture
 
-The platform follows a simple hub‑and‑spoke model:
+The platform follows a hub-and-spoke model:
 
-1. **FastAPI** serves HTTP endpoints and a WebSocket route.
-2. **SQLite** persists game metadata (players, status).
-3. **Board** state is stored in‑memory by the `ConnectionManager`.
-4. **AI** runs as a synchronous minimax inside the WebSocket event loop; for multiplayer, moves are relayed between connected clients.
-5. **Client** is a single‑page HTML/JS app that renders the board and handles user interactions.
+1. **FastAPI** serves static assets, REST endpoints, and a WebSocket route.
+2. **SQLite** persists games, moves, and the word dictionary via SQLModel (150 words seeded on startup).
+3. **Board / puzzle state** is held in-memory by the `ConnectionManager`; crossword puzzles are generated by `games/crossword/generator.py` and validated letter-by-letter on the server.
+4. **Checkers AI** runs as synchronous minimax inside the WebSocket event loop.
+5. **Client** is a single-page app (per-game modules under `games/*/static/`) that renders the board/grid and handles interactions.
+
+An interactive runtime diagram (frontend, backend, and security/trust boundaries) is available at
+[`docs/archify/gamehub-runtime.architecture.html`](docs/archify/gamehub-runtime.architecture.html)
+(source: [`gamehub-runtime.architecture.json`](docs/archify/gamehub-runtime.architecture.json)).
+
+![GameHub Runtime Architecture](docs/archify/gamehub-runtime-sharecard.png)
 
 ## Running Tests
 
@@ -87,6 +124,8 @@ The platform follows a simple hub‑and‑spoke model:
 source .venv/bin/activate
 pytest -v
 ```
+
+Covers the API, WebSocket flow (checkers + crossword), crossword generator/word logic, and overall project structure.
 
 ## License
 

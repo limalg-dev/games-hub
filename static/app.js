@@ -68,8 +68,15 @@ const GAMES = {
     shortDesc: 'Classic 8×8 draughts. Play vs AI or friend.',
     players: 2,
     modes: ['Local', 'AI', 'Online'],
+    category: ['tabuleiro', 'estrategia', 'classicos'],
+    collections: ['2-jogadores', 'classicos-atemporais'],
     duration: '5–15 min',
     difficulty: ['Easy', 'Medium', 'Hard'],
+    rating: 4.8,
+    plays: 125000,
+    featured: true,
+    badge: 'destaque',
+    thumbnail: '',
     rules: [
       'Move diagonally forward on dark squares only',
       'Capture by jumping over an adjacent opponent piece',
@@ -85,8 +92,15 @@ const GAMES = {
     shortDesc: 'Encontre palavras na grade. Várias categorias.',
     players: 1,
     modes: ['Solo', 'Timer', 'Ranking'],
+    category: ['palavras', 'classicos'],
+    collections: ['treine-sua-mente', 'classicos-atemporais'],
     duration: '5–20 min',
     difficulty: ['Fácil', 'Médio', 'Difícil'],
+    rating: 4.5,
+    plays: 98000,
+    featured: false,
+    badge: 'popular',
+    thumbnail: '',
     rules: [
       'Palavras podem estar horizontais, verticais ou diagonais',
       'Podem ser lidas da esquerda para direita ou vice-versa',
@@ -102,8 +116,15 @@ const GAMES = {
     shortDesc: 'Cruza palavras com dicas. Solo ou online.',
     players: '1–2',
     modes: ['Solo', 'Online'],
+    category: ['palavras', 'classicos'],
+    collections: ['treine-sua-mente'],
     duration: '5–25 min',
     difficulty: ['Fácil', 'Médio', 'Difícil'],
+    rating: 4.7,
+    plays: 64000,
+    featured: false,
+    badge: 'novo',
+    thumbnail: '',
     rules: [
       'Clique numa dica ou célula para selecionar a palavra',
       'Digite a letra em cada célula; letras corretas ficam verdes',
@@ -112,6 +133,14 @@ const GAMES = {
       'Complete todo o grid para vencer. Dois jogadores podem resolver juntos'
     ]
   }
+};
+
+// ===== COLLECTIONS DATA =====
+const COLLECTIONS = {
+  'treine-sua-mente':      { title: 'Treine sua Mente',    desc: 'Desafios que exercitam o cérebro' },
+  'acao-pura':             { title: 'Ação Pura',           desc: 'Jogos rápidos e intensos' },
+  '2-jogadores':           { title: '2 Jogadores',         desc: 'Jogue com um amigo' },
+  'classicos-atemporais':  { title: 'Clássicos Atemporais', desc: 'Jogos que todo mundo conhece' }
 };
 
 // ===== VIEW MANAGEMENT =====
@@ -420,28 +449,231 @@ async function startNewGame() {
   await startGame(STATE.currentGameType || STATE.selectedGame);
 }
 
+// ===== LANDING CATEGORY NAV =====
+let activeCategory = 'all';
+const categoryTabs = $$('.category-tab');
+const categoryList = $('.category-list');
+const categoryToggle = $('.category-toggle');
+
+categoryTabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    activeCategory = tab.dataset.category;
+    activeCollectionFilteredGames = null;
+    categoryTabs.forEach(t => t.classList.toggle('active', t === tab));
+    renderGameGrid(activeCategory);
+    if (window.innerWidth <= 768) {
+      categoryList.classList.remove('open');
+      categoryToggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+});
+
+categoryToggle?.addEventListener('click', () => {
+  const open = categoryList.classList.toggle('open');
+  categoryToggle.setAttribute('aria-expanded', String(open));
+});
+
 // ===== INIT =====
 function init() {
   renderGameGrid();
+  renderFeaturedSpotlight();
+  renderFeaturedSecondary();
+  renderCollections();
 }
-function renderGameGrid() {
-  gameGrid.innerHTML = Object.values(GAMES).map(game => `
+
+function formatPlays(plays) {
+  if (plays >= 1000000) return (plays / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (plays >= 1000) return (plays / 1000).toFixed(0) + 'K';
+  return String(plays);
+}
+
+function getBadgeLabel(badge) {
+  const labels = { 'novo': 'Novo', 'popular': 'Popular', 'destaque': 'Em Destaque' };
+  return labels[badge] || '';
+}
+
+function getBadgeClass(badge) {
+  const classes = { 'novo': 'badge-novo', 'popular': 'badge-popular', 'destaque': 'badge-destaque' };
+  return classes[badge] || '';
+}
+
+function renderBadge(game) {
+  if (!game.badge) return '';
+  return `<div class="game-badges"><span class="badge ${getBadgeClass(game.badge)}">${getBadgeLabel(game.badge)}</span></div>`;
+}
+
+function renderThumbnail(game) {
+  if (game.thumbnail) {
+    return `<img src="${game.thumbnail}" alt="${game.title}" onerror="this.onerror=null; this.outerHTML='<svg class=\\'game-preview\\' viewBox=\\'0 0 80 80\\' width=\\'80\\' height=\\'80\\'>' + generateGamePreviewSVG('${game.id}') + '</svg>'">`;
+  }
+  return `<svg class="game-preview" viewBox="0 0 80 80" width="80" height="80">${generateGamePreviewSVG(game.id)}</svg>`;
+}
+
+function renderHoverOverlay(game) {
+  return `
+    <div class="game-hover-overlay">
+      <h3>${game.title}</h3>
+      <p class="game-desc">${game.shortDesc}</p>
+      <div class="game-hover-meta">
+        <span>★ <span class="val">${game.rating.toFixed(1)}</span></span>
+        <span><span class="val">${formatPlays(game.plays)}</span> plays</span>
+      </div>
+      <button class="btn-play" data-game="${game.id}">Jogar</button>
+    </div>
+  `;
+}
+
+function renderFeaturedSpotlight() {
+  const container = $('#featured-spotlight');
+  if (!container) return;
+  const game = Object.values(GAMES).find(g => g.featured);
+  if (!game) {
+    container.classList.add('hidden');
+    return;
+  }
+  container.classList.remove('hidden');
+  container.innerHTML = `
+    <div class="featured-card featured-spotlight">
+      <div class="featured-badges">
+        ${renderBadge(game)}
+        <span class="badge">${game.players} Players</span>
+        ${game.duration ? `<span class="badge">${game.duration}</span>` : ''}
+      </div>
+      <div class="featured-info">
+        <h3>${game.title}</h3>
+        <p class="featured-desc">${game.shortDesc}</p>
+        <div class="featured-meta">
+          <span>★ <span class="val">${game.rating.toFixed(1)}</span></span>
+          <span><span class="val">${formatPlays(game.plays)}</span> plays</span>
+        </div>
+        <button class="btn-play" data-game="${game.id}">Jogar Agora</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderFeaturedSecondary() {
+  const container = $('#featured-secondary');
+  if (!container) return;
+  const games = Object.values(GAMES)
+    .filter(g => !g.featured)
+    .sort((a, b) => b.plays - a.plays)
+    .slice(0, 2);
+  if (games.length < 2) {
+    container.innerHTML = '';
+    return;
+  }
+  container.innerHTML = games.map(game => `
     <article class="game-card" data-game="${game.id}">
       <div class="game-thumb">
-        <svg class="game-preview" viewBox="0 0 80 80" width="80" height="80">
-          ${generateGamePreviewSVG(game.id)}
-        </svg>
+        ${renderThumbnail(game)}
       </div>
+      ${renderBadge(game)}
       <div class="game-info">
         <h3>${game.title}</h3>
         <p class="game-desc">${game.shortDesc}</p>
         <div class="game-meta">
           <span class="badge">${game.players} Players</span>
-          ${game.id === 'checkers' ? '<span class="badge ai">AI Opponent</span>' : ''}
           <span class="badge">${game.duration}</span>
         </div>
       </div>
-      <button class="btn-play" data-game="${game.id}">Play</button>
+      <button class="btn-play" data-game="${game.id}">Jogar Agora</button>
+      ${renderHoverOverlay(game)}
+    </article>
+  `).join('');
+}
+
+// Featured play buttons live OUTSIDE #game-grid, so wire them explicitly.
+const featuredSection = $('.featured');
+featuredSection?.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-game]');
+  if (btn) openModal(btn.dataset.game);
+});
+// ===== COLLECTIONS =====
+const collectionsContainer = $('.collections');
+let activeCollectionFilteredGames = null;
+
+function gamesForCollection(category, collectFilter) {
+  return Object.values(GAMES).filter(game => {
+    if (collectFilter) {
+      return game.collections && game.collections.includes(collectFilter);
+    }
+    return !category || category === 'all' || (game.category && game.category.includes(category));
+  });
+}
+
+function renderCollections() {
+  if (!collectionsContainer) return;
+  collectionsContainer.innerHTML = Object.keys(COLLECTIONS).map(key => {
+    const games = Object.values(GAMES).filter(g => g.collections && g.collections.includes(key));
+    if (games.length === 0) return '';
+    const col = COLLECTIONS[key];
+    return `
+      <section class="collection-section" data-collection-section="${key}">
+        <div class="collection-title">
+          <div>
+            <h2>${col.title}</h2>
+            <p>${col.desc}</p>
+          </div>
+          <button class="collection-see-all" data-collection="${key}">Ver todos</button>
+        </div>
+        <div class="collection-slider">
+          ${games.map(game => `
+            <article class="game-card collection-card" data-game="${game.id}">
+              <div class="game-thumb">
+                ${renderThumbnail(game)}
+              </div>
+              ${renderBadge(game)}
+              <div class="game-info">
+                <h3>${game.title}</h3>
+                <p class="game-desc">${game.shortDesc}</p>
+                <div class="game-meta">
+                  <span class="badge">${game.players} Players</span>
+                </div>
+              </div>
+              <button class="btn-play" data-game="${game.id}">Jogar Agora</button>
+              ${renderHoverOverlay(game)}
+            </article>
+          `).join('')}
+        </div>
+      </section>
+    `;
+  }).filter(Boolean).join('');
+}
+
+collectionsContainer?.addEventListener('click', (e) => {
+  const collectBtn = e.target.closest('[data-collection]');
+  if (collectBtn) {
+    activeCollectionFilteredGames = collectBtn.dataset.collection;
+    activeCategory = 'all';
+    categoryTabs.forEach(t => t.classList.toggle('active', t.dataset.category === 'all'));
+    renderGameGrid();
+    const grid = document.getElementById('game-grid');
+    if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return;
+  }
+  const card = e.target.closest('[data-game]');
+  if (card) openModal(card.dataset.game);
+});
+
+function renderGameGrid(category) {
+  const games = gamesForCollection(category, activeCollectionFilteredGames);
+  gameGrid.innerHTML = games.map(game => `
+    <article class="game-card" data-game="${game.id}">
+      <div class="game-thumb">
+        ${renderThumbnail(game)}
+      </div>
+      ${renderBadge(game)}
+      <div class="game-info">
+        <h3>${game.title}</h3>
+        <p class="game-desc">${game.shortDesc}</p>
+        <div class="game-meta">
+          <span class="badge">${game.players} Players</span>
+          <span class="badge">${game.duration}</span>
+        </div>
+      </div>
+      <button class="btn-play" data-game="${game.id}">Jogar Agora</button>
+      ${renderHoverOverlay(game)}
     </article>
   `).join('');
 }
