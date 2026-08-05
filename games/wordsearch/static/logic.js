@@ -16,10 +16,13 @@ export function createGrid(config) {
       const [dr, dc] = dir;
       const len = word.length;
 
-      const maxRow = dr === 1 ? gridSize - len : dr === -1 ? len - 1 : gridSize - 1;
-      const minRow = dr === 1 ? len - 1 : dr === -1 ? 0 : 0;
-      const maxCol = dc === 1 ? gridSize - len : dc === -1 ? len - 1 : gridSize - 1;
-      const minCol = dc === 1 ? len - 1 : dc === -1 ? 0 : 0;
+      // Going forward the word ends at r+len-1, so the origin has to stay that
+      // far from the last row; going backward it ends at r-(len-1), so the
+      // origin has to start that far in. Mixing the two walks off the grid.
+      const minRow = dr === -1 ? len - 1 : 0;
+      const maxRow = dr === 1 ? gridSize - len : gridSize - 1;
+      const minCol = dc === -1 ? len - 1 : 0;
+      const maxCol = dc === 1 ? gridSize - len : gridSize - 1;
 
       const r = Math.floor(Math.random() * (maxRow - minRow + 1)) + minRow;
       const c = Math.floor(Math.random() * (maxCol - minCol + 1)) + minCol;
