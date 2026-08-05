@@ -13,6 +13,7 @@ class ConnectionManager:
         self.boards: Dict[str, Board] = {}  # for checkers
         self.turn: Dict[str, str] = {}  # game_id -> "w" or "b"
         self.crossword_state: Dict[str, dict] = {}  # game_id -> state dict
+        self.td_state: Dict[str, dict] = {}  # game_id -> tower defense state
         self.clients: Dict[str, Dict[int, dict]] = {}  # game_id -> {ws_id: {"ws": WebSocket, "color": str}}
 
     async def connect(self, game_id: str, websocket: WebSocket) -> str | None:
@@ -20,7 +21,7 @@ class ConnectionManager:
         ws_id = id(websocket)
         self.clients.setdefault(game_id, {})
         conn = self.clients[game_id]
-        if game_id not in self.boards and game_id not in self.crossword_state:
+        if game_id not in self.boards and game_id not in self.crossword_state and game_id not in self.td_state:
             # First connection for this game: initialize state based on game type
             with Session(engine) as session:
                 game = session.exec(select(Game).where(Game.id == game_id)).first()
@@ -39,6 +40,10 @@ class ConnectionManager:
                         # Should not happen if game was created with puzzle data
                         await websocket.close(code=4000, reason="Puzzle data missing")
                         return None
+                elif game.game_type == "towerdefense":
+                    self.td_state[game_id] = {
+                        "towers": [], "enemies": [], "wave": 0, "gold": 200, "lives": 20
+                    }
                 else:
                     # Unknown game type
                     await websocket.close(code=4000, reason="Unsupported game type")
@@ -93,6 +98,8 @@ class ConnectionManager:
                     del self.turn[game_id]
                 if game_id in self.crossword_state:
                     del self.crossword_state[game_id]
+                if game_id in self.td_state:
+                    del self.td_state[game_id]
 
     async def broadcast(self, game_id: str, message: dict, exclude: WebSocket | None = None):
         for data in self.clients.get(game_id, {}).values():
@@ -145,22 +152,15 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 "down_clues": state["down_clues"],
                 "filled": state["filled"]
             })
-            # Also broadcast to others? Actually, we want each player to get the same init.
-            # But we already sent to the connecting player. We'll broadcast to others in the loop? 
-            # For simplicity, we'll broadcast the init to everyone when a new player connects? 
-            # However, the init is the same for all. We'll send to the new player only; 
-            # the other players already got their init when they connected.
-            # Alternatively, we can broadcast the init to all when the game starts.
-            # We'll do that when the second player connects? Actually, we can broadcast the init 
-            # to all connected clients when we initialize the state (when first player connects).
-            # But we don't have the websockets of other players at that moment? 
-            # We'll handle by sending the init to each player as they connect.
-            # For now, we'll just send to the connecting player.
+        elif game.game_type == "towerdefense":
+            # Send initial tower defense state
+            state = manager.td_state[game_id]
+            await manager.send_personal(websocket, {"type": "game_state", **state})
     try:
         while True:
             data = await websocket.receive_text()
             msg = json.loads(data)
-            if msg.get("type") not in ("move", "input"):
+            if msg.get("type") not in ("move", "input", "place_tower", "start_wave"):
                 continue
             if game.game_type == "checkers":
                 # Existing checkers move handling
@@ -246,5 +246,14 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                             break
                     if all_filled:
                         await manager.broadcast(game_id, {"type": "complete"})
+            elif game.game_type == "towerdefense":
+                state = manager.td_state[game_id]
+                if msg.get("type") == "place_tower":
+                    tower = {"type": msg["tower_type"], "row": msg["row"], "col": msg["col"], "level": 1}
+                    state["towers"].append(tower)
+                    await manager.broadcast(game_id, {"type": "tower_placed", **tower})
+                elif msg.get("type") == "start_wave":
+                    state["wave"] += 1
+                    await manager.broadcast(game_id, {"type": "wave_started", "wave": state["wave"]})
     except WebSocketDisconnect:
         manager.disconnect(game_id, websocket)

@@ -3,6 +3,7 @@ import { renderPreview } from '/games/checkers/static/preview.js';
 import { CheckersGame } from '/games/checkers/static/board.js';
 import { CrosswordGame } from '/games/crossword/static/board.js';
 import { DIFFICULTIES } from '/games/wordsearch/static/words.js';
+import { TowerDefenseGame } from '/games/towerdefense/static/board.js';
 
 // ===== STATE =====
 const STATE = {
@@ -132,6 +133,28 @@ const GAMES = {
       'Células pretas são blocos (não preenchíveis)',
       'Complete todo o grid para vencer. Dois jogadores podem resolver juntos'
     ]
+  },
+  towerdefense: {
+    id: 'towerdefense',
+    title: 'Urban Assault',
+    desc: 'Tower Defense com placement livre, A* pathfinding, e modo competitivo.',
+    shortDesc: 'Tower Defense estratégico',
+    players: 1,
+    modes: ['Solo', 'Competitivo'],
+    category: ['estrategia', 'acao'],
+    collections: ['acao-pura'],
+    duration: '10-20 min',
+    difficulty: ['Fácil', 'Médio', 'Difícil'],
+    rating: 4.6,
+    plays: 45000,
+    featured: false,
+    badge: 'novo',
+    thumbnail: '',
+    rules: [
+      'Coloque torres para bloquear inimigos',
+      'Inimigos encontram o caminho mais curto',
+      'Complete 10 waves para vencer'
+    ]
   }
 };
 
@@ -223,6 +246,8 @@ function openModal(gameId) {
     `;
     // Render crossword preview
     import('/games/crossword/static/preview.js').then(m => m.renderPreview('modal-board-preview'));
+  } else if (gameId === 'towerdefense') {
+    import('/games/towerdefense/static/preview.js').then(m => m.renderPreview('modal-board-preview'));
   } else {
     // Render checkers preview
     renderPreview('modal-board-preview');
@@ -239,6 +264,7 @@ function closeModal() {
 
 let wordSearchGame = null;
 let crosswordGame = null;
+let towerDefenseGame = null;
 
 async function startGame(gameId) {
   if (gameId === 'wordsearch') {
@@ -248,6 +274,10 @@ async function startGame(gameId) {
   }
   if (gameId === 'crossword') {
     await startCrossword();
+    return;
+  }
+  if (gameId === 'towerdefense') {
+    startTowerDefense();
     return;
   }
   closeModal();
@@ -309,6 +339,20 @@ async function startCrossword() {
   const data = await resp.json();
   STATE.game.id = data.id;
   connectWebSocket();
+}
+
+async function startTowerDefense() {
+  closeModal();
+  showView('game');
+  STATE.currentGameType = 'towerdefense';
+  STATE.game.id = 'towerdefense-' + Date.now();
+  restoreBoard();
+
+  const turnIndicator = document.getElementById('turn-indicator');
+  if (turnIndicator) turnIndicator.textContent = 'Urban Assault — Tower Defense';
+
+  towerDefenseGame = new TowerDefenseGame('board-wrapper');
+  towerDefenseGame.init();
 }
 
 function setupCrosswordView() {
@@ -387,6 +431,10 @@ function backToLanding() {
     crosswordGame.destroy();
     crosswordGame = null;
   }
+  if (towerDefenseGame) {
+    towerDefenseGame.destroy();
+    towerDefenseGame = null;
+  }
   restoreBoard();
   STATE.game = { id: null, ws: null, myColor: null, board: null, history: [], captured: { w: [], b: [] }, turn: 'w', status: 'waiting' };
   showView('landing');
@@ -419,6 +467,10 @@ btnNewGame?.addEventListener('click', () => {
     crosswordGame.destroy();
     crosswordGame = null;
   }
+  if (towerDefenseGame) {
+    towerDefenseGame.destroy();
+    towerDefenseGame = null;
+  }
   const hintBtn = document.getElementById('btn-hint');
   if (hintBtn) hintBtn.remove();
   restoreBoard();
@@ -441,6 +493,10 @@ async function startNewGame() {
   if (crosswordGame) {
     crosswordGame.destroy();
     crosswordGame = null;
+  }
+  if (towerDefenseGame) {
+    towerDefenseGame.destroy();
+    towerDefenseGame = null;
   }
   const hintBtn = document.getElementById('btn-hint');
   if (hintBtn) hintBtn.remove();
@@ -680,6 +736,18 @@ function renderGameGrid(category) {
 
 function generateGamePreviewSVG(gameId) {
   const square = 10;
+  if (gameId === 'towerdefense') {
+    let svg = '';
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const x = c * square, y = r * square;
+        svg += `<rect x="${x}" y="${y}" width="${square}" height="${square}" fill="#2d5a1e"/>`;
+      }
+    }
+    svg += `<circle cx="5" cy="5" r="3" fill="#ff4444"/>`;
+    svg += `<rect x="62" y="62" width="14" height="14" fill="#4a8af4"/>`;
+    return svg;
+  }
   if (gameId === 'crossword') {
     const letters = { '1,1':'A','1,2':'P','1,3':'I','1,4':'O','1,5':'D','3,1':'C','4,1':'O','5,1':'D','5,2':'O','5,3':'M','5,4':'E','5,5':'S','2,3':'T','3,3':'A','4,3':'E' };
     let svg = '';
