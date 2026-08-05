@@ -8,11 +8,11 @@ class Board:
     def _setup(self):
         for r in range(3):
             for c in range(8):
-                if (r + c) % 2 == 1:
+                if (r + c) % 2 == 0:
                     self.board[r][c] = "b"
         for r in range(5, 8):
             for c in range(8):
-                if (r + c) % 2 == 1:
+                if (r + c) % 2 == 0:
                     self.board[r][c] = "w"
 
     def _is_on_board(self, r, c):

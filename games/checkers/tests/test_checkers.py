@@ -12,8 +12,8 @@ def test_initial_piece_count():
 
 def test_piece_at_start():
     b = Board()
-    assert b.board[0][1] == "b"
-    assert b.board[7][0] == "w"
+    assert b.board[0][0] == "b"
+    assert b.board[7][1] == "w"
 
 def test_moves_initial_white():
     b = Board()
@@ -25,6 +25,6 @@ def test_moves_initial_white():
 
 def test_apply_move():
     b = Board()
-    b.apply_move((5,0), (4,1))
-    assert b.board[5][0] == ""
-    assert b.board[4][1] == "w"
+    b.apply_move((5,1), (4,0))
+    assert b.board[5][1] == ""
+    assert b.board[4][0] == "w"

@@ -407,23 +407,7 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.c
 
 // Game view
 btnBack?.addEventListener('click', backToLanding);
-btnNewGame?.addEventListener('click', () => {
-  if (checkersGame) {
-    checkersGame = null;
-  }
-  if (wordSearchGame) {
-    wordSearchGame.destroy();
-    wordSearchGame = null;
-  }
-  if (crosswordGame) {
-    crosswordGame.destroy();
-    crosswordGame = null;
-  }
-  const hintBtn = document.getElementById('btn-hint');
-  if (hintBtn) hintBtn.remove();
-  restoreBoard();
-  startGame(STATE.currentGameType || STATE.selectedGame);
-});
+btnNewGame?.addEventListener('click', () => { startNewGame(); });
 btnResign?.addEventListener('click', () => { /* TODO: resign logic */ });
 sidebarToggle?.addEventListener('click', () => sidebar.classList.toggle('open'));
 

@@ -73,7 +73,7 @@ export function drawBoard(ctx, board, options = {}) {
         ctx.arc(x + squareSize/2, y + squareSize/2, squareSize * 0.15, 0, Math.PI * 2);
         ctx.fill();
       }
-      if (lastMove && ((lastMove.from[0] === r && lastMove.from[1] === c) || (lastMove.to[0] === r && lastMove.to[1] === c))) {
+      if (lastMove?.from && lastMove?.to && ((lastMove.from[0] === r && lastMove.from[1] === c) || (lastMove.to[0] === r && lastMove.to[1] === c))) {
         ctx.fillStyle = 'rgba(255, 215, 0, 0.25)';
         ctx.fillRect(x, y, squareSize, squareSize);
       }
@@ -270,7 +270,9 @@ export class CheckersGame {
         if (!oldP && newP) to = [r,c];
       }
     }
-    this.lastMove = { from, to };
+    // A board that arrives without a matching from/to pair is a sync, not a
+    // move — highlighting it would mean indexing a null coordinate.
+    this.lastMove = from && to ? { from, to } : null;
     if (from && to) {
       this.animateMove(from, to, () => {
         this.board = newBoard;

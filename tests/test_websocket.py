@@ -35,13 +35,13 @@ def test_ws_game_flow():
         assert board_msg["type"] == "board"
         assert len(board_msg["board"]) == 8
         # make a move
-        ws.send_text(json.dumps({"type": "move", "from": [5,0], "to": [4,1]}))
+        ws.send_text(json.dumps({"type": "move", "from": [5,1], "to": [4,0]}))
         # receive board update
         upd = json.loads(ws.receive_text())
         assert upd["type"] == "board"
         # piece moved
-        assert upd["board"][4][1] == "w"
-        assert upd["board"][5][0] == ""
+        assert upd["board"][4][0] == "w"
+        assert upd["board"][5][1] == ""
 
 def test_ws_game_full():
     resp = client.post("/games")
