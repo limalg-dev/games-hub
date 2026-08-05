@@ -5,6 +5,9 @@ let timerInterval = null;
 let elapsedTime = 0;
 
 export function startTimer(onTick) {
+  // O módulo é global e sobrevive a um "New Game": sem limpar o intervalo
+  // anterior, cada partida nova deixava mais um setInterval vivo.
+  stopTimer();
   startTime = Date.now() - elapsedTime;
   timerInterval = setInterval(() => {
     elapsedTime = Date.now() - startTime;

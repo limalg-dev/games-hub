@@ -20,6 +20,10 @@ const results = {
   defaults: buildPlayUrl('wordsearch', { difficulty: 'easy', category: 'random' }),
   configured: buildPlayUrl('wordsearch', { difficulty: 'hard', category: 'animals' }),
   crossword: buildPlayUrl('crossword', { difficulty: 'medium' }),
+  builtUnknown: buildPlayUrl('xadrez'),
+  builtUnknownWithOptions: buildPlayUrl('xadrez', { difficulty: 'hard' }),
+  builtEmpty: buildPlayUrl(''),
+  builtMissing: buildPlayUrl(undefined) ?? null,
   parsedPlain: parsePlayUrl('/play/checkers'),
   parsedConfigured: parsePlayUrl('/play/wordsearch', '?difficulty=hard&category=animals'),
   parsedBogusValues: parsePlayUrl('/play/wordsearch', '?difficulty=impossivel&category=nada'),
@@ -64,6 +68,14 @@ def test_omits_values_that_match_the_defaults(result):
 def test_includes_values_that_differ_from_the_defaults(result):
     assert result["configured"] == "/play/wordsearch?difficulty=hard&category=animals"
     assert result["crossword"] == "/play/crossword?difficulty=medium"
+
+
+def test_returns_null_for_a_game_that_is_not_playable(result):
+    # Um jogo desconhecido só geraria um link para um 404.
+    assert result["builtUnknown"] is None
+    assert result["builtUnknownWithOptions"] is None
+    assert result["builtEmpty"] is None
+    assert result["builtMissing"] is None
 
 
 def test_parses_a_bare_url_into_defaults(result):

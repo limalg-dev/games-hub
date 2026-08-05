@@ -40,6 +40,9 @@ const afterStart = { isPlaying: game.isPlaying, hasTimer: game.timerInterval !==
 clearInterval(game.timerInterval);
 
 console.log(JSON.stringify({ afterInit, afterStart }));
+// Obrigatório: se init() voltar a abrir o relógio, sobra um segundo intervalo que
+// este harness não limpa e o node nunca sai — a falha viraria um TimeoutExpired
+// de 120s em vez de um assert legível.
 process.exit(0);
 """
 

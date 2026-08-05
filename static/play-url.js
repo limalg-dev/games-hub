@@ -9,7 +9,12 @@ function pick(value, allowed, fallback) {
   return allowed.includes(value) ? value : fallback;
 }
 
+// Devolve `null` quando `game` não está em PLAYABLE_GAMES. Um jogo desconhecido
+// só produziria um link para um 404, então a validação falha alto no ponto de
+// construção em vez de silenciosamente: quem chama decide o que fazer (a
+// landing simplesmente não publica o href).
 export function buildPlayUrl(game, options = {}) {
+  if (!PLAYABLE_GAMES.includes(game)) return null;
   const params = new URLSearchParams();
   const difficulty = pick(options.difficulty, DIFFICULTIES, DEFAULTS.difficulty);
   const category = pick(options.category, CATEGORIES, DEFAULTS.category);
