@@ -3,6 +3,7 @@ import { renderPreview } from '/games/checkers/static/preview.js';
 import { CheckersGame } from '/games/checkers/static/board.js';
 import { CrosswordGame } from '/games/crossword/static/board.js';
 import { DIFFICULTIES } from '/games/wordsearch/static/words.js';
+import { buildPlayUrl, parsePlayUrl } from '/static/play-url.js';
 
 // ===== STATE =====
 const STATE = {
@@ -160,6 +161,15 @@ function showView(view) {
   }
 }
 
+function refreshPlayLink() {
+  if (!modalPlayBtn || !STATE.selectedGame) return;
+  const difficulty =
+    document.querySelector('input[name="ws-difficulty"]:checked')?.value ||
+    document.querySelector('input[name="cw-difficulty"]:checked')?.value;
+  const category = document.getElementById('ws-category')?.value;
+  modalPlayBtn.href = buildPlayUrl(STATE.selectedGame, { difficulty, category });
+}
+
 function openModal(gameId) {
   const game = GAMES[gameId];
   if (!game) return;
@@ -227,7 +237,8 @@ function openModal(gameId) {
     // Render checkers preview
     renderPreview('modal-board-preview');
   }
-  
+
+  refreshPlayLink();
   showView('modal');
 }
 
@@ -402,7 +413,7 @@ gameGrid.addEventListener('click', (e) => {
 // Modal
 modalClose?.addEventListener('click', closeModal);
 modalBackdrop?.addEventListener('click', closeModal);
-modalPlayBtn?.addEventListener('click', () => startGame(STATE.selectedGame));
+modalRules.addEventListener('change', refreshPlayLink);
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal(); });
 
 // Game view
