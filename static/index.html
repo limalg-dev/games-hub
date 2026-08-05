@@ -64,6 +64,11 @@
       <button class="btn-back" id="btn-back-to-landing" aria-label="Back to game selection">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
       </button>
+      <!-- Lives in the header, not inside #sidebar: the sidebar is translated
+           off-screen on mobile, and its innerHTML is rewritten per game. -->
+      <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Abrir painel do jogo" aria-expanded="false">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+      </button>
       <div class="game-status">
         <span id="turn-indicator" aria-live="polite">White to move</span>
         <span id="timer" class="hidden" aria-live="off">00:00</span>
@@ -75,9 +80,6 @@
     </header>
     <main class="game-main">
       <aside class="sidebar" id="sidebar" aria-label="Game info">
-        <button class="sidebar-toggle" id="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="false">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
-        </button>
         <section class="panel captured" id="captured-white">
           <h4>Captured (White)</h4>
           <div class="pieces" id="captured-white-pieces"></div>

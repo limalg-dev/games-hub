@@ -214,7 +214,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .game-main { display: flex; flex: 1; overflow: hidden; }
 .sidebar { width: 280px; background: var(--bg-secondary); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; transition: transform 0.3s var(--transition); }
-.sidebar-toggle { display: none; width: 100%; padding: 0.75rem; background: var(--bg-card); border: none; border-bottom: 1px solid var(--border); color: var(--text-primary); justify-content: center; }
+.sidebar-toggle { display: none; width: 40px; height: 40px; border-radius: 50%; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); align-items: center; justify-content: center; transition: all var(--transition); }
+.sidebar-toggle:hover { background: var(--accent); color: white; border-color: var(--accent); }
 .panel { padding: 1.5rem; border-bottom: 1px solid var(--border); }
 .panel:last-child { border-bottom: none; }
 .panel h4 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-secondary); margin-bottom: 0.75rem; }
@@ -235,6 +236,10 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   .sidebar { position: fixed; top: 0; left: 0; bottom: 0; z-index: 20; transform: translateX(-100%); box-shadow: var(--shadow); }
   .sidebar.open { transform: translateX(0); }
   .sidebar-toggle { display: flex; }
+  /* O sidebar e fixed com z-index 20; o header precisa ficar acima para o
+     botao continuar clicavel e conseguir fechar o painel. */
+  .game-header { z-index: 30; }
+  .sidebar { padding-top: 4.5rem; }
   .game-header { padding: 1rem; }
 }
 @media (max-width: 768px) {
