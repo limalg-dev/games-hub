@@ -1,4 +1,11 @@
-export const PLAYABLE_GAMES = ['checkers', 'wordsearch', 'crossword'];
+export const PLAYABLE_GAMES = [
+  'checkers',
+  'wordsearch',
+  'crossword',
+  'snake',
+  'ant_defense',
+  'tower_defense',
+];
 
 const DIFFICULTIES = ['easy', 'medium', 'hard'];
 const CATEGORIES = ['random', 'animals', 'countries', 'tech', 'food', 'sports'];

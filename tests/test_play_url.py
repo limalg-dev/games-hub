@@ -20,6 +20,12 @@ const results = {
   defaults: buildPlayUrl('wordsearch', { difficulty: 'easy', category: 'random' }),
   configured: buildPlayUrl('wordsearch', { difficulty: 'hard', category: 'animals' }),
   crossword: buildPlayUrl('crossword', { difficulty: 'medium' }),
+  snake: buildPlayUrl('snake'),
+  antDefense: buildPlayUrl('ant_defense'),
+  towerDefense: buildPlayUrl('tower_defense'),
+  parsedSnake: parsePlayUrl('/play/snake'),
+  parsedAntDefense: parsePlayUrl('/play/ant_defense'),
+  parsedTowerDefense: parsePlayUrl('/play/tower_defense'),
   builtUnknown: buildPlayUrl('xadrez'),
   builtUnknownWithOptions: buildPlayUrl('xadrez', { difficulty: 'hard' }),
   builtEmpty: buildPlayUrl(''),
@@ -54,11 +60,21 @@ def result(tmp_path_factory):
 
 
 def test_lists_the_playable_games(result):
-    assert result["games"] == ["checkers", "wordsearch", "crossword"]
+    assert result["games"] == [
+        "checkers",
+        "wordsearch",
+        "crossword",
+        "snake",
+        "ant_defense",
+        "tower_defense",
+    ]
 
 
 def test_builds_a_bare_url_when_there_is_nothing_to_configure(result):
     assert result["plain"] == "/play/checkers"
+    assert result["snake"] == "/play/snake"
+    assert result["antDefense"] == "/play/ant_defense"
+    assert result["towerDefense"] == "/play/tower_defense"
 
 
 def test_omits_values_that_match_the_defaults(result):
@@ -105,6 +121,12 @@ def test_falls_back_to_defaults_for_values_outside_the_allowed_set(result):
 def test_returns_null_outside_the_play_route(result):
     assert result["parsedLanding"] is None
     assert result["parsedUnknown"] is None
+
+
+def test_parses_the_self_contained_games(result):
+    assert result["parsedSnake"]["game"] == "snake"
+    assert result["parsedAntDefense"]["game"] == "ant_defense"
+    assert result["parsedTowerDefense"]["game"] == "tower_defense"
 
 
 def test_returns_null_for_malformed_uri_segment(result):
