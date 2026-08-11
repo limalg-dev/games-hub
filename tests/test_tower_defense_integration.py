@@ -309,12 +309,42 @@ class TestIntegration:
     """Integration tests with the main FastAPI app"""
 
     @pytest.mark.asyncio
-    async def test_tower_defense_router_not_mounted(self, transport):
-        """Tower defense router is NOT mounted in main app"""
+    async def test_tower_defense_router_mounted(self, transport):
+        """Tower defense router IS mounted in main app"""
         async with AsyncClient(transport=transport, base_url="http://test") as ac:
-            # The tower_defense router has prefix /tower-defense
-            # It should NOT be accessible because it's not mounted
             resp = await ac.get("/tower-defense/")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["name"] == "Ant Defense"
+
+    @pytest.mark.asyncio
+    async def test_tower_defense_create_game(self, transport):
+        """POST /tower-defense/games/create creates a game"""
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.post("/tower-defense/games/create")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["success"] is True
+            assert "game_id" in data
+            assert "initial_state" in data
+
+    @pytest.mark.asyncio
+    async def test_tower_defense_get_game(self, transport):
+        """GET /tower-defense/games/{game_id} returns state"""
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            create = await ac.post("/tower-defense/games/create")
+            game_id = create.json()["game_id"]
+
+            resp = await ac.get(f"/tower-defense/games/{game_id}")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["state"]["id"] == game_id
+
+    @pytest.mark.asyncio
+    async def test_tower_defense_get_nonexistent_game_404(self, transport):
+        """GET /tower-defense/games/{game_id} for unknown id returns 404"""
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            resp = await ac.get("/tower-defense/games/fake-id")
             assert resp.status_code == 404
 
     @pytest.mark.asyncio

@@ -15,6 +15,7 @@ from games.crossword.words import SEED_WORDS
 from games.crossword.generator import generate_crossword
 from games.snake.routes import router as snake_router
 from games.ant_defense.routes import router as ant_defense_router
+from games.tower_defense.routes import router as tower_defense_router
 import os
 
 DIFFICULTY_MAP = {"easy": 1, "medium": 2, "hard": 3}
@@ -39,8 +40,11 @@ app = FastAPI(lifespan=lifespan)
 # Include Snake game routes
 app.include_router(snake_router, prefix="/api")
 
-# Include Ant Defense game routes
-app.include_router(ant_defense_router, prefix="/games")
+# Include Ant Defense game routes (rotas já contêm o prefixo /games/ant_defense)
+app.include_router(ant_defense_router)
+
+# Include Tower Defense game routes (router já tem prefix=/tower-defense)
+app.include_router(tower_defense_router)
 
 @app.middleware("http")
 async def add_no_cache_headers(request: Request, call_next):

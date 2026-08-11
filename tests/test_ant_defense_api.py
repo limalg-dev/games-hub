@@ -29,7 +29,7 @@ def transport():
 
 async def create_game(ac):
     """Helper to create a game and return game_id"""
-    resp = await ac.post("/games/games/ant_defense")
+    resp = await ac.post("/games/ant_defense")
     assert resp.status_code == 200
     return resp.json()["game_id"]
 
@@ -39,9 +39,9 @@ async def create_game(ac):
 
 @pytest.mark.asyncio
 async def test_create_game(transport):
-    """POST /games/games/ant_defense creates a game"""
+    """POST /games/ant_defense creates a game"""
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        resp = await ac.post("/games/games/ant_defense")
+        resp = await ac.post("/games/ant_defense")
         assert resp.status_code == 200
         data = resp.json()
         assert "game_id" in data
@@ -55,9 +55,9 @@ async def test_create_game(transport):
 
 @pytest.mark.asyncio
 async def test_list_games_empty(transport):
-    """GET /games/games/ant_defense lists games - empty"""
+    """GET /games/ant_defense lists games - empty"""
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        resp = await ac.get("/games/games/ant_defense")
+        resp = await ac.get("/games/ant_defense")
         assert resp.status_code == 200
         data = resp.json()
         assert data["count"] == 0
@@ -66,14 +66,14 @@ async def test_list_games_empty(transport):
 
 @pytest.mark.asyncio
 async def test_list_games_after_create(transport):
-    """GET /games/games/ant_defense lists games after creating some"""
+    """GET /games/ant_defense lists games after creating some"""
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         await create_game(ac)
         import asyncio
         await asyncio.sleep(0.002)  # Ensure different timestamp-based IDs
         await create_game(ac)
 
-        resp = await ac.get("/games/games/ant_defense")
+        resp = await ac.get("/games/ant_defense")
         data = resp.json()
         assert data["count"] == 2
         assert len(data["games"]) == 2
@@ -81,11 +81,11 @@ async def test_list_games_after_create(transport):
 
 @pytest.mark.asyncio
 async def test_get_game(transport):
-    """GET /games/games/ant_defense/{game_id} returns state"""
+    """GET /games/ant_defense/{game_id} returns state"""
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         game_id = await create_game(ac)
 
-        resp = await ac.get(f"/games/games/ant_defense/{game_id}")
+        resp = await ac.get(f"/games/ant_defense/{game_id}")
         assert resp.status_code == 200
         data = resp.json()
         assert data["game_id"] == game_id
@@ -94,9 +94,9 @@ async def test_get_game(transport):
 
 @pytest.mark.asyncio
 async def test_get_game_not_found(transport):
-    """GET /games/games/ant_defense/{game_id} with invalid id returns 404"""
+    """GET /games/ant_defense/{game_id} with invalid id returns 404"""
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        resp = await ac.get("/games/games/ant_defense/nonexistent")
+        resp = await ac.get("/games/ant_defense/nonexistent")
         assert resp.status_code == 404
 
 
@@ -107,7 +107,7 @@ async def test_place_tower_mandible(transport):
         game_id = await create_game(ac)
 
         resp = await ac.post(
-            f"/games/games/ant_defense/{game_id}/tower",
+            f"/games/ant_defense/{game_id}/tower",
             params={"grid_x": 8, "grid_y": 0, "tower_type": "mandible"},
         )
         assert resp.status_code == 200
@@ -124,12 +124,12 @@ async def test_place_tower_insufficient_gold(transport):
 
         # Place mandible (50) at valid position
         await ac.post(
-            f"/games/games/ant_defense/{game_id}/tower",
+            f"/games/ant_defense/{game_id}/tower",
             params={"grid_x": 8, "grid_y": 0, "tower_type": "mandible"},
         )
         # Now only 50 gold left, acid costs 80
         resp = await ac.post(
-            f"/games/games/ant_defense/{game_id}/tower",
+            f"/games/ant_defense/{game_id}/tower",
             params={"grid_x": 12, "grid_y": 0, "tower_type": "acid"},
         )
         assert resp.status_code == 400
@@ -142,7 +142,7 @@ async def test_place_tower_invalid_type(transport):
         game_id = await create_game(ac)
 
         resp = await ac.post(
-            f"/games/games/ant_defense/{game_id}/tower",
+            f"/games/ant_defense/{game_id}/tower",
             params={"grid_x": 8, "grid_y": 0, "tower_type": "laser"},
         )
         assert resp.status_code == 400
@@ -153,7 +153,7 @@ async def test_place_tower_game_not_found(transport):
     """POST place tower on nonexistent game returns 404"""
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         resp = await ac.post(
-            "/games/games/ant_defense/fake/tower",
+            "/games/ant_defense/fake/tower",
             params={"grid_x": 6, "grid_y": 6, "tower_type": "mandible"},
         )
         assert resp.status_code == 404
@@ -166,7 +166,7 @@ async def test_start_wave(transport):
         game_id = await create_game(ac)
 
         resp = await ac.post(
-            f"/games/games/ant_defense/{game_id}/wave",
+            f"/games/ant_defense/{game_id}/wave",
             params={"wave_number": 1},
         )
         assert resp.status_code == 200
@@ -183,11 +183,11 @@ async def test_start_wave_while_active(transport):
         game_id = await create_game(ac)
 
         await ac.post(
-            f"/games/games/ant_defense/{game_id}/wave",
+            f"/games/ant_defense/{game_id}/wave",
             params={"wave_number": 1},
         )
         resp = await ac.post(
-            f"/games/games/ant_defense/{game_id}/wave",
+            f"/games/ant_defense/{game_id}/wave",
             params={"wave_number": 2},
         )
         assert resp.status_code == 400
@@ -199,13 +199,13 @@ async def test_toggle_pause(transport):
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         game_id = await create_game(ac)
 
-        resp = await ac.post(f"/games/games/ant_defense/{game_id}/pause")
+        resp = await ac.post(f"/games/ant_defense/{game_id}/pause")
         assert resp.status_code == 200
         data = resp.json()
         assert data["success"] is True
         assert data["paused"] is True
 
-        resp2 = await ac.post(f"/games/games/ant_defense/{game_id}/pause")
+        resp2 = await ac.post(f"/games/ant_defense/{game_id}/pause")
         assert resp2.json()["paused"] is False
 
 
@@ -215,12 +215,12 @@ async def test_delete_game(transport):
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         game_id = await create_game(ac)
 
-        resp = await ac.delete(f"/games/games/ant_defense/{game_id}")
+        resp = await ac.delete(f"/games/ant_defense/{game_id}")
         assert resp.status_code == 200
         assert resp.json()["success"] is True
 
         # Should be gone
-        resp2 = await ac.get(f"/games/games/ant_defense/{game_id}")
+        resp2 = await ac.get(f"/games/ant_defense/{game_id}")
         assert resp2.status_code == 404
 
 
@@ -228,7 +228,7 @@ async def test_delete_game(transport):
 async def test_delete_game_not_found(transport):
     """DELETE nonexistent game returns 404"""
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        resp = await ac.delete("/games/games/ant_defense/nonexistent")
+        resp = await ac.delete("/games/ant_defense/nonexistent")
         assert resp.status_code == 404
 
 
@@ -241,18 +241,18 @@ async def test_full_lifecycle(transport):
 
         # Place tower at valid position (off-path)
         await ac.post(
-            f"/games/games/ant_defense/{game_id}/tower",
+            f"/games/ant_defense/{game_id}/tower",
             params={"grid_x": 8, "grid_y": 0, "tower_type": "mandible"},
         )
 
         # Start wave
         await ac.post(
-            f"/games/games/ant_defense/{game_id}/wave",
+            f"/games/ant_defense/{game_id}/wave",
             params={"wave_number": 1},
         )
 
         # Check state
-        resp = await ac.get(f"/games/games/ant_defense/{game_id}")
+        resp = await ac.get(f"/games/ant_defense/{game_id}")
         state = resp.json()["state"]
         assert state["wave_active"] is True
         assert state["gold"] == 50  # 100 - 50 mandible
