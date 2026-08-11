@@ -161,9 +161,9 @@ const GAMES = {
   },
   tower_defense: {
     id: 'tower_defense',
-    title: '🐜 Ant Defense',
+    title: '🏰 Tower Defense',
     desc: 'Tower Defense estratégico onde formigas defendem o formigueiro contra invasores. Posicione torres estrategicamente!',
-    shortDesc: 'Defenda o formigueiro com torres de formigas!',
+    shortDesc: 'Defenda o formigueiro com torres estratégicas!',
     players: 1,
     modes: ['Solo', 'Ondas Infinitas'],
     category: ['estrategia', 'acao'],
@@ -174,13 +174,39 @@ const GAMES = {
     plays: 75000,
     featured: true,
     badge: 'novo',
-    thumbnail: '',
+    thumbnail: '🏰',
+    icon: '🏰',
     rules: [
       'Posicione torres nas células marcadas do grid',
       'Cada torre custa ouro - derrote inimigos para ganhar mais',
-      'Torres Mandíbula: rápido, alvo único | Ácido: lento, dano alto | Teia: desacelera inimigos',
-      'Inimigos: Aphid (rápido/frágil), Beetle (lento/tanque), Fly (médio)',
-      'Não deixe inimigos chegarem ao formigueiro ou perderá vidas!'
+      'Torres: Arqueiro (rápido), Bomba (área), Gelo (desacelera)',
+      'Inimigos vêm em ondas - não deixe nenhum passar!',
+      'Gerencie bem seu ouro para maximizar a defesa'
+    ]
+  },
+  ant_defense: {
+    id: 'ant_defense',
+    title: '🐜 Ant Defense',
+    desc: 'Defenda o formigueiro real contra invasores usando torres de formigas especializadas. Estratégia pura!',
+    shortDesc: 'Formigas defendem o formigueiro!',
+    players: 1,
+    modes: ['Solo', 'Sobrevivência'],
+    category: ['estrategia', 'acao'],
+    collections: ['treine-sua-mente', 'acao-pura'],
+    duration: '15–40 min',
+    difficulty: ['Médio', 'Difícil', 'Expert'],
+    rating: 4.9,
+    plays: 45000,
+    featured: true,
+    badge: 'destaque',
+    thumbnail: '🐜',
+    icon: '🐜',
+    rules: [
+      'Construa torres de formigas ao longo do caminho',
+      'Formiga Soldado: dano alto | Formiga Operária: rápido | Formiga Ácida: veneno',
+      'Proteja a rainha no centro do formigueiro',
+      'Invasores: Besouros (tanques), Moscas (rápidos), Lagartas (muita vida)',
+      'Use estratégias combinadas para máxima eficiência'
     ]
   }
 };
@@ -653,6 +679,10 @@ function renderBadge(game) {
 }
 
 function renderThumbnail(game) {
+  // Se tiver ícone (emoji), usa ele como thumbnail grande e real
+  if (game.icon) {
+    return `<div class="game-icon-real">${game.icon}</div>`;
+  }
   if (game.thumbnail) {
     return `<img src="${game.thumbnail}" alt="${game.title}" onerror="this.onerror=null; this.outerHTML='<svg class=\\'game-preview\\' viewBox=\\'0 0 80 80\\' width=\\'80\\' height=\\'80\\'>' + generateGamePreviewSVG('${game.id}') + '</svg>'">`;
   }
