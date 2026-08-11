@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🐜 Ant Defense - Tower Defense</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: white;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 20px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stat-icon {
+            font-size: 24px;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        canvas {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background: #2d5016;
+            cursor: pointer;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .tower-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 100px;
+        }
+
+        .tower-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .tower-btn.selected {
+            background: linear-gradient(135deg, #5ee7df 0%, #b490ca 100%);
+            transform: scale(1.05);
+        }
+
+        .tower-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .tower-icon {
+            font-size: 28px;
+            margin-bottom: 5px;
+        }
+
+        .tower-cost {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .action-btn {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .message-area {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            min-height: 40px;
+            text-align: center;
+        }
+
+        .game-over-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 1000;
+        }
+
+        .game-over-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            animation: popIn 0.5s ease;
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .game-over-title {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .restart-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            border: none;
+            padding: 15px 40px;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .instructions {
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 10px;
+            max-width: 800px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .instructions h3 {
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            margin-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🐜 Ant Defense</h1>
+    <p>Defenda o formigueiro dos invasores!</p>
+
+    <div class="game-container">
+        <div class="stats-bar">
+            <div class="stat">
+                <span class="stat-icon">🍃</span>
+                <span class="stat-value" id="leaves">100</span>
+            </div>
+            <div class="stat">
+                <span class="stat-icon">❤️</span>
+                <span class="stat-value" id="lives">20</span>
+            </div>
+            <div class="stat">
+                <span class="stat-icon">🌊</span>
+                <span class="stat-value" id="wave">0/10</span>
+            </div>
+            <div class="stat">
+                <span class="stat-icon">⭐</span>
+                <span class="stat-value" id="score">0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-icon">💀</span>
+                <span class="stat-value" id="killed">0</span>
+            </div>
+        </div>
+
+        <canvas id="gameCanvas" width="900" height="600"></canvas>
+
+        <div class="controls">
+            <button class="tower-btn" onclick="selectTower('archer')" id="btn-archer">
+                <span class="tower-icon">🎯</span>
+                <span>Arqueira</span>
+                <span class="tower-cost">50 🍃</span>
+            </button>
+            <button class="tower-btn" onclick="selectTower('bomb')" id="btn-bomb">
+                <span class="tower-icon">💣</span>
+                <span>Explosiva</span>
+                <span class="tower-cost">120 🍃</span>
+            </button>
+            <button class="tower-btn" onclick="selectTower('ice')" id="btn-ice">
+                <span class="tower-icon">❄️</span>
+                <span>Congelante</span>
+                <span class="tower-cost">80 🍃</span>
+            </button>
+            <button class="action-btn" onclick="startWave()" id="btn-start-wave">
+                🌊 Iniciar Onda
+            </button>
+        </div>
+
+        <div class="message-area" id="message-area">
+            Selecione uma torre e clique no grid para colocar!
+        </div>
+    </div>
+
+    <div class="instructions">
+        <h3>📖 Como Jogar:</h3>
+        <ul>
+            <li><strong>Objetivo:</strong> Defenda o formigueiro (final do caminho) dos inimigos</li>
+            <li><strong>Torres:</strong> Clique em um tipo de torre, depois clique em uma célula vazia para colocar</li>
+            <li><strong>Inimigos:</strong> Siga o caminho do início (esquerda) até o formigueiro (direita)</li>
+            <li><strong>Economia:</strong> Ganhe folhas (🍃) abatendo inimigos. Cada onda completada dá +25 folhas</li>
+            <li><strong>Game Over:</strong> Se 20 inimigos chegarem ao formigueiro, você perde!</li>
+            <li><strong>Vitória:</strong> Sobreviva a todas as 10 ondas</li>
+        </ul>
+        <p><strong>Torres:</strong> 🎯 Arqueira (rápida, alvo único) | 💣 Explosiva (lenta, dano em área) | ❄️ Congelante (desacelera inimigos)</p>
+    </div>
+
+    <div class="game-over-overlay" id="game-over-overlay">
+        <div class="game-over-content">
+            <div class="game-over-title" id="game-over-title">GAME OVER</div>
+            <p id="game-over-message">O formigueiro foi invadido!</p>
+            <p>Pontuação Final: <span id="final-score">0</span></p>
+            <button class="restart-btn" onclick="location.reload()">🔄 Jogar Novamente</button>
+        </div>
+    </div>
+
+    <script>
+        // Configuração do Canvas
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Configurações do jogo
+        const CELL_SIZE = 60;
+        const GRID_WIDTH = 15;
+        const GRID_HEIGHT = 10;
+        const OFFSET_X = (canvas.width - GRID_WIDTH * CELL_SIZE) / 2;
+        const OFFSET_Y = (canvas.height - GRID_HEIGHT * CELL_SIZE) / 2;
+
+        // Estado do jogo
+        let gameState = null;
+        let selectedTower = null;
+        let gameId = null;
+        let ws = null;
+
+        // Caminho padrão (deve bater com o backend)
+        const defaultPath = [
+            [0, 5], [1, 5], [2, 5], [3, 5], [4, 5],
+            [4, 4], [4, 3], [4, 2],
+            [5, 2], [6, 2], [7, 2], [8, 2],
+            [8, 3], [8, 4], [8, 5], [8, 6], [8, 7],
+            [9, 7], [10, 7], [11, 7], [12, 7], [13, 7], [14, 7]
+        ];
+
+        // Cores
+        const COLORS = {
+            path: '#8B4513',
+            pathHighlight: '#A0522D',
+            grid: 'rgba(255, 255, 255, 0.1)',
+            validPlace: 'rgba(0, 255, 0, 0.3)',
+            invalidPlace: 'rgba(255, 0, 0, 0.3)',
+            tower: {
+                archer: '#FFD700',
+                bomb: '#FF4500',
+                ice: '#00CED1'
+            },
+            enemy: {
+                fly: '#FFA500',
+                beetle: '#8B0000',
+                sky_bug: '#C0C0C0'
+            }
+        };
+
+        // Inicializa o jogo
+        async function initGame() {
+            try {
+                const response = await fetch('/tower-defense/games/create', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                
+                if (data.success) {
+                    gameId = data.game_id;
+                    gameState = data.initial_state;
+                    
+                    // Conecta WebSocket
+                    connectWebSocket();
+                    
+                    // Inicia renderização
+                    requestAnimationFrame(gameLoop);
+                    
+                    showMessage('Jogo criado! Selecione uma torre e comece a se defender!');
+                }
+            } catch (error) {
+                console.error('Erro ao criar jogo:', error);
+                showMessage('Erro ao criar jogo. Recarregue a página.');
+            }
+        }
+
+        // Conecta ao WebSocket
+        function connectWebSocket() {
+            const wsUrl = `ws://${window.location.host}/tower-defense/ws/${gameId}`;
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                console.log('WebSocket conectado');
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'init' || data.type === 'state_update') {
+                    gameState = data.state;
+                    updateUI();
+                    
+                    // Verifica game over ou vitória
+                    if (gameState.state.game_over || gameState.state.victory) {
+                        showGameOver(gameState.state.victory);
+                    }
+                } else if (data.type === 'command_result') {
+                    showMessage(data.message);
+                }
+            };
+            
+            ws.onclose = () => {
+                console.log('WebSocket desconectado');
+            };
+        }
+
+        // Loop principal do jogo
+        function gameLoop() {
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Renderiza o jogo
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            if (!gameState) return;
+            
+            // Desenha grid
+            drawGrid();
+            
+            // Desenha caminho
+            drawPath();
+            
+            // Desenha torres
+            drawTowers();
+            
+            // Desenha inimigos
+            drawEnemies();
+            
+            // Desenha projéteis
+            drawProjectiles();
+            
+            // Desenha highlight de colocação
+            if (selectedTower) {
+                drawPlacementPreview();
+            }
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = COLORS.grid;
+            ctx.lineWidth = 1;
+            
+            for (let x = 0; x <= GRID_WIDTH; x++) {
+                ctx.beginPath();
+                ctx.moveTo(OFFSET_X + x * CELL_SIZE, OFFSET_Y);
+                ctx.lineTo(OFFSET_X + x * CELL_SIZE, OFFSET_Y + GRID_HEIGHT * CELL_SIZE);
+                ctx.stroke();
+            }
+            
+            for (let y = 0; y <= GRID_HEIGHT; y++) {
+                ctx.beginPath();
+                ctx.moveTo(OFFSET_X, OFFSET_Y + y * CELL_SIZE);
+                ctx.lineTo(OFFSET_X + GRID_WIDTH * CELL_SIZE, OFFSET_Y + y * CELL_SIZE);
+                ctx.stroke();
+            }
+        }
+
+        function drawPath() {
+            ctx.fillStyle = COLORS.path;
+            
+            for (const [x, y] of gameState.path) {
+                ctx.fillRect(
+                    OFFSET_X + x * CELL_SIZE,
+                    OFFSET_Y + y * CELL_SIZE,
+                    CELL_SIZE,
+                    CELL_SIZE
+                );
+            }
+            
+            // Desenha ponto de início
+            const [startX, startY] = gameState.path[0];
+            ctx.fillStyle = '#00FF00';
+            ctx.font = '30px Arial';
+            ctx.fillText('🚪', 
+                OFFSET_X + startX * CELL_SIZE + 15,
+                OFFSET_Y + startY * CELL_SIZE + 45
+            );
+            
+            // Desenha formigueiro (final)
+            const [endX, endY] = gameState.path[gameState.path.length - 1];
+            ctx.fillStyle = '#FF0000';
+            ctx.font = '30px Arial';
+            ctx.fillText('🏠',
+                OFFSET_X + endX * CELL_SIZE + 15,
+                OFFSET_Y + endY * CELL_SIZE + 45
+            );
+        }
+
+        function drawTowers() {
+            for (const tower of gameState.towers) {
+                const centerX = OFFSET_X + tower.x * CELL_SIZE + CELL_SIZE / 2;
+                const centerY = OFFSET_Y + tower.y * CELL_SIZE + CELL_SIZE / 2;
+                
+                // Base da torre
+                ctx.fillStyle = COLORS.tower[tower.type];
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, CELL_SIZE / 3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Nível da torre
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`Lv.${tower.level}`, centerX, centerY);
+                
+                // Ícone baseado no tipo
+                let icon = '🎯';
+                if (tower.type === 'bomb') icon = '💣';
+                if (tower.type === 'ice') icon = '❄️';
+                
+                ctx.font = '20px Arial';
+                ctx.fillText(icon, centerX, centerY - 10);
+            }
+        }
+
+        function drawEnemies() {
+            for (const enemy of gameState.enemies) {
+                const centerX = OFFSET_X + enemy.x * CELL_SIZE + CELL_SIZE / 2;
+                const centerY = OFFSET_Y + enemy.y * CELL_SIZE + CELL_SIZE / 2;
+                
+                // Corpo do inimigo
+                ctx.fillStyle = COLORS.enemy[enemy.type] || '#FF0000';
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, CELL_SIZE / 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Barra de vida
+                const barWidth = CELL_SIZE / 2;
+                const barHeight = 5;
+                const healthPercent = enemy.hp / enemy.max_hp;
+                
+                ctx.fillStyle = 'red';
+                ctx.fillRect(centerX - barWidth / 2, centerY - CELL_SIZE / 2 - 10, barWidth, barHeight);
+                
+                ctx.fillStyle = '#00FF00';
+                ctx.fillRect(centerX - barWidth / 2, centerY - CELL_SIZE / 2 - 10, barWidth * healthPercent, barHeight);
+                
+                // Efeito de slow
+                if (enemy.slowed) {
+                    ctx.strokeStyle = '#00CED1';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, CELL_SIZE / 3, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        function drawProjectiles() {
+            for (const projectile of gameState.projectiles || []) {
+                const fromX = OFFSET_X + projectile.from_x * CELL_SIZE + CELL_SIZE / 2;
+                const fromY = OFFSET_Y + projectile.from_y * CELL_SIZE + CELL_SIZE / 2;
+                const toX = OFFSET_X + projectile.to_x * CELL_SIZE + CELL_SIZE / 2;
+                const toY = OFFSET_Y + projectile.to_y * CELL_SIZE + CELL_SIZE / 2;
+                
+                ctx.strokeStyle = COLORS.tower[projectile.type] || 'yellow';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(fromX, fromY);
+                ctx.lineTo(toX, toY);
+                ctx.stroke();
+            }
+        }
+
+        function drawPlacementPreview() {
+            // Implementação futura: mostra preview onde o mouse está
+        }
+
+        // Atualiza UI
+        function updateUI() {
+            if (!gameState) return;
+            
+            document.getElementById('leaves').textContent = gameState.state.leaves;
+            document.getElementById('lives').textContent = gameState.state.lives;
+            document.getElementById('wave').textContent = `${gameState.state.current_wave}/${gameState.state.total_waves}`;
+            document.getElementById('score').textContent = gameState.state.score;
+            document.getElementById('killed').textContent = gameState.state.enemies_killed;
+            
+            // Atualiza estado dos botões
+            updateTowerButtons();
+        }
+
+        function updateTowerButtons() {
+            const costs = { archer: 50, bomb: 120, ice: 80 };
+            
+            for (const type of ['archer', 'bomb', 'ice']) {
+                const btn = document.getElementById(`btn-${type}`);
+                if (gameState.state.leaves < costs[type]) {
+                    btn.disabled = true;
+                } else {
+                    btn.disabled = false;
+                }
+            }
+            
+            // Botão de iniciar onda
+            const startBtn = document.getElementById('btn-start-wave');
+            if (gameState.wave_active || gameState.state.game_over || gameState.state.victory) {
+                startBtn.disabled = true;
+            } else {
+                startBtn.disabled = false;
+            }
+        }
+
+        // Seleciona torre
+        function selectTower(type) {
+            if (selectedTower === type) {
+                selectedTower = null;
+                clearSelection();
+            } else {
+                selectedTower = type;
+                updateSelection();
+                showMessage(`Torre ${type} selecionada. Clique no grid para colocar!`);
+            }
+        }
+
+        function updateSelection() {
+            clearSelection();
+            if (selectedTower) {
+                document.getElementById(`btn-${selectedTower}`).classList.add('selected');
+            }
+        }
+
+        function clearSelection() {
+            ['archer', 'bomb', 'ice'].forEach(type => {
+                document.getElementById(`btn-${type}`).classList.remove('selected');
+            });
+        }
+
+        // Inicia onda
+        function startWave() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ command: 'start_wave' }));
+            }
+        }
+
+        // Mostra mensagem
+        function showMessage(msg) {
+            document.getElementById('message-area').textContent = msg;
+        }
+
+        // Game Over / Vitória
+        function showGameOver(victory) {
+            const overlay = document.getElementById('game-over-overlay');
+            const title = document.getElementById('game-over-title');
+            const message = document.getElementById('game-over-message');
+            const finalScore = document.getElementById('final-score');
+            
+            if (victory) {
+                title.textContent = '🎉 VITÓRIA!';
+                title.style.color = '#00FF00';
+                message.textContent = 'Você defendeu o formigueiro com sucesso!';
+            } else {
+                title.textContent = '💀 GAME OVER';
+                title.style.color = '#FF0000';
+                message.textContent = 'O formigueiro foi invadido!';
+            }
+            
+            finalScore.textContent = gameState.state.score;
+            overlay.style.display = 'flex';
+        }
+
+        // Click no canvas
+        canvas.addEventListener('click', (e) => {
+            if (!selectedTower || !gameId) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Converte para coordenadas do grid
+            const gridX = Math.floor((x - OFFSET_X) / CELL_SIZE);
+            const gridY = Math.floor((y - OFFSET_Y) / CELL_SIZE);
+            
+            // Verifica se está dentro do grid
+            if (gridX < 0 || gridX >= GRID_WIDTH || gridY < 0 || gridY >= GRID_HEIGHT) {
+                return;
+            }
+            
+            // Envia comando para colocar torre
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    command: 'place_tower',
+                    x: gridX,
+                    y: gridY,
+                    tower_type: selectedTower
+                }));
+            }
+        });
+
+        // Inicializa o jogo ao carregar
+        window.onload = initGame;
+    </script>
+</body>
+</html>

@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ant Defense - Tower Defense</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c1810 0%, #4a2c17 100%);
+            color: #fff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .game-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 10px;
+        }
+
+        .stats-bar {
+            display: flex;
+            justify-content: space-around;
+            background: rgba(0,0,0,0.6);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .stat {
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #ffd700;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .game-area {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .canvas-container {
+            flex: 1;
+            min-width: 600px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 10px;
+            padding: 15px;
+            position: relative;
+        }
+
+        #gameCanvas {
+            background: #3d2914;
+            border: 3px solid #8b4513;
+            border-radius: 5px;
+            cursor: crosshair;
+            display: block;
+        }
+
+        .controls-panel {
+            width: 300px;
+            background: rgba(0,0,0,0.6);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .tower-selection {
+            margin-bottom: 20px;
+        }
+
+        .tower-selection h3 {
+            margin-bottom: 10px;
+            color: #ffd700;
+        }
+
+        .tower-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+
+        .tower-option:hover {
+            background: rgba(255,255,255,0.2);
+        }
+
+        .tower-option.selected {
+            border-color: #ffd700;
+            background: rgba(255,215,0,0.2);
+        }
+
+        .tower-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .tower-mandible { background: #ff6b6b; }
+        .tower-acid { background: #51cf66; }
+        .tower-web { background: #74c0fc; }
+
+        .tower-info {
+            flex: 1;
+        }
+
+        .tower-name {
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+
+        .tower-cost {
+            color: #ffd700;
+            font-size: 0.9rem;
+        }
+
+        .tower-desc {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ffd700 0%, #ffa500 100%);
+            color: #2c1810;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255,215,0,0.4);
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a5a 100%);
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255,107,107,0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .wave-info {
+            background: rgba(0,0,0,0.4);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .wave-info h3 {
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .enemy-types {
+            display: flex;
+            gap: 15px;
+            margin-top: 10px;
+        }
+
+        .enemy-type {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.9rem;
+        }
+
+        .game-over-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            border-radius: 10px;
+            z-index: 100;
+        }
+
+        .game-over-overlay.active {
+            display: flex;
+        }
+
+        .game-over-text {
+            font-size: 3rem;
+            color: #ff6b6b;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .final-score {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+        }
+
+        .instructions {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .instructions h4 {
+            color: #ffd700;
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+        }
+
+        @media (max-width: 900px) {
+            .game-area {
+                flex-direction: column;
+            }
+
+            .canvas-container {
+                min-width: 100%;
+            }
+
+            .controls-panel {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <header>
+            <h1>🐜 Ant Defense 🐜</h1>
+            <p>Defenda o formigueiro dos invasores!</p>
+        </header>
+
+        <div class="stats-bar">
+            <div class="stat">
+                <div class="stat-value" id="goldDisplay">100</div>
+                <div class="stat-label">💰 Ouro</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="livesDisplay">20</div>
+                <div class="stat-label">❤️ Vidas</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="waveDisplay">0</div>
+                <div class="stat-label">🌊 Wave</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" id="scoreDisplay">0</div>
+                <div class="stat-label">⭐ Pontos</div>
+            </div>
+        </div>
+
+        <div class="game-area">
+            <div class="canvas-container">
+                <canvas id="gameCanvas" width="600" height="400"></canvas>
+                <div class="game-over-overlay" id="gameOverOverlay">
+                    <div class="game-over-text">GAME OVER</div>
+                    <div class="final-score">Pontuação Final: <span id="finalScore">0</span></div>
+                    <button class="btn-primary" onclick="location.reload()">Jogar Novamente</button>
+                </div>
+            </div>
+
+            <div class="controls-panel">
+                <div class="tower-selection">
+                    <h3>Selecionar Torre</h3>
+                    
+                    <div class="tower-option selected" data-tower="mandible" onclick="selectTower('mandible')">
+                        <div class="tower-icon tower-mandible">🦷</div>
+                        <div class="tower-info">
+                            <div class="tower-name">Mandíbula</div>
+                            <div class="tower-cost">50 ouro</div>
+                            <div class="tower-desc">Ataque rápido, alvo único</div>
+                        </div>
+                    </div>
+
+                    <div class="tower-option" data-tower="acid" onclick="selectTower('acid')">
+                        <div class="tower-icon tower-acid">🧪</div>
+                        <div class="tower-info">
+                            <div class="tower-name">Ácido</div>
+                            <div class="tower-cost">80 ouro</div>
+                            <div class="tower-desc">Dano em área, lento</div>
+                        </div>
+                    </div>
+
+                    <div class="tower-option" data-tower="web" onclick="selectTower('web')">
+                        <div class="tower-icon tower-web">🕸️</div>
+                        <div class="tower-info">
+                            <div class="tower-name">Teia</div>
+                            <div class="tower-cost">60 ouro</div>
+                            <div class="tower-desc">Desacelera inimigos</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn-primary" id="startWaveBtn" onclick="startNextWave()">
+                        🌊 Iniciar Wave
+                    </button>
+                    <button class="btn-secondary" id="pauseBtn" onclick="togglePause()">
+                        ⏸️ Pausar
+                    </button>
+                    <button class="btn-danger" onclick="location.reload()">
+                        🔄 Reiniciar
+                    </button>
+                </div>
+
+                <div class="wave-info">
+                    <h3>Inimigos</h3>
+                    <div class="enemy-types">
+                        <div class="enemy-type">
+                            <span>🐛</span>
+                            <span>Aphid (Rápido)</span>
+                        </div>
+                        <div class="enemy-type">
+                            <span>🪲</span>
+                            <span>Besouro (Tanque)</span>
+                        </div>
+                        <div class="enemy-type">
+                            <span>🪰</span>
+                            <span>Mosca (Voador)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="instructions">
+                    <h4>Como Jogar:</h4>
+                    <ul>
+                        <li>Clique em uma torre para selecionar</li>
+                        <li>Clique no grid para colocar a torre</li>
+                        <li>Não pode construir no caminho</li>
+                        <li>Derrote inimigos para ganhar ouro</li>
+                        <li>Não deixe inimigos chegarem na base!</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Estado do jogo
+        let gameState = null;
+        let gameId = null;
+        let selectedTowerType = 'mandible';
+        let ws = null;
+
+        // Canvas
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Configurações
+        const CELL_SIZE = 40;
+        const GRID_WIDTH = 15;
+        const GRID_HEIGHT = 10;
+
+        // Inicializa o jogo
+        async function initGame() {
+            try {
+                const response = await fetch('/games/ant_defense', {
+                    method: 'POST'
+                });
+                const data = await response.json();
+                gameId = data.game_id;
+                gameState = data.initial_state;
+
+                // Conecta WebSocket
+                connectWebSocket();
+
+                // Renderiza estado inicial
+                render();
+                updateUI();
+            } catch (error) {
+                console.error('Erro ao iniciar jogo:', error);
+                alert('Erro ao iniciar jogo. Recarregue a página.');
+            }
+        }
+
+        // Conecta ao WebSocket
+        function connectWebSocket() {
+            const wsUrl = `ws://${window.location.host}/ws/ant_defense/${gameId}`;
+            ws = new WebSocket(wsUrl);
+
+            ws.onopen = () => {
+                console.log('WebSocket conectado');
+            };
+
+            ws.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                
+                if (message.type === 'state_update' || message.type === 'init') {
+                    gameState = message.state;
+                    render();
+                    updateUI();
+
+                    if (gameState.game_over) {
+                        showGameOver();
+                    }
+                } else if (message.error) {
+                    console.error('Erro do servidor:', message.error);
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('Erro WebSocket:', error);
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket desconectado');
+                // Tenta reconectar após 2 segundos
+                setTimeout(connectWebSocket, 2000);
+            };
+        }
+
+        // Seleciona torre
+        function selectTower(towerType) {
+            selectedTowerType = towerType;
+            
+            // Atualiza visual
+            document.querySelectorAll('.tower-option').forEach(option => {
+                option.classList.remove('selected');
+                if (option.dataset.tower === towerType) {
+                    option.classList.add('selected');
+                }
+            });
+        }
+
+        // Coloca torre
+        canvas.addEventListener('click', (e) => {
+            if (!gameState || gameState.paused || gameState.game_over) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const gridX = Math.floor(x / CELL_SIZE);
+            const gridY = Math.floor(y / CELL_SIZE);
+
+            // Envia comando via WebSocket
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    command: 'place_tower',
+                    grid_x: gridX,
+                    grid_y: gridY,
+                    tower_type: selectedTowerType
+                }));
+            }
+        });
+
+        // Inicia próxima wave
+        function startNextWave() {
+            if (!gameState || gameState.wave_active) return;
+
+            const nextWave = gameState.wave_number + 1;
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    command: 'start_wave',
+                    wave_number: nextWave
+                }));
+            }
+        }
+
+        // Alterna pause
+        function togglePause() {
+            if (!gameState || gameState.game_over) return;
+
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    command: 'pause'
+                }));
+            }
+        }
+
+        // Atualiza UI
+        function updateUI() {
+            if (!gameState) return;
+
+            document.getElementById('goldDisplay').textContent = gameState.gold;
+            document.getElementById('livesDisplay').textContent = gameState.lives;
+            document.getElementById('waveDisplay').textContent = gameState.wave_number;
+            document.getElementById('scoreDisplay').textContent = gameState.score;
+
+            const startWaveBtn = document.getElementById('startWaveBtn');
+            startWaveBtn.disabled = gameState.wave_active || gameState.game_over;
+            startWaveBtn.textContent = gameState.wave_active 
+                ? `🌊 Wave ${gameState.wave_number} em andamento...`
+                : `🌊 Iniciar Wave ${gameState.wave_number + 1}`;
+
+            const pauseBtn = document.getElementById('pauseBtn');
+            pauseBtn.textContent = gameState.paused ? '▶️ Retomar' : '⏸️ Pausar';
+        }
+
+        // Mostra game over
+        function showGameOver() {
+            const overlay = document.getElementById('gameOverOverlay');
+            document.getElementById('finalScore').textContent = gameState.score;
+            overlay.classList.add('active');
+        }
+
+        // Renderiza o jogo
+        function render() {
+            if (!gameState) return;
+
+            // Limpa canvas
+            ctx.fillStyle = '#3d2914';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Desenha caminho
+            drawPath();
+
+            // Desenha grid
+            drawGrid();
+
+            // Desenha torres
+            drawTowers();
+
+            // Desenha inimigos
+            drawEnemies();
+
+            // Desenha projéteis
+            drawProjectiles();
+        }
+
+        // Desenha caminho
+        function drawPath() {
+            if (!gameState.path || gameState.path.length === 0) return;
+
+            ctx.strokeStyle = '#8b6f47';
+            ctx.lineWidth = CELL_SIZE * 0.7;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            ctx.beginPath();
+            const start = gameState.path[0];
+            ctx.moveTo(start[0] * CELL_SIZE, start[1] * CELL_SIZE);
+
+            for (let i = 1; i < gameState.path.length; i++) {
+                const point = gameState.path[i];
+                ctx.lineTo(point[0] * CELL_SIZE, point[1] * CELL_SIZE);
+            }
+
+            ctx.stroke();
+
+            // Desenha formigueiro (base)
+            const base = gameState.path[gameState.path.length - 1];
+            ctx.fillStyle = '#654321';
+            ctx.beginPath();
+            ctx.arc(
+                base[0] * CELL_SIZE,
+                base[1] * CELL_SIZE,
+                CELL_SIZE * 0.4,
+                0,
+                Math.PI * 2
+            );
+            ctx.fill();
+        }
+
+        // Desenha grid
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+            ctx.lineWidth = 1;
+
+            for (let x = 0; x <= GRID_WIDTH; x++) {
+                ctx.beginPath();
+                ctx.moveTo(x * CELL_SIZE, 0);
+                ctx.lineTo(x * CELL_SIZE, GRID_HEIGHT * CELL_SIZE);
+                ctx.stroke();
+            }
+
+            for (let y = 0; y <= GRID_HEIGHT; y++) {
+                ctx.beginPath();
+                ctx.moveTo(0, y * CELL_SIZE);
+                ctx.lineTo(GRID_WIDTH * CELL_SIZE, y * CELL_SIZE);
+                ctx.stroke();
+            }
+        }
+
+        // Desenha torres
+        function drawTowers() {
+            if (!gameState.towers) return;
+
+            gameState.towers.forEach(tower => {
+                const x = tower.grid_x * CELL_SIZE;
+                const y = tower.grid_y * CELL_SIZE;
+
+                // Base da torre
+                ctx.fillStyle = '#654321';
+                ctx.fillRect(x + 5, y + 5, CELL_SIZE - 10, CELL_SIZE - 10);
+
+                // Ícone da torre
+                ctx.fillStyle = getTowerColor(tower.type);
+                ctx.beginPath();
+                ctx.arc(
+                    x + CELL_SIZE / 2,
+                    y + CELL_SIZE / 2,
+                    CELL_SIZE * 0.3,
+                    0,
+                    Math.PI * 2
+                );
+                ctx.fill();
+
+                // Alcance (se hover)
+                // Pode ser implementado posteriormente
+            });
+        }
+
+        // Desenha inimigos
+        function drawEnemies() {
+            if (!gameState.enemies) return;
+
+            gameState.enemies.forEach(enemy => {
+                const x = enemy.x;
+                const y = enemy.y;
+
+                // Corpo do inimigo
+                ctx.fillStyle = getEnemyColor(enemy.type);
+                ctx.beginPath();
+                
+                if (enemy.type === 'aphid') {
+                    // Aphid - pequeno e oval
+                    ctx.ellipse(x, y, 8, 5, 0, 0, Math.PI * 2);
+                } else if (enemy.type === 'beetle') {
+                    // Beetle - maior e redondo
+                    ctx.arc(x, y, 10, 0, Math.PI * 2);
+                } else if (enemy.type === 'fly') {
+                    // Fly - médio com asas
+                    ctx.arc(x, y, 7, 0, Math.PI * 2);
+                }
+                
+                ctx.fill();
+
+                // Barra de vida
+                const healthPercent = enemy.health / enemy.max_health;
+                const barWidth = 30;
+                const barHeight = 4;
+
+                ctx.fillStyle = 'rgba(0,0,0,0.5)';
+                ctx.fillRect(x - barWidth/2, y - 15, barWidth, barHeight);
+
+                ctx.fillStyle = healthPercent > 0.5 ? '#51cf66' : healthPercent > 0.25 ? '#ffd43b' : '#ff6b6b';
+                ctx.fillRect(x - barWidth/2, y - 15, barWidth * healthPercent, barHeight);
+
+                // Efeito de slow
+                if (enemy.slowed) {
+                    ctx.strokeStyle = '#74c0fc';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 12, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            });
+        }
+
+        // Desenha projéteis
+        function drawProjectiles() {
+            if (!gameState.projectiles) return;
+
+            gameState.projectiles.forEach(proj => {
+                ctx.fillStyle = getProjectileColor(proj.tower_type);
+                ctx.beginPath();
+                ctx.arc(proj.start_x, proj.start_y, 4, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+
+        // Cores das torres
+        function getTowerColor(type) {
+            switch(type) {
+                case 'mandible': return '#ff6b6b';
+                case 'acid': return '#51cf66';
+                case 'web': return '#74c0fc';
+                default: return '#ffffff';
+            }
+        }
+
+        // Cores dos inimigos
+        function getEnemyColor(type) {
+            switch(type) {
+                case 'aphid': return '#a0d911';
+                case 'beetle': return '#805ad5';
+                case 'fly': return '#fab1a0';
+                default: return '#ffffff';
+            }
+        }
+
+        // Cores dos projéteis
+        function getProjectileColor(type) {
+            switch(type) {
+                case 'mandible': return '#ff6b6b';
+                case 'acid': return '#51cf66';
+                case 'web': return '#74c0fc';
+                default: return '#ffffff';
+            }
+        }
+
+        // Loop de renderização
+        function gameLoop() {
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Inicia o jogo quando a página carrega
+        window.onload = () => {
+            initGame();
+            gameLoop();
+        };
+    </script>
+</body>
+</html>

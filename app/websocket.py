@@ -106,18 +106,25 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 async def websocket_endpoint(websocket: WebSocket, game_id: str):
+    # Fix Bug #2: Race condition - fetch game only once at the start
     with Session(engine) as session:
         db_game = session.exec(select(Game).where(Game.id == game_id)).first()
         if not db_game:
             await websocket.close(code=4004, reason="Game not found")
             return
+        game_type = db_game.game_type
+    
     color = await manager.connect(game_id, websocket)
     if color is None:
         await websocket.close(code=4003, reason="Game full")
         return
+    
     # update player fields in DB
     with Session(engine) as session:
         game = session.exec(select(Game).where(Game.id == game_id)).first()
+        if not game:
+            await websocket.close(code=4004, reason="Game not found")
+            return
         if color == "w":
             game.player1 = "connected"
             if not game.player2:
@@ -127,9 +134,13 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
             game.status = "active"
         session.add(game)
         session.commit()
+    
     # Send initial state based on game type
     with Session(engine) as session:
         game = session.exec(select(Game).where(Game.id == game_id)).first()
+        if not game:
+            await websocket.close(code=4004, reason="Game not found")
+            return
         if game.game_type == "checkers":
             await manager.send_personal(websocket, {"type": "color", "color": color})
             await manager.broadcast(game_id, {"type": "board", "board": manager.boards[game_id].board})
@@ -159,6 +170,10 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
     try:
         while True:
             data = await websocket.receive_text()
+            # Fix Bug #4: Add basic input validation
+            if not isinstance(data, str) or len(data) > 1024:
+                await manager.send_personal(websocket, {"type": "error", "message": "Invalid message format"})
+                continue
             msg = json.loads(data)
             if msg.get("type") not in ("move", "input"):
                 continue
@@ -175,7 +190,8 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                     await manager.send_personal(websocket, {"type": "error", "message": "Invalid piece"})
                     continue
                 legal_moves = board.legal_moves(color)
-                if fr not in [m[0] for m in legal_moves] or to not in [m[1] for m in legal_moves if m[0] == fr]:
+                # Fix Bug #1: Validate the complete move pair instead of separate origin/destination
+                if (fr, to) not in legal_moves:
                     await manager.send_personal(websocket, {"type": "error", "message": "Illegal move"})
                     continue
                 board.apply_move(fr, to)

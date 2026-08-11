@@ -13,6 +13,8 @@ from app.database import engine, init_db
 from games.crossword.models import Word
 from games.crossword.words import SEED_WORDS
 from games.crossword.generator import generate_crossword
+from games.snake.routes import router as snake_router
+from games.ant_defense.routes import router as ant_defense_router
 import os
 
 DIFFICULTY_MAP = {"easy": 1, "medium": 2, "hard": 3}
@@ -34,6 +36,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# Include Snake game routes
+app.include_router(snake_router, prefix="/api")
+
+# Include Ant Defense game routes
+app.include_router(ant_defense_router, prefix="/games")
+
 @app.middleware("http")
 async def add_no_cache_headers(request: Request, call_next):
     response = await call_next(request)
@@ -49,12 +57,19 @@ for game_name in os.listdir(games_dir):
     game_static = os.path.join(games_dir, game_name, "static")
     if os.path.isdir(game_static) and not game_name.startswith("."):
         app.mount(f"/games/{game_name}/static", StaticFiles(directory=game_static), name=f"{game_name}_static")
+    
+    # Mount snake game index.html directly
+    game_index = os.path.join(games_dir, game_name, "index.html")
+    if os.path.isfile(game_index) and not game_name.startswith("."):
+        @app.get(f"/play/{game_name}")
+        async def play_game(game=game_name):
+            return FileResponse(os.path.join(games_dir, game, "index.html"))
 
 @app.get("/")
 async def root():
     return FileResponse("static/index.html")
 
-PLAYABLE_GAMES = ("checkers", "wordsearch", "crossword")
+PLAYABLE_GAMES = ("checkers", "wordsearch", "crossword", "snake", "ant_defense", "tower_defense")
 
 
 @app.get("/play/{game}")

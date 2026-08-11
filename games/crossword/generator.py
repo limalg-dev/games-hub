@@ -110,6 +110,26 @@ def generate_crossword(words: List[Dict[str, str]], difficulty: int = 1) -> Dict
             if score >= config["min_words"]:
                 break
 
+    # Fix Bug #3: Handle case where no words could be placed (empty/bad grid)
+    if best is None or len(best.placed_words) == 0:
+        # Fallback: create a minimal valid grid with at least one word
+        fallback_grid = CrosswordGrid(max_size)
+        if eligible:
+            first_word = eligible[0]["word"].upper()
+            start_row = max_size // 2
+            start_col = max(0, (max_size - len(first_word)) // 2)
+            if start_col + len(first_word) <= max_size:
+                fallback_grid.place_word(first_word, start_row, start_col, "across", eligible[0].get("hint", ""), 1)
+                best = fallback_grid
+            else:
+                # Word too long for grid, use single letter
+                fallback_grid.place_word("A", start_row, start_col, "across", "Single letter", 1)
+                best = fallback_grid
+        else:
+            # No words available, create empty grid with at least one cell
+            fallback_grid.place_word("A", max_size // 2, max_size // 2, "across", "Default", 1)
+            best = fallback_grid
+
     crossword = best
     clues = {"across": [], "down": []}
     for pw in crossword.placed_words:

@@ -134,6 +134,54 @@ const GAMES = {
       'Células pretas são blocos (não preenchíveis)',
       'Complete todo o grid para vencer. Dois jogadores podem resolver juntos'
     ]
+  },
+  snake: {
+    id: 'snake',
+    title: 'Snake',
+    desc: 'Jogo da cobrinha moderno. Coma maçãs para crescer sem colidir com as paredes ou consigo mesmo.',
+    shortDesc: 'Coma maçãs, cresça e não colida!',
+    players: 1,
+    modes: ['Solo', 'High Score'],
+    category: ['acao', 'classicos'],
+    collections: ['acao-pura', 'classicos-atemporais'],
+    duration: '2–10 min',
+    difficulty: ['Fácil', 'Médio', 'Difícil'],
+    rating: 4.6,
+    plays: 150000,
+    featured: true,
+    badge: 'popular',
+    thumbnail: '',
+    rules: [
+      'Use setas ou WASD para controlar a cobrinha',
+      'Coma maçãs vermelhas para crescer e ganhar pontos',
+      'Não colida com as paredes ou com o próprio corpo',
+      'A velocidade aumenta progressivamente',
+      'Pause/Resume a qualquer momento'
+    ]
+  },
+  tower_defense: {
+    id: 'tower_defense',
+    title: '🐜 Ant Defense',
+    desc: 'Tower Defense estratégico onde formigas defendem o formigueiro contra invasores. Posicione torres estrategicamente!',
+    shortDesc: 'Defenda o formigueiro com torres de formigas!',
+    players: 1,
+    modes: ['Solo', 'Ondas Infinitas'],
+    category: ['estrategia', 'acao'],
+    collections: ['treine-sua-mente', 'acao-pura'],
+    duration: '10–30 min',
+    difficulty: ['Fácil', 'Médio', 'Difícil'],
+    rating: 4.8,
+    plays: 75000,
+    featured: true,
+    badge: 'novo',
+    thumbnail: '',
+    rules: [
+      'Posicione torres nas células marcadas do grid',
+      'Cada torre custa ouro - derrote inimigos para ganhar mais',
+      'Torres Mandíbula: rápido, alvo único | Ácido: lento, dano alto | Teia: desacelera inimigos',
+      'Inimigos: Aphid (rápido/frágil), Beetle (lento/tanque), Fly (médio)',
+      'Não deixe inimigos chegarem ao formigueiro ou perderá vidas!'
+    ]
   }
 };
 
