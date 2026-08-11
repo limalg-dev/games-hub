@@ -160,6 +160,10 @@ export function allGames() {
   return Object.values(GAMES).sort((a, b) => b.rating - a.rating);
 }
 
+export function categoryLabel(cat) {
+  return CATEGORY_LABELS[cat] || cat;
+}
+
 export function categories() {
   return Object.keys(CATEGORY_LABELS).filter(cat =>
     Object.values(GAMES).some(g => g.category && g.category.includes(cat))

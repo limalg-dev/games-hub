@@ -4,7 +4,7 @@ import { CheckersGame } from '/games/checkers/static/board.js';
 import { CrosswordGame } from '/games/crossword/static/board.js';
 import { DIFFICULTIES } from '/games/wordsearch/static/words.js';
 import { buildPlayUrl, parsePlayUrl } from '/static/play-url.js';
-import { GAMES, categories, gamesByCategory, gameCard } from '/static/games.js';
+import { GAMES, categories, categoryLabel, gamesByCategory, gameCard } from '/static/games.js';
 
 // ===== STATE =====
 const STATE = {
@@ -416,7 +416,7 @@ function renderCategoryTabs() {
   const tabs = [
     `<li><button class="category-tab active" data-category="all">Todos os Jogos</button></li>`,
     ...categories().map(cat =>
-      `<li><button class="category-tab" data-category="${cat}">${cat}</button></li>`
+      `<li><button class="category-tab" data-category="${cat}">${categoryLabel(cat)}</button></li>`
     ),
   ].join('');
   categoryList.innerHTML = tabs;

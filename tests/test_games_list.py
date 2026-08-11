@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parent.parent
 STATIC = ROOT / "static"
 
 HARNESS = """
-import { GAMES, allGames, categories, gamesByCategory, gameCard } from './games.js';
+import { GAMES, allGames, categories, categoryLabel, gamesByCategory, gameCard } from './games.js';
 
 const GAME_IDS = Object.keys(GAMES);
 const games = allGames();
@@ -25,6 +25,7 @@ const results = {
   ids: GAME_IDS,
   games,
   categoryList: categories(),
+  labels: Object.fromEntries(categories().map(cat => [cat, categoryLabel(cat)])),
   byAll: gamesByCategory('all'),
   byUnknown: gamesByCategory('inexistente'),
   cards: Object.fromEntries(GAME_IDS.map(id => [id, gameCard(GAMES[id])])),
@@ -101,6 +102,11 @@ def test_by_all_returns_every_game(result):
 
 def test_by_unknown_category_is_empty(result):
     assert result["byUnknown"] == []
+
+
+def test_category_labels_are_localized(result):
+    for cat, label in result["labels"].items():
+        assert cat != label, f"{cat} borrowed the raw id as its tab label"
 
 
 def test_each_category_has_unique_games(result):
