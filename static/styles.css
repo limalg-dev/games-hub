@@ -72,12 +72,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .game-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
 
 /* ===== ENHANCED GAME CARDS ===== */
-.game-badges { position: absolute; top: 1rem; right: 1rem; z-index: 2; display: flex; flex-direction: column; gap: 0.25rem; pointer-events: none; }
 .badge { font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: 999px; background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; }
-.badge.ai { background: rgba(233, 69, 96, 0.15); color: var(--accent); border-color: var(--accent); }
-.badge-novo { background: var(--accent); border-color: var(--accent); color: #fff; }
-.badge-popular { background: var(--gold); border-color: var(--gold); color: var(--bg-primary); }
-.badge-destaque { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff; }
 
 .game-hover-overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; text-align: center; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; z-index: 10; border-radius: var(--radius); }
 .game-card:hover .game-hover-overlay { opacity: 1; pointer-events: auto; }
@@ -91,82 +86,6 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-play { width: 100%; padding: 0.75rem; background: var(--accent); color: white; border-radius: calc(var(--radius) - 4px); font-weight: 600; font-size: 1rem; transition: background var(--transition), transform 0.1s; }
 .btn-play:hover { background: var(--accent-hover); transform: scale(1.02); }
 .btn-play:active { transform: scale(0.98); }
-
-/* ===== FEATURED ===== */
-.featured { max-width: 1200px; margin: 0 auto; padding: 2rem 2rem 0; }
-.featured-spotlight {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-  padding: 2rem;
-  border-radius: var(--radius);
-  background: linear-gradient(135deg, var(--bg-card), var(--bg-secondary));
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow);
-  position: relative;
-  overflow: hidden;
-  animation: featuredSlide 0.45s var(--transition);
-}
-.featured-spotlight.hidden { display: none; }
-.featured-spotlight::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 3px;
-  background: linear-gradient(90deg, var(--accent), var(--gold));
-  box-shadow: 0 0 16px rgba(233, 69, 96, 0.6);
-}
-@keyframes featuredSlide {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: none; }
-}
-.featured-badges { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
-.featured-meta { display: flex; flex-wrap: wrap; gap: 1.25rem; margin-bottom: 1.25rem; }
-.featured-meta span { color: var(--text-secondary); font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.35rem; }
-.featured-meta .val { color: var(--text-primary); font-weight: 600; }
-.featured-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
-}
-.featured-card:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: var(--accent); }
-.featured-info { flex: 1; display: flex; flex-direction: column; }
-.featured-info h3 { font-size: 1.4rem; margin-bottom: 0.5rem; }
-.featured-spotlight .featured-info h3 { font-size: clamp(1.6rem, 3vw, 2.2rem); }
-.featured-desc { color: var(--text-secondary); font-size: 0.95rem; margin-bottom: 1.25rem; flex: 1; }
-.featured-spotlight .featured-desc { font-size: 1rem; max-width: 60ch; }
-.featured-secondary {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1.5rem;
-  margin-top: 1.5rem;
-}
-.featured-secondary:empty { display: none; }
-.featured-spotlight .btn-play { padding: 1rem; font-size: 1.1rem; max-width: 220px; }
-
-/* .featured-thumb removed (dead CSS from Phase 2) */
-
-/* ===== COLLECTIONS ===== */
-.collections { max-width: 1200px; margin: 0 auto; padding: 2rem 2rem 0; display: grid; gap: 2rem; }
-.collection-section { display: grid; gap: 1rem; }
-.collection-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; }
-.collection-title h2 { font-size: 1.4rem; }
-.collection-title p { color: var(--text-secondary); font-size: 0.9rem; }
-.collection-see-all { flex: 0 0 auto; padding: 0.5rem 1rem; border-radius: 999px; background: transparent; border: 1px solid var(--accent); color: var(--accent); font-weight: 500; font-size: 0.85rem; transition: background var(--transition), color var(--transition); }
-.collection-see-all:hover { background: var(--accent); color: #fff; }
-.collection-slider { display: flex; overflow-x: auto; gap: 1rem; padding: 0.25rem 0 1rem; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
-.collection-slider::-webkit-scrollbar { display: none; }
-.collection-card { scroll-snap-align: start; }
-.collection-slider .game-card { flex: 0 0 auto; width: 200px; }
-
-@media (max-width: 768px) {
-  .collections { padding: 1.5rem 1rem 0; gap: 1.5rem; }
-  .collection-slider .game-card { width: 180px; }
-}
 
 /* ===== MODAL ===== */
 .modal { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 1rem; }
@@ -386,35 +305,10 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
 /* ===== RESPONSIVE POLISH & ACCESSIBILITY ===== */
-@media (max-width: 768px) {
-  .featured-spotlight {
-    padding: 1.5rem;
-  }
-  .featured-spotlight .featured-info h3 {
-    font-size: clamp(1.4rem, 4vw, 1.8rem);
-  }
-  .featured-spotlight .featured-desc {
-    font-size: 0.9rem;
-  }
-  .featured-spotlight .btn-play {
-    padding: 0.875rem;
-    font-size: 1rem;
-    max-width: 100%;
-  }
-}
-
-@media (max-width: 480px) {
-  .collection-see-all {
-    padding: 0.4rem 0.75rem;
-    font-size: 0.8rem;
-  }
-}
-
 /* Focus-visible styles for accessibility */
 .btn-play:focus-visible,
 .category-tab:focus-visible,
 .category-toggle:focus-visible,
-.collection-see-all:focus-visible,
 .modal-close:focus-visible,
 .btn-primary:focus-visible,
 .btn-secondary:focus-visible,
@@ -422,34 +316,6 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-back:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-/* Ensure badge contrast on card background */
-.badge.ai {
-  background: rgba(233, 69, 96, 0.2);
-  color: var(--accent-hover);
-  border-color: var(--accent);
-}
-.badge-novo {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-.badge-popular {
-  background: var(--gold);
-  border-color: var(--gold);
-  color: var(--bg-primary);
-}
-.badge-destaque {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  color: #fff;
-}
-
-/* Touch scrolling improvement for collection sliders */
-.collection-slider {
-  -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x mandatory;
 }
 
 /* ===== PLAY GATE ===== */
