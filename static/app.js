@@ -4,6 +4,7 @@ import { CheckersGame } from '/games/checkers/static/board.js';
 import { CrosswordGame } from '/games/crossword/static/board.js';
 import { DIFFICULTIES } from '/games/wordsearch/static/words.js';
 import { buildPlayUrl, parsePlayUrl } from '/static/play-url.js';
+import { GAMES, categories, gamesByCategory, gameCard } from '/static/games.js';
 
 // ===== STATE =====
 const STATE = {
@@ -60,164 +61,6 @@ function restoreBoard() {
   if (boardWrapper) boardWrapper.innerHTML = ORIGINAL_BOARD_HTML;
   if (sidebar) sidebar.innerHTML = ORIGINAL_SIDEBAR_HTML;
 }
-
-// ===== GAME DATA =====
-const GAMES = {
-  checkers: {
-    id: 'checkers',
-    title: 'Checkers',
-    desc: 'Classic 8×8 English draughts. Capture all opponent pieces or block them completely.',
-    shortDesc: 'Classic 8×8 draughts. Play vs AI or friend.',
-    players: 2,
-    modes: ['Local', 'AI', 'Online'],
-    category: ['tabuleiro', 'estrategia', 'classicos'],
-    collections: ['2-jogadores', 'classicos-atemporais'],
-    duration: '5–15 min',
-    difficulty: ['Easy', 'Medium', 'Hard'],
-    rating: 4.8,
-    plays: 125000,
-    featured: true,
-    badge: 'destaque',
-    thumbnail: '',
-    rules: [
-      'Move diagonally forward on dark squares only',
-      'Capture by jumping over an adjacent opponent piece',
-      'Multiple jumps allowed in a single turn',
-      'Reach the back row → become a King (moves backward too)',
-      'Win by capturing all enemy pieces or blocking all moves'
-    ]
-  },
-  wordsearch: {
-    id: 'wordsearch',
-    title: 'Caça-Palavras',
-    desc: 'Encontre palavras escondidas na grade. Múltiplas categorias e níveis de dificuldade.',
-    shortDesc: 'Encontre palavras na grade. Várias categorias.',
-    players: 1,
-    modes: ['Solo', 'Timer', 'Ranking'],
-    category: ['palavras', 'classicos'],
-    collections: ['treine-sua-mente', 'classicos-atemporais'],
-    duration: '5–20 min',
-    difficulty: ['Fácil', 'Médio', 'Difícil'],
-    rating: 4.5,
-    plays: 98000,
-    featured: false,
-    badge: 'popular',
-    thumbnail: '',
-    rules: [
-      'Palavras podem estar horizontais, verticais ou diagonais',
-      'Podem ser lidas da esquerda para direita ou vice-versa',
-      'Arraste para selecionar letras da palavra',
-      'Palavras encontradas ficam marcadas na lista',
-      'Complete todas as palavras para vencer'
-    ]
-  },
-  crossword: {
-    id: 'crossword',
-    title: 'Palavras Cruzadas',
-    desc: 'Resolva palavras cruzadas geradas dinamicamente pelo servidor. Dicas across/down e multijogador.',
-    shortDesc: 'Cruza palavras com dicas. Solo ou online.',
-    players: '1–2',
-    modes: ['Solo', 'Online'],
-    category: ['palavras', 'classicos'],
-    collections: ['treine-sua-mente'],
-    duration: '5–25 min',
-    difficulty: ['Fácil', 'Médio', 'Difícil'],
-    rating: 4.7,
-    plays: 64000,
-    featured: false,
-    badge: 'novo',
-    thumbnail: '',
-    rules: [
-      'Clique numa dica ou célula para selecionar a palavra',
-      'Digite a letra em cada célula; letras corretas ficam verdes',
-      'Setas alternam entre horizontal e vertical',
-      'Células pretas são blocos (não preenchíveis)',
-      'Complete todo o grid para vencer. Dois jogadores podem resolver juntos'
-    ]
-  },
-  snake: {
-    id: 'snake',
-    title: 'Snake',
-    desc: 'Jogo da cobrinha moderno. Coma maçãs para crescer sem colidir com as paredes ou consigo mesmo.',
-    shortDesc: 'Coma maçãs, cresça e não colida!',
-    players: 1,
-    modes: ['Solo', 'High Score'],
-    category: ['acao', 'classicos'],
-    collections: ['acao-pura', 'classicos-atemporais'],
-    duration: '2–10 min',
-    difficulty: ['Fácil', 'Médio', 'Difícil'],
-    rating: 4.6,
-    plays: 150000,
-    featured: true,
-    badge: 'popular',
-    thumbnail: '',
-    rules: [
-      'Use setas ou WASD para controlar a cobrinha',
-      'Coma maçãs vermelhas para crescer e ganhar pontos',
-      'Não colida com as paredes ou com o próprio corpo',
-      'A velocidade aumenta progressivamente',
-      'Pause/Resume a qualquer momento'
-    ]
-  },
-  tower_defense: {
-    id: 'tower_defense',
-    title: '🏰 Tower Defense',
-    desc: 'Tower Defense estratégico onde formigas defendem o formigueiro contra invasores. Posicione torres estrategicamente!',
-    shortDesc: 'Defenda o formigueiro com torres estratégicas!',
-    players: 1,
-    modes: ['Solo', 'Ondas Infinitas'],
-    category: ['estrategia', 'acao'],
-    collections: ['treine-sua-mente', 'acao-pura'],
-    duration: '10–30 min',
-    difficulty: ['Fácil', 'Médio', 'Difícil'],
-    rating: 4.8,
-    plays: 75000,
-    featured: true,
-    badge: 'novo',
-    thumbnail: '🏰',
-    icon: '🏰',
-    rules: [
-      'Posicione torres nas células marcadas do grid',
-      'Cada torre custa ouro - derrote inimigos para ganhar mais',
-      'Torres: Arqueiro (rápido), Bomba (área), Gelo (desacelera)',
-      'Inimigos vêm em ondas - não deixe nenhum passar!',
-      'Gerencie bem seu ouro para maximizar a defesa'
-    ]
-  },
-  ant_defense: {
-    id: 'ant_defense',
-    title: '🐜 Ant Defense',
-    desc: 'Defenda o formigueiro real contra invasores usando torres de formigas especializadas. Estratégia pura!',
-    shortDesc: 'Formigas defendem o formigueiro!',
-    players: 1,
-    modes: ['Solo', 'Sobrevivência'],
-    category: ['estrategia', 'acao'],
-    collections: ['treine-sua-mente', 'acao-pura'],
-    duration: '15–40 min',
-    difficulty: ['Médio', 'Difícil', 'Expert'],
-    rating: 4.9,
-    plays: 45000,
-    featured: true,
-    badge: 'destaque',
-    thumbnail: '🐜',
-    icon: '🐜',
-    rules: [
-      'Construa torres de formigas ao longo do caminho',
-      'Formiga Soldado: dano alto | Formiga Operária: rápido | Formiga Ácida: veneno',
-      'Proteja a rainha no centro do formigueiro',
-      'Invasores: Besouros (tanques), Moscas (rápidos), Lagartas (muita vida)',
-      'Use estratégias combinadas para máxima eficiência'
-    ]
-  }
-};
-
-// ===== COLLECTIONS DATA =====
-const COLLECTIONS = {
-  'treine-sua-mente':      { title: 'Treine sua Mente',    desc: 'Desafios que exercitam o cérebro' },
-  'acao-pura':             { title: 'Ação Pura',           desc: 'Jogos rápidos e intensos' },
-  '2-jogadores':           { title: '2 Jogadores',         desc: 'Jogue com um amigo' },
-  'classicos-atemporais':  { title: 'Clássicos Atemporais', desc: 'Jogos que todo mundo conhece' }
-};
 
 // ===== VIEW MANAGEMENT =====
 // A visibilidade de uma `.page` vem só da classe `active`
@@ -565,34 +408,40 @@ async function startNewGame() {
 
 // ===== LANDING CATEGORY NAV =====
 let activeCategory = 'all';
-const categoryTabs = $$('.category-tab');
 const categoryList = $('.category-list');
 const categoryToggle = $('.category-toggle');
 
-categoryTabs.forEach(tab => {
-  tab.addEventListener('click', () => {
-    activeCategory = tab.dataset.category;
-    activeCollectionFilteredGames = null;
-    categoryTabs.forEach(t => t.classList.toggle('active', t === tab));
-    renderGameGrid(activeCategory);
-    if (window.innerWidth <= 768) {
-      categoryList.classList.remove('open');
-      categoryToggle.setAttribute('aria-expanded', 'false');
-    }
+function renderCategoryTabs() {
+  if (!categoryList) return;
+  const tabs = [
+    `<li><button class="category-tab active" data-category="all">Todos os Jogos</button></li>`,
+    ...categories().map(cat =>
+      `<li><button class="category-tab" data-category="${cat}">${cat}</button></li>`
+    ),
+  ].join('');
+  categoryList.innerHTML = tabs;
+  categoryList.querySelectorAll('.category-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      activeCategory = tab.dataset.category;
+      categoryList.querySelectorAll('.category-tab').forEach(t => t.classList.toggle('active', t === tab));
+      renderGameGrid(activeCategory);
+      if (window.innerWidth <= 768) {
+        categoryList.classList.remove('open');
+        categoryToggle?.setAttribute('aria-expanded', 'false');
+      }
+    });
   });
-});
+}
 
 categoryToggle?.addEventListener('click', () => {
   const open = categoryList.classList.toggle('open');
-  categoryToggle.setAttribute('aria-expanded', String(open));
+  categoryToggle?.setAttribute('aria-expanded', String(open));
 });
 
 // ===== INIT =====
 function init() {
-  renderGameGrid();
-  renderFeaturedSpotlight();
-  renderFeaturedSecondary();
-  renderCollections();
+  renderCategoryTabs();
+  renderGameGrid('all');
 
   const play = parsePlayUrl(location.pathname, location.search);
   if (play) void openPlayGate(play);
@@ -657,260 +506,9 @@ async function openPlayGate(play) {
   button.disabled = false;
 }
 
-function formatPlays(plays) {
-  if (plays >= 1000000) return (plays / 1000000).toFixed(1).replace(/\.0$/, '') + 'M';
-  if (plays >= 1000) return (plays / 1000).toFixed(0) + 'K';
-  return String(plays);
-}
-
-function getBadgeLabel(badge) {
-  const labels = { 'novo': 'Novo', 'popular': 'Popular', 'destaque': 'Em Destaque' };
-  return labels[badge] || '';
-}
-
-function getBadgeClass(badge) {
-  const classes = { 'novo': 'badge-novo', 'popular': 'badge-popular', 'destaque': 'badge-destaque' };
-  return classes[badge] || '';
-}
-
-function renderBadge(game) {
-  if (!game.badge) return '';
-  return `<div class="game-badges"><span class="badge ${getBadgeClass(game.badge)}">${getBadgeLabel(game.badge)}</span></div>`;
-}
-
-function renderThumbnail(game) {
-  // Se tiver ícone (emoji), usa ele como thumbnail grande e real
-  if (game.icon) {
-    return `<div class="game-icon-real">${game.icon}</div>`;
-  }
-  if (game.thumbnail) {
-    return `<img src="${game.thumbnail}" alt="${game.title}" onerror="this.onerror=null; this.outerHTML='<svg class=\\'game-preview\\' viewBox=\\'0 0 80 80\\' width=\\'80\\' height=\\'80\\'>' + generateGamePreviewSVG('${game.id}') + '</svg>'">`;
-  }
-  return `<svg class="game-preview" viewBox="0 0 80 80" width="80" height="80">${generateGamePreviewSVG(game.id)}</svg>`;
-}
-
-function renderHoverOverlay(game) {
-  return `
-    <div class="game-hover-overlay">
-      <h3>${game.title}</h3>
-      <p class="game-desc">${game.shortDesc}</p>
-      <div class="game-hover-meta">
-        <span>★ <span class="val">${game.rating.toFixed(1)}</span></span>
-        <span><span class="val">${formatPlays(game.plays)}</span> plays</span>
-      </div>
-      <button class="btn-play" data-game="${game.id}">Jogar</button>
-    </div>
-  `;
-}
-
-function renderFeaturedSpotlight() {
-  const container = $('#featured-spotlight');
-  if (!container) return;
-  const game = Object.values(GAMES).find(g => g.featured);
-  if (!game) {
-    container.classList.add('hidden');
-    return;
-  }
-  container.classList.remove('hidden');
-  container.innerHTML = `
-    <div class="featured-card featured-spotlight">
-      <div class="featured-badges">
-        ${renderBadge(game)}
-        <span class="badge">${game.players} Players</span>
-        ${game.duration ? `<span class="badge">${game.duration}</span>` : ''}
-      </div>
-      <div class="featured-info">
-        <h3>${game.title}</h3>
-        <p class="featured-desc">${game.shortDesc}</p>
-        <div class="featured-meta">
-          <span>★ <span class="val">${game.rating.toFixed(1)}</span></span>
-          <span><span class="val">${formatPlays(game.plays)}</span> plays</span>
-        </div>
-        <button class="btn-play" data-game="${game.id}">Jogar Agora</button>
-      </div>
-    </div>
-  `;
-}
-
-function renderFeaturedSecondary() {
-  const container = $('#featured-secondary');
-  if (!container) return;
-  const games = Object.values(GAMES)
-    .filter(g => !g.featured)
-    .sort((a, b) => b.plays - a.plays)
-    .slice(0, 2);
-  if (games.length < 2) {
-    container.innerHTML = '';
-    return;
-  }
-  container.innerHTML = games.map(game => `
-    <article class="game-card" data-game="${game.id}">
-      <div class="game-thumb">
-        ${renderThumbnail(game)}
-      </div>
-      ${renderBadge(game)}
-      <div class="game-info">
-        <h3>${game.title}</h3>
-        <p class="game-desc">${game.shortDesc}</p>
-        <div class="game-meta">
-          <span class="badge">${game.players} Players</span>
-          <span class="badge">${game.duration}</span>
-        </div>
-      </div>
-      <button class="btn-play" data-game="${game.id}">Jogar Agora</button>
-      ${renderHoverOverlay(game)}
-    </article>
-  `).join('');
-}
-
-// Featured play buttons live OUTSIDE #game-grid, so wire them explicitly.
-const featuredSection = $('.featured');
-featuredSection?.addEventListener('click', (e) => {
-  const btn = e.target.closest('[data-game]');
-  if (btn) openModal(btn.dataset.game);
-});
-// ===== COLLECTIONS =====
-const collectionsContainer = $('.collections');
-let activeCollectionFilteredGames = null;
-
-function gamesForCollection(category, collectFilter) {
-  return Object.values(GAMES).filter(game => {
-    if (collectFilter) {
-      return game.collections && game.collections.includes(collectFilter);
-    }
-    return !category || category === 'all' || (game.category && game.category.includes(category));
-  });
-}
-
-function renderCollections() {
-  if (!collectionsContainer) return;
-  collectionsContainer.innerHTML = Object.keys(COLLECTIONS).map(key => {
-    const games = Object.values(GAMES).filter(g => g.collections && g.collections.includes(key));
-    if (games.length === 0) return '';
-    const col = COLLECTIONS[key];
-    return `
-      <section class="collection-section" data-collection-section="${key}">
-        <div class="collection-title">
-          <div>
-            <h2>${col.title}</h2>
-            <p>${col.desc}</p>
-          </div>
-          <button class="collection-see-all" data-collection="${key}">Ver todos</button>
-        </div>
-        <div class="collection-slider">
-          ${games.map(game => `
-            <article class="game-card collection-card" data-game="${game.id}">
-              <div class="game-thumb">
-                ${renderThumbnail(game)}
-              </div>
-              ${renderBadge(game)}
-              <div class="game-info">
-                <h3>${game.title}</h3>
-                <p class="game-desc">${game.shortDesc}</p>
-                <div class="game-meta">
-                  <span class="badge">${game.players} Players</span>
-                </div>
-              </div>
-              <button class="btn-play" data-game="${game.id}">Jogar Agora</button>
-              ${renderHoverOverlay(game)}
-            </article>
-          `).join('')}
-        </div>
-      </section>
-    `;
-  }).filter(Boolean).join('');
-}
-
-collectionsContainer?.addEventListener('click', (e) => {
-  const collectBtn = e.target.closest('[data-collection]');
-  if (collectBtn) {
-    activeCollectionFilteredGames = collectBtn.dataset.collection;
-    activeCategory = 'all';
-    categoryTabs.forEach(t => t.classList.toggle('active', t.dataset.category === 'all'));
-    renderGameGrid();
-    const grid = document.getElementById('game-grid');
-    if (grid) grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    return;
-  }
-  const card = e.target.closest('[data-game]');
-  if (card) openModal(card.dataset.game);
-});
-
 function renderGameGrid(category) {
-  const games = gamesForCollection(category, activeCollectionFilteredGames);
-  gameGrid.innerHTML = games.map(game => `
-    <article class="game-card" data-game="${game.id}">
-      <div class="game-thumb">
-        ${renderThumbnail(game)}
-      </div>
-      ${renderBadge(game)}
-      <div class="game-info">
-        <h3>${game.title}</h3>
-        <p class="game-desc">${game.shortDesc}</p>
-        <div class="game-meta">
-          <span class="badge">${game.players} Players</span>
-          <span class="badge">${game.duration}</span>
-        </div>
-      </div>
-      <button class="btn-play" data-game="${game.id}">Jogar Agora</button>
-      ${renderHoverOverlay(game)}
-    </article>
-  `).join('');
-}
-
-function generateGamePreviewSVG(gameId) {
-  const square = 10;
-  if (gameId === 'crossword') {
-    const letters = { '1,1':'A','1,2':'P','1,3':'I','1,4':'O','1,5':'D','3,1':'C','4,1':'O','5,1':'D','5,2':'O','5,3':'M','5,4':'E','5,5':'S','2,3':'T','3,3':'A','4,3':'E' };
-    let svg = '';
-    for (let r = 0; r < 8; r++) {
-      for (let c = 0; c < 8; c++) {
-        const x = c * square, y = r * square;
-        const key = `${r},${c}`;
-        if (letters[key]) {
-          svg += `<rect x="${x}" y="${y}" width="${square}" height="${square}" fill="#fff" stroke="#b58863" stroke-width="0.75"/>`;
-          svg += `<text x="${x+5}" y="${y+6.5}" font-size="6" fill="#0f3460" text-anchor="middle" font-family="monospace">${letters[key]}</text>`;
-        } else {
-          svg += `<rect x="${x}" y="${y}" width="${square}" height="${square}" fill="#0f3460"/>`;
-        }
-      }
-    }
-    return svg;
-  }
-  if (gameId === 'wordsearch') {
-    // Show a letter grid pattern for word search
-    let svg = '';
-    for (let r = 0; r < 8; r++) {
-      for (let c = 0; c < 8; c++) {
-        const x = c*square, y = r*square;
-        svg += `<rect x="${x}" y="${y}" width="${square}" height="${square}" fill="#0f3460" stroke="#2a2a4a" stroke-width="0.5"/>`;
-        const letter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[(r*8+c) % 26];
-        svg += `<text x="${x+5}" y="${y+7}" font-size="7" fill="#eaeaea" text-anchor="middle" font-family="monospace">${letter}</text>`;
-      }
-    }
-    return svg;
-  }
-  // Checkers board preview
-  let svg = '';
-  for (let r = 0; r < 8; r++) {
-    for (let c = 0; c < 8; c++) {
-      if ((r + c) % 2 === 0) {
-        svg += `<rect x="${c*square}" y="${r*square}" width="${square}" height="${square}" fill="#b58863"/>`;
-      }
-    }
-  }
-  const pieces = [
-    {r:1,c:1,col:'w'},{r:1,c:3,col:'w'},{r:1,c:5,col:'w'},{r:1,c:7,col:'w'},
-    {r:6,c:0,col:'b'},{r:6,c:2,col:'b'},{r:6,c:4,col:'b'},{r:6,c:6,col:'b'},
-    {r:3,c:3,col:'w'},{r:4,c:4,col:'b'}
-  ];
-  pieces.forEach(p => {
-    const cx = p.c*square + square/2;
-    const cy = p.r*square + square/2;
-    const col = p.col === 'w' ? '#fff' : '#111';
-    svg += `<circle cx="${cx}" cy="${cy}" r="3.5" fill="${col}" stroke="#333" stroke-width="0.5"/>`;
-  });
-  return svg;
+  const games = gamesByCategory(category || activeCategory);
+  gameGrid.innerHTML = games.map(gameCard).join('');
 }
 
 // ===== WEBSOCKET =====
