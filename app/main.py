@@ -52,18 +52,40 @@ async def add_no_cache_headers(request: Request, call_next):
     return response
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Mount static files for all games
 games_dir = "games"
 for game_name in os.listdir(games_dir):
     game_static = os.path.join(games_dir, game_name, "static")
     if os.path.isdir(game_static) and not game_name.startswith("."):
         app.mount(f"/games/{game_name}/static", StaticFiles(directory=game_static), name=f"{game_name}_static")
-    
-    # Mount snake game index.html directly
-    game_index = os.path.join(games_dir, game_name, "index.html")
-    if os.path.isfile(game_index) and not game_name.startswith("."):
-        @app.get(f"/play/{game_name}")
-        async def play_game(game=game_name):
-            return FileResponse(os.path.join(games_dir, game, "index.html"))
+
+# Specific routes for each game to avoid conflicts
+# Note: Some games have their own index.html, others use the main static/index.html
+@app.get("/play/snake")
+async def play_snake():
+    return FileResponse(os.path.join(games_dir, "snake", "index.html"))
+
+@app.get("/play/ant_defense")
+async def play_ant_defense():
+    return FileResponse(os.path.join(games_dir, "ant_defense", "index.html"))
+
+@app.get("/play/tower_defense")
+async def play_tower_defense():
+    return FileResponse(os.path.join(games_dir, "tower_defense", "static", "index.html"))
+
+# Games that use the main static/index.html (legacy games)
+@app.get("/play/checkers")
+async def play_checkers():
+    return FileResponse("static/index.html")
+
+@app.get("/play/wordsearch")
+async def play_wordsearch():
+    return FileResponse("static/index.html")
+
+@app.get("/play/crossword")
+async def play_crossword():
+    return FileResponse("static/index.html")
 
 @app.get("/")
 async def root():
@@ -71,12 +93,8 @@ async def root():
 
 PLAYABLE_GAMES = ("checkers", "wordsearch", "crossword", "snake", "ant_defense", "tower_defense")
 
-
-@app.get("/play/{game}")
-async def play(game: str):
-    if game not in PLAYABLE_GAMES:
-        raise HTTPException(status_code=404, detail="Unknown game")
-    return FileResponse("static/index.html")
+# Rota genérica removida para evitar conflitos com rotas específicas acima
+# As rotas específicas estão definidas acima para cada jogo
 
 @app.post("/api/words", response_model=WordRead)
 async def create_word(word_in: WordCreate):
