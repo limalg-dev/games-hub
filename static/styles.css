@@ -63,6 +63,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .game-thumb { width: 100%; aspect-ratio: 1; border-radius: calc(var(--radius) - 4px); background: linear-gradient(135deg, var(--wood-dark), var(--wood-light)); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; position: relative; overflow: hidden; }
 .game-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .game-thumb svg { width: 100%; height: 100%; display: block; }
+.game-icon-real { font-size: 4rem; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; animation: iconFloat 3s ease-in-out infinite; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3)); }
+@keyframes iconFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 .checkers-preview { width: 80%; height: 80%; display: block; }
 .game-info { flex: 1; display: flex; flex-direction: column; }
 .game-info h3 { font-size: 1.25rem; margin-bottom: 0.5rem; }
