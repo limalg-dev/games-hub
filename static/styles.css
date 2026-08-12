@@ -97,7 +97,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .modal-content { position: relative; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius); max-width: 720px; width: 100%; max-height: 90vh; overflow-y: auto; display: grid; grid-template-columns: 1fr; animation: slideUp 0.3s var(--transition); }
 @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
 @media (min-width: 640px) { .modal-content { grid-template-columns: 320px 1fr; } }
-.modal-close { position: absolute; top: 1rem; right: 1rem; width: 36px; height: 36px; border-radius: 50%; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); font-size: 1.5rem; display: flex; align-items: center; justify-content: center; z-index: 1; transition: all var(--transition); }
+.modal-close { position: absolute; top: 1rem; right: 1rem; width: 36px; height: 36px; border-radius: 50%; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); font-size: 1.5rem; display: flex; align-items: center; justify-content: center; z-index: 10; transition: all var(--transition); }
 .modal-close:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
 .modal-visual { background: var(--bg-primary); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
 @media (min-width: 640px) { .modal-visual { border-bottom: none; border-right: 1px solid var(--border); min-height: 400px; } }
@@ -124,7 +124,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .game-header { display: flex; align-items: center; gap: 1rem; padding: 1rem 1.5rem; background: var(--bg-secondary); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
 .btn-back { width: 40px; height: 40px; border-radius: 50%; background: var(--bg-card); border: 1px solid var(--border); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; transition: all var(--transition); }
 .btn-back:hover { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
-.game-status { flex: 1; text-align: center; }
+.game-status { flex: 1; text-align: center; display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 1rem; flex-wrap: wrap; }
 #turn-indicator { font-weight: 600; font-size: 1.1rem; }
 #turn-indicator.white { color: var(--piece-white); }
 #turn-indicator.black { color: var(--gold); }
@@ -177,6 +177,12 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   .hero h1 { font-size: 2rem; }
   .btn-play { padding: 0.6rem; font-size: 0.9rem; }
   .game-menu { display: none; }
+  .game-header { padding: 0.5rem 0.75rem; gap: 0.5rem; }
+  .btn-back { width: 32px; height: 32px; }
+  .btn-back svg { width: 18px; height: 18px; }
+  .game-status { flex-direction: column; gap: 0.1rem; }
+  #turn-indicator { font-size: 0.9rem; }
+  #timer { font-size: 1rem; }
 }
 
 /* ===== WORD SEARCH SPECIFIC ===== */
@@ -240,8 +246,8 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (max-width: 768px) {
   .word-list li { font-size: 0.8rem; padding: 0.4rem 0.5rem; }
 }
-@media (max-width: 480px) {
-  .wordsearch-grid td { width: 30px; height: 30px; font-size: 0.8rem; }
+@media (max-width: 640px) {
+  .wordsearch-grid td { width: 22px; height: 22px; font-size: 0.75rem; }
 }
 
 /* ===== CROSSWORD ===== */
