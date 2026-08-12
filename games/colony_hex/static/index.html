@@ -12,6 +12,37 @@
     .action-btn { background: var(--accent); color: var(--on-accent); padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background var(--transition); }
     .action-btn:hover { background: var(--accent-hover); }
     .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    .board-wrapper {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      min-height: 450px;
+    }
+    #colony-canvas {
+      max-width: 100%;
+      height: auto;
+      box-shadow: var(--shadow);
+      border-radius: 8px;
+      display: block;
+    }
+    .hex-sidebar {
+      width: 280px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+    @media (max-width: 768px) {
+      .board-wrapper {
+        min-height: auto;
+        padding: 1rem;
+      }
+      .hex-sidebar {
+        width: 100%;
+      }
+    }
   </style>
 </head>
 <body class="page active">
@@ -29,10 +60,10 @@
   </header>
   <main class="game-container">
     <div class="game-area">
-      <div class="board-wrapper" style="flex: 1; min-height: 450px;">
+      <div class="board-wrapper">
         <canvas id="colony-canvas" width="500" height="500"></canvas>
       </div>
-      <aside class="sidebar">
+      <aside class="hex-sidebar">
         <section class="colony-panel">
           <h4>Seu Painel</h4>
           <div class="hud-row"><span>Sua Cor:</span><span id="hud-my-color" style="font-weight:bold">-</span></div>

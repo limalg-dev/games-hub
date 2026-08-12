@@ -132,8 +132,8 @@ export class HexBoard {
   bindEvents() {
     this.canvas.addEventListener("click", (e) => {
       let rect = this.canvas.getBoundingClientRect();
-      let clickX = e.clientX - rect.left;
-      let clickY = e.clientY - rect.top;
+      let clickX = (e.clientX - rect.left) * (this.canvas.width / rect.width);
+      let clickY = (e.clientY - rect.top) * (this.canvas.height / rect.height);
       let target = this.pixelToHex(clickX, clickY);
       
       let matchedCell = this.cells.find(c => c.q === target.q && c.r === target.r);

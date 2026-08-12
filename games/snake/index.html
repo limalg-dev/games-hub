@@ -28,6 +28,8 @@
             border-radius: 20px;
             padding: 30px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 460px;
         }
 
         h1 {
@@ -41,13 +43,15 @@
             justify-content: space-around;
             margin-bottom: 20px;
             font-size: 1.2em;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .score-item {
             background: rgba(255, 255, 255, 0.2);
             padding: 10px 20px;
             border-radius: 10px;
-            min-width: 120px;
+            min-width: 100px;
         }
 
         .score-value {
@@ -61,6 +65,8 @@
             border-radius: 10px;
             background: #1a1a2e;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            max-width: 100%;
+            height: auto;
         }
 
         .controls {
@@ -110,10 +116,15 @@
             .mobile-controls {
                 display: grid;
             }
-            
-            #gameCanvas {
-                max-width: 300px;
-                max-height: 300px;
+            .game-container {
+                padding: 15px;
+                margin: 10px;
+                width: calc(100% - 20px);
+            }
+            .score-item {
+                min-width: 80px;
+                padding: 8px 12px;
+                font-size: 0.9em;
             }
         }
 
@@ -181,9 +192,41 @@
             font-size: 0.9em;
             opacity: 0.8;
         }
+
+        .btn-back {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            z-index: 1000;
+        }
+
+        .btn-back:hover {
+            background: #e94560;
+            color: #fff;
+            border-color: #e94560;
+            transform: scale(1.05);
+        }
+
+        .btn-back:focus-visible {
+            outline: 2px solid #e94560;
+            outline-offset: 2px;
+        }
     </style>
 </head>
 <body>
+    <a href="/" class="btn-back" aria-label="Voltar para a seleção de jogos">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </a>
     <div class="game-container">
         <h1>🐍 Snake Game</h1>
         

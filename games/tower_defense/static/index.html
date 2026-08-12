@@ -33,6 +33,8 @@
             border-radius: 15px;
             padding: 20px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 940px;
         }
 
         .stats-bar {
@@ -66,6 +68,10 @@
             border-radius: 10px;
             background: #2d5016;
             cursor: pointer;
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
         }
 
         .controls {
@@ -215,9 +221,56 @@
         .instructions ul {
             margin-left: 20px;
         }
+
+        .btn-back {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            z-index: 1000;
+        }
+
+        .btn-back:hover {
+            background: #e94560;
+            color: #fff;
+            border-color: #e94560;
+            transform: scale(1.05);
+        }
+
+        .btn-back:focus-visible {
+            outline: 2px solid #e94560;
+            outline-offset: 2px;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            .game-container {
+                padding: 10px;
+            }
+            .stats-bar {
+                gap: 10px;
+            }
+            .stat {
+                padding: 8px 12px;
+            }
+        }
     </style>
 </head>
 <body>
+    <a href="/" class="btn-back" aria-label="Voltar para a seleção de jogos">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </a>
     <h1>🏰 Tower Defense</h1>
     <p>Defenda o formigueiro dos invasores!</p>
 
@@ -660,8 +713,8 @@
             if (!selectedTower || !gameId) return;
             
             const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
+            const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+            const y = (e.clientY - rect.top) * (canvas.height / rect.height);
             
             // Converte para coordenadas do grid
             const gridX = Math.floor((x - OFFSET_X) / CELL_SIZE);
