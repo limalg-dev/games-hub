@@ -80,7 +80,7 @@ export function drawBoard(ctx, board, options = {}) {
         ctx.fillStyle = 'rgba(233, 69, 96, 0.3)';
         ctx.fillRect(x, y, squareSize, squareSize);
       }
-      if (validMoves.some(([vr, vc]) => vr === r && vc === c)) {
+      if (validMoves.some(m => m.to[0] === r && m.to[1] === c)) {
         // Pulsing dot
         const pulse = 0.5 + 0.5 * Math.sin(Date.now() / 200);
         ctx.fillStyle = `rgba(255, 215, 0, ${0.4 + 0.3 * pulse})`;
@@ -359,7 +359,7 @@ export class CheckersGame {
         this.selectedSquare = null;
         this.validMoves = [];
         this.render();
-      } else if (this.validMoves.some(([vr, vc]) => vr === r && vc === c)) {
+      } else if (this.validMoves.some(m => m.to[0] === r && m.to[1] === c)) {
         this.sendMove(this.selectedSquare, [r, c]);
         this.selectedSquare = null;
         this.validMoves = [];
