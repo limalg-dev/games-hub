@@ -107,13 +107,13 @@ function openModal(gameId) {
   modalTitle.textContent = game.title;
   modalDesc.textContent = game.desc;
   modalSpecs.innerHTML = `
-    <dt>Players</dt><dd>${game.players}</dd>
-    <dt>Modes</dt><dd>${game.modes.join(', ')}</dd>
-    <dt>Duration</dt><dd>${game.duration}</dd>
-    ${game.difficulty ? `<dt>Difficulty</dt><dd>${game.difficulty.join(' / ')}</dd>` : ''}
+    <dt>Jogadores</dt><dd>${game.players}</dd>
+    <dt>Modos</dt><dd>${game.modes.join(', ')}</dd>
+    <dt>Duração</dt><dd>${game.duration}</dd>
+    ${game.difficulty ? `<dt>Dificuldade</dt><dd>${game.difficulty.join(' / ')}</dd>` : ''}
   `;
   modalRules.innerHTML = `
-    <h4>Rules Summary</h4>
+    <h4>Resumo das Regras</h4>
     <ul>${game.rules.map(r => `<li>${r}</li>`).join('')}</ul>
   `;
   

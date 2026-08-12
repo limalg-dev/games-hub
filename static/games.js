@@ -199,11 +199,15 @@ function gameHoverOverlay(game) {
       <p class="game-desc">${game.shortDesc}</p>
       <div class="game-hover-meta">
         <span>★ <span class="val">${game.rating.toFixed(1)}</span></span>
-        <span><span class="val">${formatPlays(game.plays)}</span> plays</span>
+        <span><span class="val">${formatPlays(game.plays)}</span> partidas</span>
       </div>
       <button class="btn-play" data-game="${game.id}">Jogar</button>
     </div>
   `;
+}
+
+function playerLabel(players) {
+  return players === 1 ? '1 Jogador' : `${players} Jogadores`;
 }
 
 export function gameCard(game) {
@@ -216,7 +220,7 @@ export function gameCard(game) {
         <h3>${game.title}</h3>
         <p class="game-desc">${game.shortDesc}</p>
         <div class="game-meta">
-          <span class="badge">${game.players} Players</span>
+          <span class="badge">${playerLabel(game.players)}</span>
           <span class="badge">${game.duration}</span>
         </div>
       </div>

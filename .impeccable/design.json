@@ -1,0 +1,211 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-12T00:00:00Z",
+  "title": "Design System: GameHub",
+  "extensions": {
+    "colorMeta": {
+      "night-deep": {
+        "role": "neutral",
+        "displayName": "Night Deep",
+        "canonical": "#1a1a2e",
+        "tonalRamp": ["#0b0d18", "#10131f", "#151827", "#1a1a2e", "#1f2240", "#262b4f", "#2f3561", "#3d4478"]
+      },
+      "night-surface": {
+        "role": "neutral",
+        "displayName": "Night Surface",
+        "canonical": "#16213e",
+        "tonalRamp": ["#0a1424", "#0d1829", "#101c2f", "#16213e", "#1c2748", "#232f57", "#2d3a69", "#3b4a80"]
+      },
+      "night-card": {
+        "role": "neutral",
+        "displayName": "Night Card",
+        "canonical": "#0f3460",
+        "tonalRamp": ["#071a33", "#0a2040", "#0c274d", "#0f3460", "#134072", "#184a85", "#205a9e", "#2b6cbd"]
+      },
+      "hairline": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#2a2a4a",
+        "tonalRamp": ["#121223", "#181834", "#1f1f3f", "#2a2a4a", "#343457", "#3d3d63", "#494976", "#58588e"]
+      },
+      "neon-red": {
+        "role": "primary",
+        "displayName": "Arcade Neon Red",
+        "canonical": "#e94560",
+        "tonalRamp": ["#3a0d16", "#4d1220", "#61182a", "#7a2037", "#95304a", "#b8384f", "#e94560", "#f0606f"]
+      },
+      "neon-red-bright": {
+        "role": "primary",
+        "displayName": "Neon Red Bright",
+        "canonical": "#ff6b6b",
+        "tonalRamp": ["#3c1515", "#521b1b", "#692424", "#8a2f2f", "#a83c3c", "#cc5050", "#ff6b6b", "#ff8d8d"]
+      },
+      "marquee-gold": {
+        "role": "tertiary",
+        "displayName": "Marquee Gold",
+        "canonical": "#ffd700",
+        "tonalRamp": ["#3d3300", "#50450a", "#695715", "#8a741e", "#ab9227", "#ceb033", "#ffd700", "#ffe95f"]
+      },
+      "wood-light": {
+        "role": "secondary",
+        "displayName": "Wood Light",
+        "canonical": "#f0d9b5",
+        "tonalRamp": ["#6b5a38", "#7f6c48", "#94805a", "#ab926e", "#c2a886", "#d6bf9c", "#f0d9b5", "#f6e9d0"]
+      },
+      "wood-dark": {
+        "role": "secondary",
+        "displayName": "Wood Dark",
+        "canonical": "#b58863",
+        "tonalRamp": ["#3d2a16", "#4a341d", "#5a4026", "#6d4f30", "#845f3f", "#9b7152", "#b58863", "#cfa37f"]
+      },
+      "paper": {
+        "role": "secondary",
+        "displayName": "Puzzle Paper",
+        "canonical": "#fdfbf7",
+        "tonalRamp": ["#7a7468", "#8f897c", "#a59e90", "#bcb5a5", "#d3cdbd", "#e8e1d2", "#fdfbf7", "#fffefb"]
+      },
+      "text-mist": {
+        "role": "neutral",
+        "displayName": "Text Mist",
+        "canonical": "#eaeaea",
+        "tonalRamp": ["#4d4d4d", "#646464", "#7b7b7b", "#949494", "#b0b0b0", "#cdcdcd", "#eaeaea", "#f4f4f4"]
+      },
+      "text-dim": {
+        "role": "neutral",
+        "displayName": "Text Dim",
+        "canonical": "#a0a0b0",
+        "tonalRamp": ["#2c2c33", "#3e3e47", "#52525d", "#686874", "#7f7f8c", "#90909d", "#a0a0b0", "#bcbcc8"]
+      },
+      "leaf-green": {
+        "role": "secondary",
+        "displayName": "Leaf Green",
+        "canonical": "#4ade80",
+        "tonalRamp": ["#0f4426", "#145631", "#1a693d", "#228048", "#2d965a", "#3aab6b", "#4ade80", "#6dea97"]
+      },
+      "piece-black": {
+        "role": "neutral",
+        "displayName": "Piece Black",
+        "canonical": "#1a1a1a",
+        "tonalRamp": ["#050505", "#0a0a0a", "#0f0f0f", "#131313", "#1a1a1a", "#262626", "#333333", "#424242"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero screen title only, the unique gradient text." },
+      "headline": { "displayName": "Headline", "purpose": "Modal titles and panel identity." },
+      "title": { "displayName": "Title", "purpose": "Game card names and primary buttons." },
+      "body": { "displayName": "Body", "purpose": "Descriptions, rules, helpers." },
+      "label": { "displayName": "Label", "purpose": "Uppercased panel headings and metadata badges." }
+    },
+    "shadows": [
+      { "name": "ambient-lift", "value": "0 4px 24px rgba(0,0,0,0.4)", "purpose": "Card and board hover lift, combined with translateY(-4px)." },
+      { "name": "accent-glow", "value": "0 8px 24px rgba(233,69,96,0.4)", "purpose": "Primary button hover; red light on the night." },
+      { "name": "stage-curtain", "value": "rgba(0,0,0,0.7)", "purpose": "Modal and play-gate scrim dimming the board." }
+    ],
+    "motion": [
+      { "name": "standard", "value": "0.2s ease", "purpose": "Default state transitions: hover lift, border, color." },
+      { "name": "page-fade", "value": "0.3s ease fadeIn", "purpose": "Page/view entry, translateY(10px) to none." },
+      { "name": "modal-slide", "value": "0.3s slideUp", "purpose": "Modal content rises from 20px while the backdrop fades." },
+      { "name": "icon-float", "value": "3s ease-in-out infinite", "purpose": "Category thumbnail emoji bobbing on a sine wave." },
+      { "name": "king-pulse", "value": "0.4s->0.7s pulse", "purpose": "Checkers king gold glow breathing." }
+    ],
+    "breakpoints": [
+      { "name": "md", "value": "1024px", "purpose": "Sidebar becomes off-canvas drawer." },
+      { "name": "sm", "value": "768px", "purpose": "Category nav collapses to toggle sheet; grids tighten." },
+      { "name": "xs", "value": "640px", "purpose": "Modal single column; board cells shrink." },
+      { "name": "xxs", "value": "480px", "purpose": "Hero 2rem; in-game menu hidden." }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one-spotlight action — full-width red CTA, used to start games and confirm.",
+      "html": "<button class=\"ds-btn-primary\">Jogar Agora</button>",
+      "css": ".ds-btn-primary { display: inline-block; width: 100%; padding: 16px; background: linear-gradient(135deg, #e94560, #c0392b); color: #fff; border: none; border-radius: 8px; font-family: system-ui, sans-serif; font-weight: 600; font-size: 1.1rem; cursor: pointer; transition: transform 0.2s ease, box-shadow 0.2s ease; } .ds-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(233,69,96,0.4); } .ds-btn-primary:focus-visible { outline: 2px solid #e94560; outline-offset: 2px; }"
+    },
+    {
+      "name": "Play Button",
+      "kind": "button",
+      "refersTo": "button-play",
+      "description": "In-card flat red play CTA; scales slightly on hover.",
+      "html": "<button class=\"ds-btn-play\">Jogar</button>",
+      "css": ".ds-btn-play { width: 100%; padding: 12px; background: #e94560; color: #fff; border: none; border-radius: 8px; font-family: system-ui, sans-serif; font-weight: 600; font-size: 1rem; cursor: pointer; transition: background 0.2s ease, transform 0.1s; } .ds-btn-play:hover { background: #ff6b6b; transform: scale(1.02); } .ds-btn-play:active { transform: scale(0.98); } .ds-btn-play:focus-visible { outline: 2px solid #e94560; outline-offset: 2px; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Quiet night-card action for New Game / Reset.",
+      "html": "<button class=\"ds-btn-secondary\">New Game</button>",
+      "css": ".ds-btn-secondary { padding: 8px 16px; background: #0f3460; color: #eaeaea; border: 1px solid #2a2a4a; border-radius: 8px; font-family: system-ui, sans-serif; font-weight: 500; font-size: 0.875rem; cursor: pointer; transition: background 0.2s ease; } .ds-btn-secondary:hover { background: #2a2a4a; } .ds-btn-secondary:focus-visible { outline: 2px solid #e94560; outline-offset: 2px; }"
+    },
+    {
+      "name": "Category Chip",
+      "kind": "chip",
+      "refersTo": "category-chip",
+      "description": "Pill filter for the game grid; active state turns neon red.",
+      "html": "<div><button class=\"ds-chip\">Tabuleiro</button> <button class=\"ds-chip ds-chip-active\">Ação</button></div>",
+      "css": ".ds-chip { padding: 8px 16px; border-radius: 999px; background: #0f3460; border: 1px solid #2a2a4a; color: #eaeaea; font-family: system-ui, sans-serif; font-weight: 500; font-size: 0.9rem; white-space: nowrap; cursor: pointer; transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease; } .ds-chip:hover { border-color: #e94560; color: #ff6b6b; } .ds-chip-active { background: #e94560; border-color: #e94560; color: #fff; } .ds-chip-active:hover { color: #fff; } .ds-chip:focus-visible { outline: 2px solid #e94560; outline-offset: 2px; }"
+    },
+    {
+      "name": "Game Card",
+      "kind": "card",
+      "refersTo": "game-card",
+      "description": "Night-card tile with wood thumbnail; lifts with a red-gold top strip on hover.",
+      "html": "<div class=\"ds-card\"><div class=\"ds-thumb\"><span>🐜</span></div><h3>Ant Defense</h3><p class=\"ds-desc\">Formigas defendem o formigueiro!</p><div><span class=\"ds-badge\">1 Players</span> <span class=\"ds-badge\">15–40 min</span></div></div>",
+      "css": ".ds-card { position: relative; background: #0f3460; border: 1px solid #2a2a4a; border-radius: 12px; padding: 24px; overflow: hidden; transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease; } .ds-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #e94560, #ffd700); opacity: 0; transition: opacity 0.2s ease; } .ds-card:hover { transform: translateY(-4px); box-shadow: 0 4px 24px rgba(0,0,0,0.4); border-color: #e94560; } .ds-card:hover::before { opacity: 1; } .ds-thumb { aspect-ratio: 1; border-radius: 8px; background: linear-gradient(135deg, #b58863, #f0d9b5); display: flex; align-items: center; justify-content: center; font-size: 4rem; margin-bottom: 16px; } .ds-thumb span { filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3)); } .ds-card h3 { font-family: system-ui, sans-serif; font-size: 1.25rem; font-weight: 600; margin: 0 0 8px; color: #eaeaea; } .ds-desc { color: #a0a0b0; font-size: 0.9rem; margin: 0 0 16px; } .ds-badge { font-size: 0.7rem; padding: 4px 8px; border-radius: 999px; background: #16213e; color: #a0a0b0; border: 1px solid #2a2a4a; text-transform: uppercase; letter-spacing: 0.05em; }"
+    },
+    {
+      "name": "Select Field",
+      "kind": "input",
+      "refersTo": "input-select",
+      "description": "Night-card dropdown for word-search category / difficulty.",
+      "html": "<select class=\"ds-select\"><option>Aleatório</option><option>Animais</option></select>",
+      "css": ".ds-select { width: 100%; padding: 8px; background: #0f3460; border: 1px solid #2a2a4a; border-radius: 8px; color: #eaeaea; font-family: system-ui, sans-serif; } .ds-select:focus { outline: 2px solid #e94560; outline-offset: 2px; }"
+    },
+    {
+      "name": "Back Circle Button",
+      "kind": "button",
+      "refersTo": "button-back",
+      "description": "Round header control returning to the hub.",
+      "html": "<button class=\"ds-btn-back\" aria-label=\"Voltar\"><svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"M19 12H5M12 19l-7-7 7-7\"/></svg></button>",
+      "css": ".ds-btn-back { width: 40px; height: 40px; border-radius: 50%; background: #0f3460; border: 1px solid #2a2a4a; color: #a0a0b0; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.2s ease; } .ds-btn-back:hover { background: #e94560; color: #fff; border-color: #e94560; } .ds-btn-back:focus-visible { outline: 2px solid #e94560; outline-offset: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Showcase Stage",
+    "overview": "The boards are the stars; the night around them stays quiet. GameHub is a dark theater where deep navy walls carry the page and the wood squares of each game board provide the warm, tactile surface under the light. Visitors browse a stage-lit arcade: cards float over a near-black navy, their 3px accent strip flicking on only when hovered, like a theater sign powering up.\n\nThe palette splits into two jobs. Navy layers (night-deep, night-surface, night-card) build a calm, low-chroma frame where nothing shouts. The neon red frames every moment of action — play buttons, active category tabs, selected moves, focus outlines — while marquee gold is reserved for victory and turn signals. Wood tones appear only where an actual game surface exists (checkers board, thumbnails), keeping the metaphor literal: wood is where the game happens, not decoration on glass.\n\nAesthetic character is quiet-night-with-glowing-stars: playful but unhurried. Density is generous and friendly — 8px radii on controls, 12px on cards, soft pills for filters, cloudy shadows that lift cards gently on hover. Text is near-white mist on dark navy, with dimmed secondary text for helpers. The interface is flat by default and lifts on state: shadow and translation are responses to interaction, never ambient decoration.",
+    "keyCharacteristics": [
+      "Dark navy theater frame with warm wood game surfaces",
+      "Neon red as the sole \"you can act here\" signal",
+      "Gold reserved for kings, turns, victories, and highlighting",
+      "Flat by default; hover lifts cards and buttons with soft shadows",
+      "Rounded and friendly: pills for filters, 8px buttons, 12px cards",
+      "Boards and grids are the performers; UI recedes beside them"
+    ],
+    "rules": [
+      { "name": "The One-Spotlight Rule", "body": "Neon red appears on ≤10% of any given viewport as the single actionable accent. Rare enough that every red element reads as \"press me now\".", "section": "colors" },
+      { "name": "The Gold-Access-Only Rule", "body": "Gold is never a navigation color. It marks kings, earned stars, victory and glowing highlights — never a click target on its own.", "section": "colors" },
+      { "name": "The One-Gradient Rule", "body": "Only the hero H1 may use a color gradient. Every other surface is flat; the gradient's singularity is its meaning.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces are flat at rest. Shadows appear only as a response to hover, focus, or modal depth — shadow is the signal that something is now interactive, so it must be earned, not ambient.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do use night-deep/night-surface/night-card as the only three navy surfaces; stack them in that order for depth.",
+      "Do reserve neon red for action moments, and gate it behind the one-spotlight rule (≤10% of any viewport).",
+      "Do use gold only for earned states — kings, turns, stars, victory highlights — never navigation.",
+      "Do keep cards flat at rest and lift on hover (translateY(-4px) + Ambient Lift shadow + the 3px red→gold top strip).",
+      "Do use system sans everywhere and mono only for game read-outs (timer, move history, word lists, counts).",
+      "Do put wood tones only where a real game surface or board is drawn.",
+      "Do keep the hero H1 as the single gradient text on the page."
+    ],
+    "donts": [
+      "Don't use shadows at rest; flat-by-default is the rule and shadow is earned by state.",
+      "Don't introduce a second accent hue; red is the only action color and gold the only reward color.",
+      "Don't load custom display fonts to \"elevate\" type; the system-sans weight-and-gradient hierarchy is the brand.",
+      "Don't layer more than three navy stack levels on one surface.",
+      "Don't put red or gold on decorative, non-interactive chrome.",
+      "Don't let standalone game pages (snake, ant_defense, tower_defense) drift into their own palettes — they inherit this stage."
+    ]
+  }
+}

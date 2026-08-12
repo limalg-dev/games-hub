@@ -373,7 +373,7 @@ export class CheckersGame {
   updateTurnIndicator() {
     const el = document.getElementById('turn-indicator');
     if (el) {
-      el.textContent = `${this.turn === 'w' ? 'White' : 'Black'} to move`;
+      el.textContent = `${this.turn === 'w' ? 'Brancas' : 'Pretas'} jogam`;
       el.className = this.turn;
     }
   }
