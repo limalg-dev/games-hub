@@ -454,7 +454,8 @@
 
         // Conecta ao WebSocket
         function connectWebSocket() {
-            const wsUrl = `ws://${window.location.host}/ws/ant_defense/${gameId}`;
+            const wsProtocol = location.protocol === 'https:' ? 'wss' : 'ws';
+            const wsUrl = `${wsProtocol}://${window.location.host}/ws/ant_defense/${gameId}`;
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
