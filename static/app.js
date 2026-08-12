@@ -178,9 +178,24 @@ function openModal(gameId) {
     `;
     // Render crossword preview
     import('/games/crossword/static/preview.js').then(m => m.renderPreview('modal-board-preview'));
-  } else {
+  } else if (gameId === 'checkers') {
     // Render checkers preview
     renderPreview('modal-board-preview');
+  } else {
+    // For other games, show the game icon instead of the checkers board
+    const previewEl = document.getElementById('modal-board-preview');
+    if (previewEl) {
+      const icon = game.icon || '';
+      const iconOverlay = document.createElement('div');
+      iconOverlay.className = 'modal-game-icon-overlay';
+      iconOverlay.textContent = icon;
+      iconOverlay.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:4rem;background:var(--surface-2, #1a1a2e);border-radius:inherit;z-index:2;';
+      previewEl.parentElement.style.position = 'relative';
+      // Remove any previous icon overlay
+      previewEl.parentElement.querySelectorAll('.modal-game-icon-overlay').forEach(el => el.remove());
+      previewEl.parentElement.appendChild(iconOverlay);
+      previewEl.style.display = 'none';
+    }
   }
 
   refreshPlayLink();
@@ -204,6 +219,11 @@ async function startGame(gameId) {
   }
   if (gameId === 'crossword') {
     await startCrossword();
+    return;
+  }
+  // Non-checkers games: redirect to their dedicated play page
+  if (gameId !== 'checkers') {
+    window.location.href = buildPlayUrl(gameId);
     return;
   }
   closeModal();
