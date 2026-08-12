@@ -1,3 +1,4 @@
+// deploy-test: force redeploy 735adb9
 // static/app.js
 import { renderPreview } from '/games/checkers/static/preview.js';
 import { CheckersGame } from '/games/checkers/static/board.js';
