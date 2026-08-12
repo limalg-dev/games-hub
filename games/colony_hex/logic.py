@@ -42,6 +42,7 @@ class GameState:
                 "q": p["nest"][0],
                 "r": p["nest"][1]
             })
+        self.next_unit_id = 1
 
     def start_game(self) -> Tuple[bool, Optional[str]]:
         if len(self.players) < 2:
@@ -126,12 +127,13 @@ class GameState:
                 return False, "Ninho ocupado"
             active_player["leaves"] -= cost
             self.units.append({
-                "id": f"u_{color}_{len(self.units)}",
+                "id": f"u_{color}_{self.next_unit_id}",
                 "owner": color,
                 "type": u_type,
                 "q": nq,
                 "r": nr
             })
+            self.next_unit_id += 1
             self.actions_left -= 1
             if self.actions_left <= 0:
                 self._next_turn()

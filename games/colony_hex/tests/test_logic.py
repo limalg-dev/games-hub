@@ -179,18 +179,15 @@ def test_recruit_action():
     # Try recruiting with insufficient leaves
     # Back to Red turn. Let's end Blue's turn if there's any action left.
     # Wait, Blue had 2 actions. 1 move, 1 recruit. So Blue's turn is already ended!
-    # Back to Red. Turn 2. Red gets income (9 + 2 owned cells = 11).
+    # Red turn starts again. Turn 2. Red gets income (9 + 2 owned cells = 11).
     assert state.turn_index == 0
     # Red nest has worker. Let's move it to (-4, 1) to free the nest.
     # Red units are: "u_red_0" at (-3, 0) and the new recruit (ID: "u_red_1") at (-4, 0).
     # Let's move "u_red_1" to (-4, 1)
-    success, err = state.execute_action("red", {"kind": "move", "unit_id": "u_red_2", "to_q": -4, "to_r": 1})
+    success, err = state.execute_action("red", {"kind": "move", "unit_id": "u_red_1", "to_q": -4, "to_r": 1})
     # Wait, what was the ID of the new unit? Let's check how logic.py assigns IDs:
-    # "id": f"u_{color}_{len(self.units)}"
-    # Since self.units initially has 2 elements ("u_red_0", "u_blue_0"),
-    # when Red recruited, len(self.units) was 2, so the ID is "u_red_2".
-    # When Blue recruited, len(self.units) was 3, so the ID is "u_blue_3".
-    # Let's verify this. Yes, success should be True.
+    # "id": f"u_{color}_{self.next_unit_id}"
+    # Since self.next_unit_id started at 1, the new unit was indeed u_red_1.
     assert success is True
     
     # Red leaves: 11. Let's set Red leaves to 1.
@@ -481,6 +478,62 @@ def test_ai_greedy_turn():
     
     # Verify Blue soldier is at (-3, -1)
     assert blue_soldier["q"] == -3 and blue_soldier["r"] == -1
+
+
+def test_unique_unit_ids_after_killing_and_recruiting():
+    players = [
+        {"color": "red", "is_ai": False},
+        {"color": "blue", "is_ai": False}
+    ]
+    state = GameState("g1", players)
+    state.start_game()
+    
+    # Initially:
+    # Red has 1 unit: id 'u_red_0'
+    # Blue has 1 unit: id 'u_blue_0'
+    assert len(state.units) == 2
+    assert state.units[0]["id"] == "u_red_0"
+    assert state.units[1]["id"] == "u_blue_0"
+    
+    # Move Red starting unit away from nest so we can recruit
+    success, err = state.execute_action("red", {"kind": "move", "unit_id": "u_red_0", "to_q": -3, "to_r": 0})
+    assert success is True
+    
+    # Red recruits worker: cost 2
+    success, err = state.execute_action("red", {"kind": "recruit", "unit_type": "worker"})
+    assert success is True
+    
+    # The new unit should have a unique ID, like 'u_red_1'
+    assert len(state.units) == 3
+    new_unit = state.units[-1]
+    assert new_unit["id"] == "u_red_1"
+    
+    # We kill the new unit manually (to simulate combat/removal)
+    state.units.remove(new_unit)
+    assert len(state.units) == 2
+    
+    # Let's restore Red leaves to recruit again (needs at least 2)
+    state.players[0]["leaves"] = 10
+    
+    # We also need to restore actions_left if turn ended
+    if state.turn_index != 0:
+        # Move turn back to red manually for testing
+        state.turn_index = 0
+        state.actions_left = 2
+    
+    # Recruit again
+    success, err = state.execute_action("red", {"kind": "recruit", "unit_type": "worker"})
+    assert success is True
+    
+    # The new recruited unit should not reuse 'u_red_1' or conflict with existing unit IDs
+    assert len(state.units) == 3
+    latest_unit = state.units[-1]
+    assert latest_unit["id"] == "u_red_2"
+    
+    # Check that all IDs in the game are unique
+    ids = [u["id"] for u in state.units]
+    assert len(ids) == len(set(ids))
+
 
 
 
