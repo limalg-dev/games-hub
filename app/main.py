@@ -16,6 +16,7 @@ from games.crossword.generator import generate_crossword
 from games.snake.routes import router as snake_router
 from games.ant_defense.routes import router as ant_defense_router
 from games.tower_defense.routes import router as tower_defense_router
+from games.colony_hex.routes import router as colony_hex_router
 import os
 
 DIFFICULTY_MAP = {"easy": 1, "medium": 2, "hard": 3}
@@ -45,6 +46,9 @@ app.include_router(ant_defense_router)
 
 # Include Tower Defense game routes (router já tem prefix=/tower-defense)
 app.include_router(tower_defense_router)
+
+# Include Colony Hex game routes
+app.include_router(colony_hex_router)
 
 @app.middleware("http")
 async def add_no_cache_headers(request: Request, call_next):
@@ -78,6 +82,10 @@ async def play_ant_defense():
 async def play_tower_defense():
     return FileResponse(os.path.join(games_dir, "tower_defense", "static", "index.html"))
 
+@app.get("/play/colony_hex")
+async def play_colony_hex():
+    return FileResponse(os.path.join(games_dir, "colony_hex", "static", "index.html"))
+
 # Games that use the main static/index.html (legacy games)
 @app.get("/play/checkers")
 async def play_checkers():
@@ -95,7 +103,7 @@ async def play_crossword():
 async def root():
     return FileResponse("static/index.html")
 
-PLAYABLE_GAMES = ("checkers", "wordsearch", "crossword", "snake", "ant_defense", "tower_defense")
+PLAYABLE_GAMES = ("checkers", "wordsearch", "crossword", "snake", "ant_defense", "tower_defense", "colony_hex")
 
 # Rota genérica removida para evitar conflitos com rotas específicas acima
 # As rotas específicas estão definidas acima para cada jogo
