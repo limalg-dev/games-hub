@@ -219,6 +219,8 @@ export class CheckersGame {
     this.animationTo = null;
     this.ws = null;
     this.gameId = null;
+    this.gameOver = false;
+    this.onGameOver = null;
 
     this.resize();
     window.addEventListener('resize', () => this.resize());
@@ -253,7 +255,7 @@ export class CheckersGame {
     } else if (msg.type === 'board') {
       this.animateToBoard(msg.board);
     } else if (msg.type === 'game_over') {
-      this.handleGameOver(msg.winner);
+      this.handleGameOver(msg.winner, msg.reason);
     } else if (msg.type === 'error') {
       console.warn('Server error:', msg.message);
     }
@@ -319,7 +321,7 @@ export class CheckersGame {
   }
 
   async handleClick(e) {
-    if (this.animating || this.turn !== this.myColor) return;
+    if (this.animating || this.gameOver || this.turn !== this.myColor) return;
     const rect = this.canvas.getBoundingClientRect();
     const squareSize = this.canvas.width / 8;
     const c = Math.floor((e.clientX - rect.left) / squareSize);
@@ -431,9 +433,10 @@ export class CheckersGame {
     }
   }
 
-  handleGameOver(winner) {
-    const won = winner === this.myColor;
-    alert(won ? 'You win!' : 'You lose.');
-    // Could show a nice modal instead
+  handleGameOver(winner, reason = null) {
+    this.gameOver = true;
+    if (typeof this.onGameOver === 'function') {
+      this.onGameOver(winner, reason);
+    }
   }
 }

@@ -175,7 +175,17 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 await manager.send_personal(websocket, {"type": "error", "message": "Invalid message format"})
                 continue
             msg = json.loads(data)
-            if msg.get("type") not in ("move", "input"):
+            if msg.get("type") not in ("move", "input", "resign"):
+                continue
+            if msg.get("type") == "resign" and game.game_type == "checkers":
+                winner = "b" if color == "w" else "w"
+                with Session(engine) as session:
+                    g = session.exec(select(Game).where(Game.id == game_id)).first()
+                    if g:
+                        g.status = "finished"
+                        session.add(g)
+                        session.commit()
+                await manager.broadcast(game_id, {"type": "game_over", "winner": winner, "reason": "resign"})
                 continue
             if game.game_type == "checkers":
                 # Existing checkers move handling

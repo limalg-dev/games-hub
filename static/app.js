@@ -52,6 +52,11 @@ const capturedBlack = $('#captured-black-pieces');
 const boardCanvas = $('#board-canvas');
 const boardOverlay = $('#board-overlay');
 const boardWrapper = $('#board-wrapper');
+const gameOverOverlay = $('#game-over-overlay');
+const gameOverTitle = $('#game-over-title');
+const gameOverMessage = $('#game-over-message');
+const btnGameOverAgain = $('#btn-game-over-again');
+const btnGameOverBack = $('#btn-game-over-back');
 
 // Save original board/sidebar HTML for restoration after wordsearch
 const ORIGINAL_BOARD_HTML = boardWrapper ? boardWrapper.innerHTML : '';
@@ -82,22 +87,26 @@ function showView(view) {
   setPageVisible(gameView, gameActive);
   setPageVisible(landing, !gameActive);
   modal.classList.toggle('hidden', view !== 'modal');
+
+  // Reset overlay when switching views
+  if (!gameActive) hideGameOver();
+}
+
+function showGameOver(title, message) {
+  if (!gameOverOverlay) return;
+  gameOverTitle.textContent = title;
+  gameOverMessage.textContent = message;
+  gameOverOverlay.classList.remove('hidden');
+}
+
+function hideGameOver() {
+  gameOverOverlay?.classList.add('hidden');
 }
 
 function refreshPlayLink() {
   if (!modalPlayBtn || !STATE.selectedGame) return;
-  const difficulty =
-    document.querySelector('input[name="ws-difficulty"]:checked')?.value ||
-    document.querySelector('input[name="cw-difficulty"]:checked')?.value;
-  const category = document.getElementById('ws-category')?.value;
-  const url = buildPlayUrl(STATE.selectedGame, { difficulty, category });
-  // buildPlayUrl devolve null para um jogo fora de PLAYABLE_GAMES; sem href o
-  // link deixa de ser acionável em vez de levar a um 404.
-  if (!url) {
-    modalPlayBtn.removeAttribute('href');
-    return;
-  }
-  modalPlayBtn.href = url;
+  // Agora o botão do modal inicia o jogo in-place (SPA), 
+  // então não precisamos mais do href do play-url.js aqui.
 }
 
 function openModal(gameId) {
@@ -106,6 +115,12 @@ function openModal(gameId) {
   STATE.selectedGame = gameId;
   modalTitle.textContent = game.title;
   modalDesc.textContent = game.desc;
+  
+  const previewCanvas = document.getElementById('modal-board-preview');
+  if (previewCanvas) {
+    previewCanvas.setAttribute('aria-label', `Prévia do jogo ${game.title}`);
+  }
+
   modalSpecs.innerHTML = `
     <dt>Jogadores</dt><dd>${game.players}</dd>
     <dt>Modos</dt><dd>${game.modes.join(', ')}</dd>
@@ -227,10 +242,8 @@ async function prepareWordSearch(config) {
   const { WordSearchGame } = await import('/games/wordsearch/static/board.js');
   wordSearchGame = new WordSearchGame({ containerId: 'board-wrapper', ...config });
   wordSearchGame.onGameComplete = (time) => {
-    // completeGame() already saved the score, in seconds — the unit timer.js
-    // stores and formats. Saving again here wrote a second, 1000x entry.
     wordSearchTimer.stopTimer();
-    alert(`Parabéns! Você completou em ${formatTime(time * 1000)}`);
+    showGameOver('Parabéns!', `Você completou o desafio em ${formatTime(time * 1000)}`);
   };
   wordSearchGame.init();
   updateGameViewForWordSearch();
@@ -364,7 +377,7 @@ gameGrid.addEventListener('click', (e) => {
 // Modal
 modalClose?.addEventListener('click', closeModal);
 modalBackdrop?.addEventListener('click', closeModal);
-modalRules.addEventListener('change', refreshPlayLink);
+modalPlayBtn?.addEventListener('click', () => startGame(STATE.selectedGame));
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal(); });
 
 // Game view
@@ -377,12 +390,32 @@ btnBack?.addEventListener('click', () => {
   backToLanding();
 });
 btnNewGame?.addEventListener('click', () => { startNewGame(); });
-btnResign?.addEventListener('click', () => { /* TODO: resign logic */ });
+btnResign?.addEventListener('click', () => { resignGame(); });
 sidebarToggle?.addEventListener('click', () => {
   const open = sidebar.classList.toggle('open');
   sidebarToggle.setAttribute('aria-expanded', String(open));
   sidebarToggle.setAttribute('aria-label', open ? 'Fechar painel do jogo' : 'Abrir painel do jogo');
 });
+
+// Game Over Overlay
+btnGameOverAgain?.addEventListener('click', () => {
+  hideGameOver();
+  startNewGame();
+});
+btnGameOverBack?.addEventListener('click', () => {
+  hideGameOver();
+  backToLanding();
+});
+
+function resignGame() {
+  if (STATE.currentGameType === 'checkers') {
+    if (STATE.game.ws && STATE.game.ws.readyState === WebSocket.OPEN) {
+      STATE.game.ws.send(JSON.stringify({ type: 'resign' }));
+    }
+  } else {
+    backToLanding();
+  }
+}
 
 async function startNewGame() {
   if (STATE.game.ws) {
@@ -428,6 +461,7 @@ function renderCategoryTabs() {
       if (window.innerWidth <= 768) {
         categoryList.classList.remove('open');
         categoryToggle?.setAttribute('aria-expanded', 'false');
+        categoryToggle?.setAttribute('aria-label', 'Abrir categorias');
       }
     });
   });
@@ -436,6 +470,7 @@ function renderCategoryTabs() {
 categoryToggle?.addEventListener('click', () => {
   const open = categoryList.classList.toggle('open');
   categoryToggle?.setAttribute('aria-expanded', String(open));
+  categoryToggle?.setAttribute('aria-label', open ? 'Fechar categorias' : 'Abrir categorias');
 });
 
 // ===== INIT =====
@@ -541,6 +576,28 @@ function handleCheckersMessage(msg, ws) {
     }
     checkersGame.init(STATE.game.id, ws);
     checkersGame.setMyColor(msg.color);
+    checkersGame.onGameOver = (winner, reason) => {
+      let title = 'Fim de Jogo';
+      let message = '';
+      if (reason === 'resign') {
+        if (winner === STATE.game.myColor) {
+          title = 'Vitória!';
+          message = 'O oponente desistiu. Você venceu!';
+        } else {
+          title = 'Fim de Jogo';
+          message = 'Você desistiu da partida.';
+        }
+      } else {
+        if (winner === STATE.game.myColor) {
+          title = 'Vitória!';
+          message = 'Parabéns! Você venceu a partida.';
+        } else {
+          title = 'Derrota';
+          message = 'Você perdeu esta partida.';
+        }
+      }
+      showGameOver(title, message);
+    };
   } else if (checkersGame) {
     checkersGame.handleMessage(msg);
   }
@@ -559,7 +616,10 @@ function handleCrosswordMessage(msg, ws) {
       const turnIndicator = document.getElementById('turn-indicator');
       if (turnIndicator) turnIndicator.textContent = 'Parabéns, você completou!';
       if (el && crosswordGame.startTime) {
-        el.textContent = formatTime(Date.now() - crosswordGame.startTime);
+        const elapsed = Date.now() - crosswordGame.startTime;
+        const timeStr = formatTime(elapsed);
+        el.textContent = timeStr;
+        showGameOver('Parabéns!', `Você resolveu as palavras cruzadas em ${timeStr}`);
       }
     };
     crosswordGame.init(msg);

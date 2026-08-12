@@ -2,26 +2,26 @@
 export const GAMES = {
   checkers: {
     id: 'checkers',
-    title: 'Checkers',
-    desc: 'Classic 8×8 English draughts. Capture all opponent pieces or block them completely.',
-    shortDesc: 'Classic 8×8 draughts. Play vs AI or friend.',
+    title: 'Damas',
+    desc: 'Jogo de damas clássico 8×8. Capture todas as peças do oponente ou bloqueie-as completamente.',
+    shortDesc: 'Damas clássicas 8×8. Jogue contra a IA ou com um amigo.',
     players: 2,
-    modes: ['Local', 'AI', 'Online'],
+    modes: ['Local', 'IA', 'Online'],
     category: ['tabuleiro', 'estrategia', 'classicos'],
     collections: ['2-jogadores', 'classicos-atemporais'],
     duration: '5–15 min',
-    difficulty: ['Easy', 'Medium', 'Hard'],
+    difficulty: ['Fácil', 'Médio', 'Difícil'],
     rating: 4.8,
     plays: 125000,
     featured: true,
     badge: 'destaque',
     thumbnail: '',
     rules: [
-      'Move diagonally forward on dark squares only',
-      'Capture by jumping over an adjacent opponent piece',
-      'Multiple jumps allowed in a single turn',
-      'Reach the back row → become a King (moves backward too)',
-      'Win by capturing all enemy pieces or blocking all moves'
+      'Mova na diagonal para frente, apenas nas casas escuras',
+      'Capture pulando sobre uma peça adversária adjacente',
+      'Capturas múltiplas são permitidas em um único turno',
+      'Chegue à última fileira para virar Dama (move-se também para trás)',
+      'Vença capturando todas as peças inimigas ou bloqueando todos os movimentos'
     ]
   },
   wordsearch: {
@@ -224,7 +224,7 @@ export function gameCard(game) {
           <span class="badge">${game.duration}</span>
         </div>
       </div>
-      <button class="btn-play" data-game="${game.id}">Jogar Agora</button>
+      <button class="btn-card" data-game="${game.id}">Jogar Agora</button>
       ${gameHoverOverlay(game)}
     </article>
   `;
