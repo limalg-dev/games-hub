@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Colônia Hex — GameHub</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <style>
+    .game-area { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px; }
+    .colony-panel { background: var(--bg-secondary); padding: 1.5rem; border-radius: var(--radius); border: 1px solid var(--border); min-width: 250px; }
+    .hud-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.9rem; }
+    .action-btn { background: var(--accent); color: var(--on-accent); padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background var(--transition); }
+    .action-btn:hover { background: var(--accent-hover); }
+    .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  </style>
+</head>
+<body class="page active">
+  <header class="game-header">
+    <a href="/" class="btn-back" aria-label="Voltar para a seleção de jogos">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </a>
+    <div class="game-status">
+      <span id="turn-indicator" aria-live="polite">Conectando ao lobby...</span>
+      <span id="timer">Turno 1/20</span>
+    </div>
+    <div class="game-menu">
+      <button id="btn-forfeit" class="btn-danger">Desistir</button>
+    </div>
+  </header>
+  <main class="game-container">
+    <div class="game-area">
+      <div class="board-wrapper" style="flex: 1; min-height: 450px;">
+        <canvas id="colony-canvas" width="500" height="500"></canvas>
+      </div>
+      <aside class="sidebar">
+        <section class="colony-panel">
+          <h4>Seu Painel</h4>
+          <div class="hud-row"><span>Sua Cor:</span><span id="hud-my-color" style="font-weight:bold">-</span></div>
+          <div class="hud-row"><span>Ações:</span><span id="hud-actions">-</span></div>
+          <div class="hud-row"><span>Folhas (🍃):</span><span id="hud-leaves" style="color:var(--gold); font-weight:bold">-</span></div>
+        </section>
+        <section class="colony-panel" style="margin-top: 15px;">
+          <h4>Ações Rápidas</h4>
+          <div style="display:grid; gap: 8px;">
+            <button id="btn-recruit-worker" class="action-btn">Recrutar Operária (2 🍃)</button>
+            <button id="btn-recruit-soldier" class="action-btn">Recrutar Soldado (5 🍃)</button>
+            <button id="btn-end-turn" class="btn-secondary" style="padding: 8px 16px;">Encerrar Turno</button>
+          </div>
+        </section>
+        <section id="lobby-panel" class="colony-panel" style="margin-top: 15px;">
+          <h4>Lobby</h4>
+          <button id="btn-start-game" class="btn-primary" style="display:none;">Iniciar Partida</button>
+          <div id="lobby-slots"></div>
+        </section>
+      </aside>
+    </div>
+  </main>
+  
+  <!-- ===== GAME OVER OVERLAY ===== -->
+  <div id="game-over-overlay" class="play-gate hidden" role="dialog" aria-modal="true">
+    <div class="play-gate-inner">
+      <h2 id="game-over-title">Vitória!</h2>
+      <p id="game-over-message" style="color: var(--text-secondary); margin-bottom: 1rem;"></p>
+      <a href="/" class="btn-secondary" style="text-decoration:none;">Voltar para a Landing</a>
+    </div>
+  </div>
+
+  <script type="module" src="logic.js"></script>
+</body>
+</html>
