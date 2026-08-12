@@ -7,6 +7,21 @@ const ANIMATION_DURATION = 150;
 // Wood texture cache
 let woodPattern = null;
 
+// O servidor manda cada célula do tabuleiro como string crua ('' vazio,
+// 'w'/'b' peça, 'W'/'B' dama) — ver games/checkers/game.py Board.board. O
+// resto deste arquivo (drawPiece, render, seleção) sempre esperou o formato
+// {color, king} que o createInitialBoard() local já produz. Sem essa
+// conversão na entrada, piece.color dá undefined pra toda peça vinda do
+// servidor e drawPiece() desenha tudo preto, não importa a cor real.
+function normalizeServerBoard(rawBoard) {
+  if (!rawBoard) return rawBoard;
+  return rawBoard.map(row => row.map(cell => {
+    if (!cell) return null;
+    if (typeof cell === 'object') return cell;
+    return { color: cell.toLowerCase(), king: cell === cell.toUpperCase() };
+  }));
+}
+
 function createWoodPattern(ctx) {
   if (woodPattern) return woodPattern;
   const canvas = document.createElement('canvas');
@@ -261,7 +276,8 @@ export class CheckersGame {
     }
   }
 
-  animateToBoard(newBoard) {
+  animateToBoard(rawBoard) {
+    const newBoard = normalizeServerBoard(rawBoard);
     // Find moved piece
     let from = null, to = null;
     for (let r = 0; r < 8; r++) {
