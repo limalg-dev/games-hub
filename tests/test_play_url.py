@@ -67,6 +67,7 @@ def test_lists_the_playable_games(result):
         "snake",
         "ant_defense",
         "tower_defense",
+        "colony_hex",
     ]
 
 

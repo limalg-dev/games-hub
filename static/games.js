@@ -87,6 +87,7 @@ export const GAMES = {
     plays: 150000,
     featured: true,
     badge: 'popular',
+    icon: '🐍',
     thumbnail: '',
     rules: [
       'Use setas ou WASD para controlar a cobrinha',
