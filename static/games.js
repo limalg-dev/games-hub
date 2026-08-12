@@ -145,6 +145,31 @@ export const GAMES = {
       'Invasores: Besouros (tanques), Moscas (rápidos), Lagartas (muita vida)',
       'Use estratégias combinadas para máxima eficiência'
     ]
+  },
+  colony_hex: {
+    id: 'colony_hex',
+    title: 'Colônia Hex',
+    desc: 'Jogo de estratégia 4X por turnos. Expanda seu território em um mapa hexagonal, recrute operárias/soldados e conquiste ninhos inimigos.',
+    shortDesc: 'Estratégia hexagonal de formigas. Solo ou multiplayer.',
+    players: '2–4',
+    modes: ['Solo', 'IA', 'Online'],
+    category: ['estrategia', 'tabuleiro'],
+    collections: ['treine-sua-mente'],
+    duration: '10–20 min',
+    difficulty: ['Médio'],
+    rating: 4.8,
+    plays: 54000,
+    featured: true,
+    badge: 'novo',
+    thumbnail: '🐜',
+    icon: '🐜',
+    rules: [
+      'Controle ninhos de formigas em grade hexagonal (raio 4)',
+      'Gere 1 folha por turno para cada célula de território dominado',
+      'Ações: expandir território, recrutar unidades (operária/soldado) ou mover/atacar',
+      'Soldados atacam e capturam unidades ou territórios oponentes',
+      'Capture o ninho adversário para eliminá-lo. Vence quem sobrar ou tiver maior pontuação'
+    ]
   }
 };
 

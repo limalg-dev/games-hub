@@ -5,6 +5,7 @@ export const PLAYABLE_GAMES = [
   'snake',
   'ant_defense',
   'tower_defense',
+  'colony_hex',
 ];
 
 const DIFFICULTIES = ['easy', 'medium', 'hard'];
