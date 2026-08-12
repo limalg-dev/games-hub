@@ -117,40 +117,47 @@ board.onCellSelected = (cell) => {
   } 
   // 2. Else if we already have a unit selected
   else if (board.selectedUnit) {
-    let dist = getDistance(board.selectedUnit.q, board.selectedUnit.r, cell.q, cell.r);
-    if (dist === 1) {
-      // Adjacent target cell -> Move or Attack
-      let targetUnit = gameState.units.find(u => u.q === cell.q && u.r === cell.r);
-      let isEnemyUnit = targetUnit && targetUnit.owner !== myColor;
-      let isEnemyTerritory = cell.owner !== null && cell.owner !== myColor;
-      
-      if (isEnemyUnit || isEnemyTerritory) {
-        // Attack
-        ws.send(JSON.stringify({
-          type: "action",
-          action: {
-            kind: "attack",
-            unit_id: board.selectedUnit.id,
-            to_q: cell.q,
-            to_r: cell.r
-          }
-        }));
-      } else {
-        // Move
-        ws.send(JSON.stringify({
-          type: "action",
-          action: {
-            kind: "move",
-            unit_id: board.selectedUnit.id,
-            to_q: cell.q,
-            to_r: cell.r
-          }
-        }));
+    let ownUnitClick = gameState.units.find(u => u.q === cell.q && u.r === cell.r && u.owner === myColor);
+    if (ownUnitClick) {
+      // Switch selection to the clicked unit
+      board.selectedUnit = ownUnitClick;
+      board.render();
+    } else {
+      let dist = getDistance(board.selectedUnit.q, board.selectedUnit.r, cell.q, cell.r);
+      if (dist === 1) {
+        // Adjacent target cell -> Move or Attack
+        let targetUnit = gameState.units.find(u => u.q === cell.q && u.r === cell.r);
+        let isEnemyUnit = targetUnit && targetUnit.owner !== myColor;
+        let isEnemyTerritory = cell.owner !== null && cell.owner !== myColor;
+        
+        if (isEnemyUnit || isEnemyTerritory) {
+          // Attack
+          ws.send(JSON.stringify({
+            type: "action",
+            action: {
+              kind: "attack",
+              unit_id: board.selectedUnit.id,
+              to_q: cell.q,
+              to_r: cell.r
+            }
+          }));
+        } else {
+          // Move
+          ws.send(JSON.stringify({
+            type: "action",
+            action: {
+              kind: "move",
+              unit_id: board.selectedUnit.id,
+              to_q: cell.q,
+              to_r: cell.r
+            }
+          }));
+        }
       }
+      // Clear selection after move/attack attempt or if clicked too far
+      board.selectedUnit = null;
+      board.render();
     }
-    // Clear selection after move/attack attempt or if clicked too far
-    board.selectedUnit = null;
-    board.render();
   } 
   // 3. Else (no own unit on cell, and no selected unit) -> Expand option
   else if (cell.owner === null && cell.terrain !== "rock") {
