@@ -100,27 +100,26 @@ btnRecruitSoldier.addEventListener("click", () => {
   ws.send(JSON.stringify({ type: "action", action: { kind: "recruit", unit_type: "soldier" } }));
 });
 
+function getDistance(q1, r1, q2, r2) {
+  return Math.floor((Math.abs(q1 - q2) + Math.abs(q1 + r1 - q2 - r2) + Math.abs(r1 - r2)) / 2);
+}
+
 // Canvas cell click moves & attacks
 board.onCellSelected = (cell) => {
   if (!gameState || gameState.status !== "active") return;
   let activePlayer = gameState.players[gameState.turn_index];
   if (activePlayer.color !== myColor) return;
   
-  // Is there a selection?
-  // If clicked own territory empty cell -> Option to expand
-  if (cell.owner === null && cell.terrain !== "rock") {
-    // Expand action
-    ws.send(JSON.stringify({
-      type: "action",
-      action: { kind: "expand", q: cell.q, r: cell.r }
-    }));
-  } else {
-    // Check if clicked cell contains own unit to select
-    let ownUnit = gameState.units.find(u => u.q === cell.q && u.r === cell.r && u.owner === myColor);
-    if (ownUnit) {
-      board.selectedUnit = ownUnit;
-    } else if (board.selectedUnit) {
-      // Clicked adjacent target with selected unit -> Move or Attack
+  // 1. Check if there is an own unit on the clicked cell
+  let ownUnit = gameState.units.find(u => u.q === cell.q && u.r === cell.r && u.owner === myColor);
+  if (ownUnit) {
+    board.selectedUnit = ownUnit;
+  } 
+  // 2. Else if we already have a unit selected
+  else if (board.selectedUnit) {
+    let dist = getDistance(board.selectedUnit.q, board.selectedUnit.r, cell.q, cell.r);
+    if (dist === 1) {
+      // Adjacent target cell -> Move or Attack
       let targetUnit = gameState.units.find(u => u.q === cell.q && u.r === cell.r);
       let isEnemyUnit = targetUnit && targetUnit.owner !== myColor;
       let isEnemyTerritory = cell.owner !== null && cell.owner !== myColor;
@@ -148,7 +147,16 @@ board.onCellSelected = (cell) => {
           }
         }));
       }
-      board.selectedUnit = null;
     }
+    // Clear selection after move/attack attempt or if clicked too far
+    board.selectedUnit = null;
+    board.render();
+  } 
+  // 3. Else (no own unit on cell, and no selected unit) -> Expand option
+  else if (cell.owner === null && cell.terrain !== "rock") {
+    ws.send(JSON.stringify({
+      type: "action",
+      action: { kind: "expand", q: cell.q, r: cell.r }
+    }));
   }
 };
