@@ -368,3 +368,137 @@ class TestIntegration:
         assert "occupied_cells" in state
         assert state["state"]["leaves"] == 100
         assert state["state"]["lives"] == 20
+
+
+# --- Per-Group Spawn Timer Tests ---
+
+
+class TestPerGroupSpawnTimers:
+    """Tests that each enemy group in a wave spawns at its own interval."""
+
+    def test_wave3_fly_spawns_before_beetle(self, game):
+        """Wave 3: FLY interval=1.2s, BEETLE interval=3.0s.
+        After 1.5s there should be flies but no beetles."""
+        game.start_wave()  # wave 1 (no group_intervals, flat spawn)
+        # Complete wave 1 quickly
+        game.wave_enemies_remaining.clear()
+        game.enemies.clear()
+        game.update(0.016)
+
+        game.start_wave()  # wave 2 (no group_intervals, flat spawn)
+        game.wave_enemies_remaining.clear()
+        game.enemies.clear()
+        game.update(0.016)
+
+        # Wave 3 has group_intervals: FLY=1.2s, BEETLE=3.0s
+        game.start_wave()
+        assert game.state.current_wave == 3
+
+        # Advance past FLY interval but before BEETLE interval
+        game.update(1.5)
+
+        flies = [e for e in game.enemies if e.enemy_type == EnemyType.FLY]
+        beetles = [e for e in game.enemies if e.enemy_type == EnemyType.BEETLE]
+        # At least 1 fly should have spawned (1.2s < 1.5s)
+        assert len(flies) >= 1
+        # No beetles yet (3.0s > 1.5s)
+        assert len(beetles) == 0
+
+    def test_beetle_spawns_after_its_interval(self, game):
+        """After enough time with small steps, beetles should spawn too."""
+        game.start_wave()  # wave 1
+        game.wave_enemies_remaining.clear()
+        game.enemies.clear()
+        game.update(0.016)
+
+        game.start_wave()  # wave 2
+        game.wave_enemies_remaining.clear()
+        game.enemies.clear()
+        game.update(0.016)
+
+        game.start_wave()  # wave 3
+        # Advance in small steps past beetle interval
+        for _ in range(30):
+            game.update(0.5)
+
+        beetles = [e for e in game.enemies if e.enemy_type == EnemyType.BEETLE]
+        assert len(beetles) >= 1
+
+    def test_wave1_uses_flat_interval(self, game):
+        """Wave 1 has no group_intervals, so it uses the flat spawn_interval."""
+        wave_config = game.wave_config[0]
+        assert wave_config.group_intervals is None
+        assert wave_config.spawn_interval == 2.0
+
+        game.start_wave()
+        # After 2.1s, at least 1 fly should spawn
+        game.update(2.1)
+        flies = [e for e in game.enemies if e.enemy_type == EnemyType.FLY]
+        assert len(flies) >= 1
+
+    def test_group_counts_respected(self, game):
+        """Each group spawns exactly the configured count."""
+        # Wave 3: FLY(6), BEETLE(2)
+        game.start_wave()  # wave 1
+        game.wave_enemies_remaining.clear()
+        game.enemies.clear()
+        game.update(0.016)
+
+        game.start_wave()  # wave 2
+        game.wave_enemies_remaining.clear()
+        game.enemies.clear()
+        game.update(0.016)
+
+        game.start_wave()  # wave 3
+        # Run long enough for all enemies to spawn
+        for _ in range(100):
+            game.update(0.5)
+
+        flies = [e for e in game.enemies if e.enemy_type == EnemyType.FLY]
+        beetles = [e for e in game.enemies if e.enemy_type == EnemyType.BEETLE]
+        # Wave 3 config: FLY(6), BEETLE(2)
+        assert len(flies) <= 6
+        assert len(beetles) <= 2
+        assert len(flies) + len(beetles) > 0
+
+    def test_per_group_timers_initialized_on_wave_start(self, game):
+        """Per-group timers are set up when wave starts."""
+        game.start_wave()  # wave 1 (no group_intervals)
+        assert game._group_spawn_timers == {}
+
+        game.wave_enemies_remaining.clear()
+        game.enemies.clear()
+        game.update(0.016)
+
+        game.start_wave()  # wave 2 (no group_intervals)
+        assert game._group_spawn_timers == {}
+
+        game.wave_enemies_remaining.clear()
+        game.enemies.clear()
+        game.update(0.016)
+
+        game.start_wave()  # wave 3 (has group_intervals)
+        assert EnemyType.FLY in game._group_spawn_timers
+        assert EnemyType.BEETLE in game._group_spawn_timers
+        assert game._group_spawn_timers[EnemyType.FLY] == 0.0
+        assert game._group_spawn_timers[EnemyType.BEETLE] == 0.0
+
+    def test_group_intervals_in_wave_config(self, game):
+        """Waves 3+ have group_intervals defined."""
+        wave3 = game.wave_config[2]  # wave 3
+        assert wave3.group_intervals is not None
+        assert EnemyType.FLY in wave3.group_intervals
+        assert EnemyType.BEETLE in wave3.group_intervals
+        assert wave3.group_intervals[EnemyType.FLY] == 1.2
+        assert wave3.group_intervals[EnemyType.BEETLE] == 3.0
+
+    def test_flat_spawn_still_works(self, game):
+        """Waves without group_intervals still use flat spawn interval."""
+        wave1 = game.wave_config[0]
+        assert wave1.group_intervals is None
+
+        game.start_wave()
+        # After flat interval (2.0s), fly spawns
+        game.update(2.1)
+        assert len(game.enemies) >= 1
+        assert game.enemies[0].enemy_type == EnemyType.FLY

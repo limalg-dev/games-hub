@@ -3,7 +3,6 @@ export const PLAYABLE_GAMES = [
   'wordsearch',
   'crossword',
   'snake',
-  'ant_defense',
   'tower_defense',
   'colony_hex',
 ];

@@ -8,7 +8,6 @@ import uuid
 from typing import List, Optional, Dict, Any, Tuple
 from dataclasses import dataclass, field
 from enum import Enum
-from copy import deepcopy
 
 
 class TowerType(Enum):
@@ -141,22 +140,34 @@ class WaveConfig:
     """Configuração de uma onda de inimigos"""
     wave_number: int
     enemies: List[Tuple[EnemyType, int]]  # (tipo, quantidade)
-    spawn_interval: float = 1.5  # segundos entre spawns
-    
+    spawn_interval: float = 1.5  # fallback interval
+    # Per-group spawn intervals: maps enemy type to seconds between spawns.
+    # If set, each enemy group spawns at its own rate instead of sharing
+    # a single global interval.
+    group_intervals: Optional[Dict[EnemyType, float]] = None
+
     @staticmethod
     def get_default_waves() -> List['WaveConfig']:
         """Retorna configuração padrão de 10 ondas"""
         return [
             WaveConfig(1, [(EnemyType.FLY, 5)], 2.0),
             WaveConfig(2, [(EnemyType.FLY, 8)], 1.8),
-            WaveConfig(3, [(EnemyType.FLY, 6), (EnemyType.BEETLE, 2)], 1.5),
-            WaveConfig(4, [(EnemyType.FLY, 8), (EnemyType.BEETLE, 3)], 1.5),
-            WaveConfig(5, [(EnemyType.FLY, 5), (EnemyType.BEETLE, 4), (EnemyType.SKY_BUG, 2)], 1.3),
-            WaveConfig(6, [(EnemyType.FLY, 10), (EnemyType.BEETLE, 5), (EnemyType.SKY_BUG, 3)], 1.2),
-            WaveConfig(7, [(EnemyType.BEETLE, 8), (EnemyType.SKY_BUG, 5)], 1.0),
-            WaveConfig(8, [(EnemyType.FLY, 15), (EnemyType.BEETLE, 6), (EnemyType.SKY_BUG, 6)], 1.0),
-            WaveConfig(9, [(EnemyType.BEETLE, 10), (EnemyType.SKY_BUG, 8)], 0.9),
-            WaveConfig(10, [(EnemyType.FLY, 20), (EnemyType.BEETLE, 15), (EnemyType.SKY_BUG, 10)], 0.8),
+            WaveConfig(3, [(EnemyType.FLY, 6), (EnemyType.BEETLE, 2)], 1.5,
+                         {EnemyType.FLY: 1.2, EnemyType.BEETLE: 3.0}),
+            WaveConfig(4, [(EnemyType.FLY, 8), (EnemyType.BEETLE, 3)], 1.5,
+                         {EnemyType.FLY: 1.0, EnemyType.BEETLE: 2.5}),
+            WaveConfig(5, [(EnemyType.FLY, 5), (EnemyType.BEETLE, 4), (EnemyType.SKY_BUG, 2)], 1.3,
+                         {EnemyType.FLY: 1.0, EnemyType.BEETLE: 2.0, EnemyType.SKY_BUG: 2.0}),
+            WaveConfig(6, [(EnemyType.FLY, 10), (EnemyType.BEETLE, 5), (EnemyType.SKY_BUG, 3)], 1.2,
+                         {EnemyType.FLY: 0.8, EnemyType.BEETLE: 1.8, EnemyType.SKY_BUG: 1.5}),
+            WaveConfig(7, [(EnemyType.BEETLE, 8), (EnemyType.SKY_BUG, 5)], 1.0,
+                         {EnemyType.BEETLE: 1.0, EnemyType.SKY_BUG: 1.2}),
+            WaveConfig(8, [(EnemyType.FLY, 15), (EnemyType.BEETLE, 6), (EnemyType.SKY_BUG, 6)], 1.0,
+                         {EnemyType.FLY: 0.6, EnemyType.BEETLE: 1.5, EnemyType.SKY_BUG: 1.2}),
+            WaveConfig(9, [(EnemyType.BEETLE, 10), (EnemyType.SKY_BUG, 8)], 0.9,
+                         {EnemyType.BEETLE: 0.9, EnemyType.SKY_BUG: 1.0}),
+            WaveConfig(10, [(EnemyType.FLY, 20), (EnemyType.BEETLE, 15), (EnemyType.SKY_BUG, 10)], 0.8,
+                          {EnemyType.FLY: 0.5, EnemyType.BEETLE: 0.8, EnemyType.SKY_BUG: 0.7}),
         ]
 
 
@@ -218,6 +229,8 @@ class TowerDefenseGame:
         self.wave_enemies_remaining = []
         self.spawn_timer = 0.0
         self.between_waves_timer = 0.0
+        self._group_spawn_timers: Dict[EnemyType, float] = {}
+        self._group_spawn_counts: Dict[EnemyType, int] = {}
         
         # Grid de ocupação (True = ocupado/caminho, False = livre)
         self.occupied_grid = [[False for _ in range(self.state.grid_height)] 
@@ -330,6 +343,14 @@ class TowerDefenseGame:
         self.wave_active = True
         self.spawn_timer = 0.0
         self.state.current_wave += 1
+
+        # Initialize per-group spawn timers if intervals are defined
+        self._group_spawn_timers = {}
+        self._group_spawn_counts = {}
+        if wave_config.group_intervals:
+            for enemy_type, count in wave_config.enemies:
+                self._group_spawn_timers[enemy_type] = 0.0
+                self._group_spawn_counts[enemy_type] = 0
         
         return True, f"Onda {self.state.current_wave} iniciada!"
     
@@ -438,12 +459,34 @@ class TowerDefenseGame:
         # Atualiza timer de spawn
         if self.wave_active and self.wave_enemies_remaining:
             wave_config = self.wave_config[self.state.current_wave - 1]
-            self.spawn_timer += dt
-            
-            if self.spawn_timer >= wave_config.spawn_interval:
-                enemy_type = self.wave_enemies_remaining.pop(0)
-                self._spawn_enemy(enemy_type)
-                self.spawn_timer = 0.0
+
+            if wave_config.group_intervals:
+                # Per-group spawn: each enemy type has its own timer
+                spawned_this_tick = 0
+                for enemy_type, count in wave_config.enemies:
+                    if self._group_spawn_counts.get(enemy_type, 0) >= count:
+                        continue
+                    self._group_spawn_timers[enemy_type] = (
+                        self._group_spawn_timers.get(enemy_type, 0.0) + dt
+                    )
+                    interval = wave_config.group_intervals[enemy_type]
+                    if self._group_spawn_timers[enemy_type] >= interval:
+                        self._group_spawn_timers[enemy_type] = 0.0
+                        self._spawn_enemy(enemy_type)
+                        self._group_spawn_counts[enemy_type] = (
+                            self._group_spawn_counts.get(enemy_type, 0) + 1
+                        )
+                        self.wave_enemies_remaining.remove(enemy_type)
+                        spawned_this_tick += 1
+                        if spawned_this_tick >= 1:  # max 1 per frame per group
+                            break
+            else:
+                # Legacy flat-interval spawn
+                self.spawn_timer += dt
+                if self.spawn_timer >= wave_config.spawn_interval:
+                    enemy_type = self.wave_enemies_remaining.pop(0)
+                    self._spawn_enemy(enemy_type)
+                    self.spawn_timer = 0.0
         
         # Verifica se onda terminou
         if self.wave_active and not self.wave_enemies_remaining and not self.enemies:

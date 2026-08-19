@@ -10,14 +10,17 @@ from typing import Optional, Dict, Any, List
 import os
 import json
 import asyncio
+import time
 from datetime import datetime
 
 from games.tower_defense.logic import (
     TowerDefenseGame, 
-    TowerType, 
-    EnemyType,
+    TowerType, EnemyType,
     GameState
 )
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Router paraTower Defense
 router = APIRouter(prefix="/tower-defense", tags=["tower_defense"])
@@ -25,6 +28,18 @@ router = APIRouter(prefix="/tower-defense", tags=["tower_defense"])
 # Armazenamento de jogos em memória (em produção usar banco de dados/Redis)
 active_games: Dict[str, TowerDefenseGame] = {}
 game_websockets: Dict[str, List[WebSocket]] = {}
+_game_created: Dict[str, float] = {}
+_GAME_TTL = 3600  # 1 hour
+
+
+def _cleanup_expired():
+    """Remove games older than _GAME_TTL seconds."""
+    now = time.time()
+    expired = [gid for gid, ts in _game_created.items() if now - ts > _GAME_TTL]
+    for gid in expired:
+        active_games.pop(gid, None)
+        game_websockets.pop(gid, None)
+        _game_created.pop(gid, None)
 
 
 class PlaceTowerRequest(BaseModel):
@@ -63,10 +78,12 @@ async def get_tower_defense_info():
 @router.post("/games/create")
 async def create_game():
     """Cria um novo jogo de Tower Defense"""
+    _cleanup_expired()
     game_id = f"td_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{os.urandom(4).hex()}"
     game = TowerDefenseGame(game_id=game_id)
     active_games[game_id] = game
     game_websockets[game_id] = []
+    _game_created[game_id] = time.time()
     
     return {
         "success": True,
@@ -294,7 +311,8 @@ async def broadcast_game_state(game_id: str):
                 "type": "state_update",
                 "state": state
             })
-        except:
+        except Exception as exc:
+            logger.debug("Failed to broadcast to WS: %s", exc)
             disconnected.append(ws)
     
     # Remove websockets desconectados
@@ -304,8 +322,14 @@ async def broadcast_game_state(game_id: str):
 
 async def game_loop_task():
     """Task que roda o game loop continuamente"""
+    _cleanup_counter = 0
     while True:
         dt = 0.016  # ~60 FPS
+        
+        # Periodic cleanup every ~60 seconds
+        _cleanup_counter += 1
+        if _cleanup_counter % 3750 == 0:
+            _cleanup_expired()
         
         for game_id, game in list(active_games.items()):
             if not game.state.game_over and not game.state.victory:
@@ -318,9 +342,8 @@ async def game_loop_task():
         await asyncio.sleep(dt)
 
 
-# Inicia o game loop quando o módulo é carregado
-@router.on_event("startup")
-async def startup_event():
+# Função para iniciar o game loop
+def start_game_loop():
     """Inicia o game loop em background"""
     asyncio.create_task(game_loop_task())
 

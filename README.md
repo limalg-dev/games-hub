@@ -76,10 +76,10 @@ A lightweight web game platform built with **FastAPI** and **WebSockets**. Play 
 
 | Method | Path              | Description                                          |
 |--------|-------------------|------------------------------------------------------|
-| POST   | `/games`          | Create a game (`game_type`: `checkers`\|`crossword`, `difficulty`) |
+| POST   | `/games`          | Create a game (`game_type`: `checkers`\|`crossword`, `difficulty`: `easy`\|`medium`\|`hard`, default `easy`) |
 | GET    | `/games/{id}`     | Get game status                                      |
-| POST   | `/api/words`      | Add a word to the dictionary                         |
-| GET    | `/api/words`      | List words (filters: `category`, `difficulty`)       |
+| POST   | `/api/words`      | Add a word to the dictionary (`difficulty`: int `1`–`3`) |
+| GET    | `/api/words`      | List words (filters: `category`, `difficulty`: int `1`–`3`) |
 | WS     | `/ws/{id}`        | WebSocket for real-time moves                        |
 | GET    | `/`               | Serves the client UI                                 |
 

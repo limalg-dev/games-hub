@@ -19,6 +19,15 @@ async def test_create_game():
         assert "id" in data
 
 @pytest.mark.asyncio
+async def test_create_game_rejects_unknown_difficulty():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.post("/games", json={"game_type": "crossword", "difficulty": "banana"})
+        assert resp.status_code == 422
+        resp2 = await ac.post("/games", json={"game_type": "crossword", "difficulty": 2})
+        assert resp2.status_code == 422
+
+@pytest.mark.asyncio
 async def test_get_game():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json
+import asyncio
 from typing import Dict, List, Optional, Tuple
 from fastapi import WebSocket, WebSocketDisconnect
 from games.checkers.game import Board
@@ -174,7 +175,11 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
             if not isinstance(data, str) or len(data) > 1024:
                 await manager.send_personal(websocket, {"type": "error", "message": "Invalid message format"})
                 continue
-            msg = json.loads(data)
+            try:
+                msg = json.loads(data)
+            except json.JSONDecodeError:
+                await manager.send_personal(websocket, {"type": "error", "message": "Invalid JSON payload"})
+                continue
             if msg.get("type") not in ("move", "input", "resign"):
                 continue
             if msg.get("type") == "resign" and game.game_type == "checkers":
@@ -221,7 +226,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                             ai_color = "b" if color == "w" else "w"
                             ban = manager.boards.get(game_id)
                             if ban:
-                                ai_move = choose_move(ban, ai_color)
+                                ai_move = await asyncio.to_thread(choose_move, ban, ai_color)
                                 if ai_move:
                                     ban.apply_move(*ai_move)
                                     manager.turn[game_id] = color

@@ -6,13 +6,25 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, De
 from typing import Dict, Optional
 import asyncio
 import json
+import time
 
 from .logic import SnakeGame, Direction
 
 router = APIRouter()
 
-# Store active games
+# Store active games with timestamps for TTL expiry
 active_games: Dict[str, SnakeGame] = {}
+_game_created: Dict[str, float] = {}
+_GAME_TTL = 3600  # 1 hour
+
+
+def _cleanup_expired():
+    """Remove games older than _GAME_TTL seconds."""
+    now = time.time()
+    expired = [gid for gid, ts in _game_created.items() if now - ts > _GAME_TTL]
+    for gid in expired:
+        active_games.pop(gid, None)
+        _game_created.pop(gid, None)
 
 
 @router.get("/snake")
@@ -30,9 +42,11 @@ async def get_snake_info():
 async def create_snake_game():
     """Create a new snake game"""
     import uuid
+    _cleanup_expired()
     game_id = str(uuid.uuid4())
     game = SnakeGame()
     active_games[game_id] = game
+    _game_created[game_id] = time.time()
     return {"game_id": game_id, "state": game.get_state()}
 
 

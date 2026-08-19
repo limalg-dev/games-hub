@@ -1,5 +1,5 @@
 from sqlmodel import Session, select, SQLModel, create_engine
-from app.models import Game, Move
+from app.models import Game
 
 def test_create_game():
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False})

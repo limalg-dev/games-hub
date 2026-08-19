@@ -45,10 +45,9 @@ class TestSnakeGame:
         game.set_direction(Direction.RIGHT)
         assert game.next_direction == Direction.RIGHT
         
-        # Should not allow 180° turn (snake is moving UP initially)
-        # Trying to go DOWN should be blocked since snake starts going UP
+        # After queuing RIGHT, DOWN is a legal 90° turn (not a 180° reversal)
         game.set_direction(Direction.DOWN)
-        assert game.next_direction == Direction.RIGHT  # Still RIGHT because we changed it before
+        assert game.next_direction == Direction.DOWN
         
         # Reset and test properly
         game2 = SnakeGame()

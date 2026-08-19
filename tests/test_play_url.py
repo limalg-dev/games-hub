@@ -21,10 +21,8 @@ const results = {
   configured: buildPlayUrl('wordsearch', { difficulty: 'hard', category: 'animals' }),
   crossword: buildPlayUrl('crossword', { difficulty: 'medium' }),
   snake: buildPlayUrl('snake'),
-  antDefense: buildPlayUrl('ant_defense'),
   towerDefense: buildPlayUrl('tower_defense'),
   parsedSnake: parsePlayUrl('/play/snake'),
-  parsedAntDefense: parsePlayUrl('/play/ant_defense'),
   parsedTowerDefense: parsePlayUrl('/play/tower_defense'),
   builtUnknown: buildPlayUrl('xadrez'),
   builtUnknownWithOptions: buildPlayUrl('xadrez', { difficulty: 'hard' }),
@@ -65,7 +63,6 @@ def test_lists_the_playable_games(result):
         "wordsearch",
         "crossword",
         "snake",
-        "ant_defense",
         "tower_defense",
         "colony_hex",
     ]
@@ -74,7 +71,6 @@ def test_lists_the_playable_games(result):
 def test_builds_a_bare_url_when_there_is_nothing_to_configure(result):
     assert result["plain"] == "/play/checkers"
     assert result["snake"] == "/play/snake"
-    assert result["antDefense"] == "/play/ant_defense"
     assert result["towerDefense"] == "/play/tower_defense"
 
 
@@ -126,7 +122,6 @@ def test_returns_null_outside_the_play_route(result):
 
 def test_parses_the_self_contained_games(result):
     assert result["parsedSnake"]["game"] == "snake"
-    assert result["parsedAntDefense"]["game"] == "ant_defense"
     assert result["parsedTowerDefense"]["game"] == "tower_defense"
 
 

@@ -67,7 +67,7 @@ class SnakeGame:
             Direction.RIGHT: Direction.LEFT
         }
         
-        if opposite_directions.get(direction) != self.direction:
+        if opposite_directions.get(direction) != self.next_direction:
             self.next_direction = direction
     
     def update(self) -> bool:

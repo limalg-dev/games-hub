@@ -1,9 +1,9 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Literal, Optional
 
 class GameCreate(BaseModel):
     game_type: str = "checkers"
-    difficulty: str = "easy"
+    difficulty: Literal["easy", "medium", "hard"] = "easy"
 
 class GameRead(BaseModel):
     id: str

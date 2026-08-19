@@ -13,6 +13,9 @@ class CrosswordGrid:
         self.grid: List[List[Optional[str]]] = [[None for _ in range(size)] for _ in range(size)]
         self.placed_words: List[Dict[str, Any]] = []
 
+    def _is_on_board(self, r: int, c: int) -> bool:
+        return 0 <= r < self.size and 0 <= c < self.size
+
     def can_place_word(self, word: str, row: int, col: int, direction: str) -> bool:
         dr = 1 if direction == "down" else 0
         dc = 1 if direction == "across" else 0
@@ -20,6 +23,17 @@ class CrosswordGrid:
         end_col = col + dc * (len(word) - 1)
         if end_row >= self.size or end_col >= self.size or row < 0 or col < 0:
             return False
+
+        # Endpoint isolation: cell before the word start must be empty or off-board
+        before_r, before_c = row - dr, col - dc
+        if self._is_on_board(before_r, before_c) and self.grid[before_r][before_c] is not None:
+            return False
+
+        # Endpoint isolation: cell after the word end must be empty or off-board
+        after_r, after_c = end_row + dr, end_col + dc
+        if self._is_on_board(after_r, after_c) and self.grid[after_r][after_c] is not None:
+            return False
+
         for i, letter in enumerate(word):
             r, c = row + dr * i, col + dc * i
             existing = self.grid[r][c]

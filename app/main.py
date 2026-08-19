@@ -14,8 +14,7 @@ from games.crossword.models import Word
 from games.crossword.words import SEED_WORDS
 from games.crossword.generator import generate_crossword
 from games.snake.routes import router as snake_router
-from games.ant_defense.routes import router as ant_defense_router
-from games.tower_defense.routes import router as tower_defense_router
+from games.tower_defense.routes import router as tower_defense_router, start_game_loop as start_tower_defense_loop
 from games.colony_hex.routes import router as colony_hex_router
 import os
 
@@ -34,15 +33,13 @@ def seed_words():
 async def lifespan(app: FastAPI):
     init_db()
     seed_words()
+    start_tower_defense_loop()
     yield
 
 app = FastAPI(lifespan=lifespan)
 
 # Include Snake game routes
 app.include_router(snake_router, prefix="/api")
-
-# Include Ant Defense game routes (rotas já contêm o prefixo /games/ant_defense)
-app.include_router(ant_defense_router)
 
 # Include Tower Defense game routes (router já tem prefix=/tower-defense)
 app.include_router(tower_defense_router)
@@ -76,7 +73,8 @@ async def play_snake():
 
 @app.get("/play/ant_defense")
 async def play_ant_defense():
-    return FileResponse(os.path.join(games_dir, "ant_defense", "index.html"))
+    # Redirect to unified tower defense game
+    return FileResponse(os.path.join(games_dir, "tower_defense", "static", "index.html"))
 
 @app.get("/play/tower_defense")
 async def play_tower_defense():
@@ -103,7 +101,7 @@ async def play_crossword():
 async def root():
     return FileResponse("static/index.html")
 
-PLAYABLE_GAMES = ("checkers", "wordsearch", "crossword", "snake", "ant_defense", "tower_defense", "colony_hex")
+PLAYABLE_GAMES = ("checkers", "wordsearch", "crossword", "snake", "tower_defense", "colony_hex")
 
 # Rota genérica removida para evitar conflitos com rotas específicas acima
 # As rotas específicas estão definidas acima para cada jogo
@@ -136,7 +134,7 @@ async def create_game(game_in: GameCreate = GameCreate()):
     with Session(engine) as session:
         puzzle_data = None
         if game_in.game_type == "crossword":
-            diff_num = DIFFICULTY_MAP.get(game_in.difficulty, 1)
+            diff_num = DIFFICULTY_MAP[game_in.difficulty]
             all_words = session.exec(select(Word)).all()
             if not all_words:
                 # The bank is seeded at startup, so a long-running server can be
