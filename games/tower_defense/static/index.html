@@ -365,6 +365,7 @@
         let selectedTower = null;
         let gameId = null;
         let ws = null;
+        let animFrame = 0;
 
         // Caminho padrão (deve bater com o backend)
         const defaultPath = [
@@ -375,24 +376,49 @@
             [9, 7], [10, 7], [11, 7], [12, 7], [13, 7], [14, 7]
         ];
 
-        // Cores
+        // Cores e gradientes
         const COLORS = {
-            path: '#8B4513',
-            pathHighlight: '#A0522D',
-            grid: 'rgba(255, 255, 255, 0.1)',
-            validPlace: 'rgba(0, 255, 0, 0.3)',
-            invalidPlace: 'rgba(255, 0, 0, 0.3)',
+            grass: ['#2d5016', '#3a6b1e', '#2a4a14', '#356019'],
+            path: '#8B6914',
+            pathDark: '#6B4F10',
+            pathLight: '#A07828',
+            pathEdge: '#5C3D0E',
+            grid: 'rgba(255, 255, 255, 0.06)',
+            validPlace: 'rgba(0, 255, 100, 0.25)',
+            invalidPlace: 'rgba(255, 50, 50, 0.25)',
             tower: {
-                archer: '#FFD700',
-                bomb: '#FF4500',
-                ice: '#00CED1'
+                archer: { base: '#C8A830', accent: '#FFD700', top: '#8B6914' },
+                bomb: { base: '#B03020', accent: '#FF4500', top: '#FF6030' },
+                ice: { base: '#40A0B0', accent: '#80E0F0', top: '#C0F0FF' }
             },
             enemy: {
-                fly: '#FFA500',
-                beetle: '#8B0000',
-                sky_bug: '#C0C0C0'
+                fly: { body: '#D4880C', wing: 'rgba(200,220,255,0.4)', eye: '#222' },
+                beetle: { body: '#6B1A1A', shell: '#8B2020', leg: '#3A0A0A', eye: '#FFD700' },
+                sky_bug: { body: '#8090A0', wing: 'rgba(180,200,220,0.35)', eye: '#30FFD0' }
             }
         };
+
+        // Pré-gera textura de grama (array de pontos escuros)
+        const grassDots = [];
+        for (let i = 0; i < 400; i++) {
+            grassDots.push({
+                x: Math.random() * GRID_WIDTH * CELL_SIZE,
+                y: Math.random() * GRID_HEIGHT * CELL_SIZE,
+                r: Math.random() * 1.5 + 0.5,
+                a: Math.random() * 0.3 + 0.1
+            });
+        }
+
+        // Pré-gera pedras do caminho
+        const pathStones = [];
+        for (let i = 0; i < 120; i++) {
+            pathStones.push({
+                ox: Math.random() * 0.6 + 0.2,
+                oy: Math.random() * 0.6 + 0.2,
+                r: Math.random() * 3 + 1.5,
+                shade: Math.random() * 0.15
+            });
+        }
 
         // Inicializa o jogo
         async function initGame() {
@@ -405,13 +431,8 @@
                 if (data.success) {
                     gameId = data.game_id;
                     gameState = data.initial_state;
-                    
-                    // Conecta WebSocket
                     connectWebSocket();
-                    
-                    // Inicia renderização
                     requestAnimationFrame(gameLoop);
-                    
                     showMessage('Jogo criado! Selecione uma torre e comece a se defender!');
                 }
             } catch (error) {
@@ -420,24 +441,16 @@
             }
         }
 
-        // Conecta ao WebSocket
         function connectWebSocket() {
             const wsProtocol = location.protocol === 'https:' ? 'wss' : 'ws';
             const wsUrl = `${wsProtocol}://${window.location.host}/tower-defense/ws/${gameId}`;
             ws = new WebSocket(wsUrl);
-            
-            ws.onopen = () => {
-                console.log('WebSocket conectado');
-            };
-            
+            ws.onopen = () => console.log('WebSocket conectado');
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
-                
                 if (data.type === 'init' || data.type === 'state_update') {
                     gameState = data.state;
                     updateUI();
-                    
-                    // Verifica game over ou vitória
                     if (gameState.state.game_over || gameState.state.victory) {
                         showGameOver(gameState.state.victory);
                     }
@@ -445,172 +458,828 @@
                     showMessage(data.message);
                 }
             };
-            
-            ws.onclose = () => {
-                console.log('WebSocket desconectado');
-            };
+            ws.onclose = () => console.log('WebSocket desconectado');
         }
 
-        // Loop principal do jogo
         function gameLoop() {
+            animFrame++;
             render();
             requestAnimationFrame(gameLoop);
         }
 
-        // Renderiza o jogo
+        // ─── RENDER ───────────────────────────────────────────
         function render() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
             if (!gameState) return;
-            
-            // Desenha grid
-            drawGrid();
-            
-            // Desenha caminho
+            drawGrass();
             drawPath();
-            
-            // Desenha torres
+            drawBase();
+            drawEntry();
             drawTowers();
-            
-            // Desenha inimigos
             drawEnemies();
-            
-            // Desenha projéteis
             drawProjectiles();
-            
-            // Desenha highlight de colocação
-            if (selectedTower) {
-                drawPlacementPreview();
-            }
+            drawGrid();
+            if (selectedTower) drawPlacementPreview();
         }
 
-        function drawGrid() {
-            ctx.strokeStyle = COLORS.grid;
+        // ─── GRASS BACKGROUND ──────────────────────────────────
+        function drawGrass() {
+            // Base gradient verde
+            const grad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            grad.addColorStop(0, '#2a4a14');
+            grad.addColorStop(0.5, '#2d5016');
+            grad.addColorStop(1, '#264012');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Detalhes de grama
+            ctx.save();
+            for (const d of grassDots) {
+                ctx.fillStyle = `rgba(60,120,30,${d.a})`;
+                ctx.beginPath();
+                ctx.arc(d.x + OFFSET_X, d.y + OFFSET_Y, d.r, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+
+            // Linhas de grama (mancha)
+            ctx.save();
+            ctx.strokeStyle = 'rgba(50,100,25,0.15)';
             ctx.lineWidth = 1;
-            
+            for (let i = 0; i < 80; i++) {
+                const bx = Math.random() * GRID_WIDTH * CELL_SIZE + OFFSET_X;
+                const by = Math.random() * GRID_HEIGHT * CELL_SIZE + OFFSET_Y;
+                ctx.beginPath();
+                ctx.moveTo(bx, by);
+                ctx.lineTo(bx + (Math.random() - 0.5) * 8, by - Math.random() * 6 - 2);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        // ─── PATH ──────────────────────────────────────────────
+        function drawPath() {
+            const pathSet = new Set(gameState.path.map(p => `${p[0]},${p[1]}`));
+
+            // 1. Borda escura do caminho
+            ctx.fillStyle = COLORS.pathEdge;
+            for (const [x, y] of gameState.path) {
+                ctx.fillRect(
+                    OFFSET_X + x * CELL_SIZE - 2,
+                    OFFSET_Y + y * CELL_SIZE - 2,
+                    CELL_SIZE + 4, CELL_SIZE + 4
+                );
+            }
+
+            // 2. Corpo do caminho com gradiente
+            for (const [x, y] of gameState.path) {
+                const px = OFFSET_X + x * CELL_SIZE;
+                const py = OFFSET_Y + y * CELL_SIZE;
+                const g = ctx.createLinearGradient(px, py, px + CELL_SIZE, py + CELL_SIZE);
+                g.addColorStop(0, COLORS.path);
+                g.addColorStop(0.5, COLORS.pathLight);
+                g.addColorStop(1, COLORS.pathDark);
+                ctx.fillStyle = g;
+                ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+            }
+
+            // 3. Pedras no caminho
+            ctx.save();
+            for (const stone of pathStones) {
+                // Mapeia para célula do caminho usando hash pseudo
+                const idx = Math.floor(stone.ox * gameState.path.length) % gameState.path.length;
+                const [cx, cy] = gameState.path[idx];
+                const sx = OFFSET_X + cx * CELL_SIZE + (stone.ox * CELL_SIZE) % CELL_SIZE;
+                const sy = OFFSET_Y + cy * CELL_SIZE + (stone.oy * CELL_SIZE) % CELL_SIZE;
+                ctx.fillStyle = `rgba(160,130,80,${0.3 + stone.shade})`;
+                ctx.beginPath();
+                ctx.ellipse(sx, sy, stone.r, stone.r * 0.7, 0, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+
+            // 4. Bordas de grama ao longo do caminho
+            ctx.save();
+            for (const [x, y] of gameState.path) {
+                const px = OFFSET_X + x * CELL_SIZE;
+                const py = OFFSET_Y + y * CELL_SIZE;
+                // Verifica vizinhos para desenhar borda
+                const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+                for (const [dx, dy] of dirs) {
+                    const nx = x + dx, ny = y + dy;
+                    if (!pathSet.has(`${nx},${ny}`) && nx >= 0 && nx < GRID_WIDTH && ny >= 0 && ny < GRID_HEIGHT) {
+                        // Desenha pequenos pixels de grama na borda
+                        for (let g = 0; g < 4; g++) {
+                            const gx = px + (dx === -1 ? 0 : dx === 1 ? CELL_SIZE - 2 : Math.random() * CELL_SIZE);
+                            const gy = py + (dy === -1 ? 0 : dy === 1 ? CELL_SIZE - 2 : Math.random() * CELL_SIZE);
+                            ctx.fillStyle = `rgba(50,110,25,${0.3 + Math.random() * 0.3})`;
+                            ctx.fillRect(gx, gy, 2 + Math.random() * 3, 2 + Math.random() * 2);
+                        }
+                    }
+                }
+            }
+            ctx.restore();
+
+            // 5. Seta de direção sutil ao longo do caminho
+            ctx.save();
+            ctx.globalAlpha = 0.12;
+            ctx.fillStyle = '#FFD700';
+            for (let i = 2; i < gameState.path.length - 2; i += 4) {
+                const [ax, ay] = gameState.path[i];
+                const [bx, by] = gameState.path[i + 1];
+                const cx = OFFSET_X + ax * CELL_SIZE + CELL_SIZE / 2;
+                const cy = OFFSET_Y + ay * CELL_SIZE + CELL_SIZE / 2;
+                const angle = Math.atan2(by - ay, bx - ax);
+                ctx.save();
+                ctx.translate(cx, cy);
+                ctx.rotate(angle);
+                ctx.beginPath();
+                ctx.moveTo(10, 0);
+                ctx.lineTo(-4, -6);
+                ctx.lineTo(-4, 6);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+            }
+            ctx.restore();
+        }
+
+        // ─── BASE (Formigueiro) ────────────────────────────────
+        function drawBase() {
+            const [ex, ey] = gameState.path[gameState.path.length - 1];
+            const cx = OFFSET_X + ex * CELL_SIZE + CELL_SIZE / 2;
+            const cy = OFFSET_Y + ey * CELL_SIZE + CELL_SIZE / 2;
+            const t = animFrame * 0.03;
+
+            // Colina do formigueiro
+            ctx.save();
+            const moundGrad = ctx.createRadialGradient(cx, cy + 8, 5, cx, cy + 8, CELL_SIZE * 0.55);
+            moundGrad.addColorStop(0, '#A07030');
+            moundGrad.addColorStop(0.6, '#7A5020');
+            moundGrad.addColorStop(1, '#5A3818');
+            ctx.fillStyle = moundGrad;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy + 8, CELL_SIZE * 0.5, CELL_SIZE * 0.35, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Topo da colina
+            ctx.fillStyle = '#B88840';
+            ctx.beginPath();
+            ctx.ellipse(cx, cy - 4, CELL_SIZE * 0.3, CELL_SIZE * 0.18, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Entrada (buraco escuro)
+            ctx.fillStyle = '#1A0A00';
+            ctx.beginPath();
+            ctx.ellipse(cx, cy + 4, 10, 7, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = '#4A2A0A';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Brilho pulsante da base
+            const pulse = 0.15 + Math.sin(t) * 0.08;
+            ctx.globalAlpha = pulse;
+            ctx.fillStyle = '#FF6040';
+            ctx.beginPath();
+            ctx.arc(cx, cy, CELL_SIZE * 0.4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // Mini formigas ao redor
+            for (let i = 0; i < 3; i++) {
+                const angle = t + i * 2.1;
+                const dist = 18 + Math.sin(t * 0.8 + i) * 4;
+                const mx = cx + Math.cos(angle) * dist;
+                const my = cy + 6 + Math.sin(angle) * 6;
+                drawAnt(mx, my, 3, angle);
+            }
+            ctx.restore();
+        }
+
+        function drawAnt(x, y, size, angle) {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle);
+            // Corpo
+            ctx.fillStyle = '#3A1A0A';
+            ctx.beginPath();
+            ctx.ellipse(0, 0, size, size * 0.6, 0, 0, Math.PI * 2);
+            ctx.fill();
+            // Cabeça
+            ctx.beginPath();
+            ctx.arc(size * 0.8, 0, size * 0.45, 0, Math.PI * 2);
+            ctx.fill();
+            // Pernas
+            ctx.strokeStyle = '#3A1A0A';
+            ctx.lineWidth = 0.8;
+            for (let p = -1; p <= 1; p++) {
+                ctx.beginPath();
+                ctx.moveTo(p * size * 0.3, -size * 0.3);
+                ctx.lineTo(p * size * 0.5, -size * 0.9);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(p * size * 0.3, size * 0.3);
+                ctx.lineTo(p * size * 0.5, size * 0.9);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        // ─── ENTRY (Portão) ────────────────────────────────────
+        function drawEntry() {
+            const [sx, sy] = gameState.path[0];
+            const cx = OFFSET_X + sx * CELL_SIZE + CELL_SIZE / 2;
+            const cy = OFFSET_Y + sy * CELL_SIZE + CELL_SIZE / 2;
+            const t = animFrame * 0.04;
+
+            // Portal / portal de entrada
+            ctx.save();
+            // Brilho externo
+            const glow = ctx.createRadialGradient(cx, cy, 8, cx, cy, CELL_SIZE * 0.5);
+            glow.addColorStop(0, 'rgba(100,255,100,0.2)');
+            glow.addColorStop(1, 'rgba(100,255,100,0)');
+            ctx.fillStyle = glow;
+            ctx.beginPath();
+            ctx.arc(cx, cy, CELL_SIZE * 0.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Arco de pedra
+            ctx.strokeStyle = '#808080';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(cx, cy + 5, 18, Math.PI, 0);
+            ctx.stroke();
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(cx, cy + 5, 14, Math.PI, 0);
+            ctx.stroke();
+
+            // Interior do portal (verde brilhante)
+            ctx.fillStyle = '#20FF60';
+            ctx.globalAlpha = 0.3 + Math.sin(t) * 0.1;
+            ctx.beginPath();
+            ctx.arc(cx, cy + 5, 12, Math.PI, 0);
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // Ticker animado
+            ctx.fillStyle = '#90EE90';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('▶ INÍCIO', cx, cy + 24);
+            ctx.restore();
+        }
+
+        // ─── GRID ──────────────────────────────────────────────
+        function drawGrid() {
+            ctx.save();
+            ctx.strokeStyle = COLORS.grid;
+            ctx.lineWidth = 0.5;
             for (let x = 0; x <= GRID_WIDTH; x++) {
                 ctx.beginPath();
                 ctx.moveTo(OFFSET_X + x * CELL_SIZE, OFFSET_Y);
                 ctx.lineTo(OFFSET_X + x * CELL_SIZE, OFFSET_Y + GRID_HEIGHT * CELL_SIZE);
                 ctx.stroke();
             }
-            
             for (let y = 0; y <= GRID_HEIGHT; y++) {
                 ctx.beginPath();
                 ctx.moveTo(OFFSET_X, OFFSET_Y + y * CELL_SIZE);
                 ctx.lineTo(OFFSET_X + GRID_WIDTH * CELL_SIZE, OFFSET_Y + y * CELL_SIZE);
                 ctx.stroke();
             }
+            ctx.restore();
         }
 
-        function drawPath() {
-            ctx.fillStyle = COLORS.path;
-            
-            for (const [x, y] of gameState.path) {
-                ctx.fillRect(
-                    OFFSET_X + x * CELL_SIZE,
-                    OFFSET_Y + y * CELL_SIZE,
-                    CELL_SIZE,
-                    CELL_SIZE
-                );
-            }
-            
-            // Desenha ponto de início
-            const [startX, startY] = gameState.path[0];
-            ctx.fillStyle = '#00FF00';
-            ctx.font = '30px Arial';
-            ctx.fillText('🚪', 
-                OFFSET_X + startX * CELL_SIZE + 15,
-                OFFSET_Y + startY * CELL_SIZE + 45
-            );
-            
-            // Desenha formigueiro (final)
-            const [endX, endY] = gameState.path[gameState.path.length - 1];
-            ctx.fillStyle = '#FF0000';
-            ctx.font = '30px Arial';
-            ctx.fillText('🏠',
-                OFFSET_X + endX * CELL_SIZE + 15,
-                OFFSET_Y + endY * CELL_SIZE + 45
-            );
-        }
-
+        // ─── TOWERS ────────────────────────────────────────────
         function drawTowers() {
             for (const tower of gameState.towers) {
-                const centerX = OFFSET_X + tower.x * CELL_SIZE + CELL_SIZE / 2;
-                const centerY = OFFSET_Y + tower.y * CELL_SIZE + CELL_SIZE / 2;
-                
-                // Base da torre
-                ctx.fillStyle = COLORS.tower[tower.type];
+                const cx = OFFSET_X + tower.x * CELL_SIZE + CELL_SIZE / 2;
+                const cy = OFFSET_Y + tower.y * CELL_SIZE + CELL_SIZE / 2;
+                const r = CELL_SIZE * 0.38;
+                const colors = COLORS.tower[tower.type];
+
+                ctx.save();
+
+                // Sombra
+                ctx.fillStyle = 'rgba(0,0,0,0.25)';
                 ctx.beginPath();
-                ctx.arc(centerX, centerY, CELL_SIZE / 3, 0, Math.PI * 2);
+                ctx.ellipse(cx + 2, cy + 4, r, r * 0.5, 0, 0, Math.PI * 2);
                 ctx.fill();
-                
-                // Nível da torre
-                ctx.fillStyle = 'white';
-                ctx.font = 'bold 16px Arial';
+
+                if (tower.type === 'archer') {
+                    drawArcherTower(cx, cy, r, colors, tower.level);
+                } else if (tower.type === 'bomb') {
+                    drawBombTower(cx, cy, r, colors, tower.level);
+                } else if (tower.type === 'ice') {
+                    drawIceTower(cx, cy, r, colors, tower.level);
+                }
+
+                // Badge de nível
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.beginPath();
+                ctx.arc(cx + r * 0.7, cy - r * 0.7, 8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#FFD700';
+                ctx.font = 'bold 9px Arial';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillText(`Lv.${tower.level}`, centerX, centerY);
-                
-                // Ícone baseado no tipo
-                let icon = '🎯';
-                if (tower.type === 'bomb') icon = '💣';
-                if (tower.type === 'ice') icon = '❄️';
-                
-                ctx.font = '20px Arial';
-                ctx.fillText(icon, centerX, centerY - 10);
+                ctx.fillText(`L${tower.level}`, cx + r * 0.7, cy - r * 0.7);
+
+                ctx.restore();
             }
         }
 
+        function drawArcherTower(cx, cy, r, colors, level) {
+            // Base circular
+            const bg = ctx.createRadialGradient(cx, cy, 2, cx, cy, r);
+            bg.addColorStop(0, colors.accent);
+            bg.addColorStop(1, colors.base);
+            ctx.fillStyle = bg;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Torre: corpo
+            ctx.fillStyle = colors.top;
+            ctx.fillRect(cx - 6, cy - r + 4, 12, r * 1.2);
+
+            // Torre: topo com ameias
+            ctx.fillStyle = colors.base;
+            ctx.fillRect(cx - 10, cy - r, 20, 8);
+            for (let i = 0; i < 3; i++) {
+                ctx.fillRect(cx - 10 + i * 7, cy - r - 4, 5, 5);
+            }
+
+            // Arco (ível)
+            ctx.strokeStyle = colors.accent;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(cx, cy - 2, 10, -Math.PI * 0.8, -Math.PI * 0.2);
+            ctx.stroke();
+
+            // Flecha
+            ctx.strokeStyle = '#FFF';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - 10);
+            ctx.lineTo(cx, cy + 6);
+            ctx.stroke();
+            // Ponta
+            ctx.fillStyle = '#FFF';
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - 12);
+            ctx.lineTo(cx - 3, cy - 6);
+            ctx.lineTo(cx + 3, cy - 6);
+            ctx.closePath();
+            ctx.fill();
+
+            // Alcance (sutil)
+            if (level > 1) {
+                ctx.strokeStyle = `rgba(255,215,0,${0.08 * level})`;
+                ctx.lineWidth = 1;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.arc(cx, cy, r + level * 6, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
+
+        function drawBombTower(cx, cy, r, colors, level) {
+            // Base
+            const bg = ctx.createRadialGradient(cx, cy, 2, cx, cy, r);
+            bg.addColorStop(0, '#FF7040');
+            bg.addColorStop(1, colors.base);
+            ctx.fillStyle = bg;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Bomba: corpo preto
+            ctx.fillStyle = '#1A1A1A';
+            ctx.beginPath();
+            ctx.arc(cx, cy - 2, r * 0.55, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Brilho da bomba
+            const shine = ctx.createRadialGradient(cx - 4, cy - 6, 1, cx, cy - 2, r * 0.55);
+            shine.addColorStop(0, 'rgba(255,120,40,0.4)');
+shine.addColorStop(1, 'rgba(255,60,0,0)');
+            ctx.fillStyle = shine;
+            ctx.beginPath();
+            ctx.arc(cx, cy - 2, r * 0.55, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Pavio
+            ctx.strokeStyle = '#8B6914';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - r * 0.55 - 2);
+            ctx.quadraticCurveTo(cx + 8, cy - r * 0.55 - 10, cx + 4, cy - r * 0.55 - 14);
+            ctx.stroke();
+
+            // Faísca
+            const sparkT = animFrame * 0.15;
+            ctx.fillStyle = `hsl(${30 + Math.sin(sparkT) * 20}, 100%, ${60 + Math.sin(sparkT * 2) * 20}%)`;
+            ctx.beginPath();
+            ctx.arc(cx + 4, cy - r * 0.55 - 14, 3 + Math.sin(sparkT) * 1, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Faíscas pequenas
+            for (let i = 0; i < 3; i++) {
+                const sa = sparkT + i * 2;
+                const sr = 5 + Math.sin(sa * 3) * 2;
+                ctx.fillStyle = `rgba(255,200,50,${0.4 + Math.sin(sa) * 0.3})`;
+                ctx.beginPath();
+                ctx.arc(cx + 4 + Math.cos(sa) * sr, cy - r * 0.55 - 14 + Math.sin(sa) * sr, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Indicador de AoE
+            if (level > 1) {
+                ctx.strokeStyle = `rgba(255,80,0,${0.1 * level})`;
+                ctx.lineWidth = 1;
+                ctx.setLineDash([3, 3]);
+                ctx.beginPath();
+                ctx.arc(cx, cy, r + level * 8, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
+
+        function drawIceTower(cx, cy, r, colors, level) {
+            // Base
+            const bg = ctx.createRadialGradient(cx, cy, 2, cx, cy, r);
+            bg.addColorStop(0, colors.accent);
+            bg.addColorStop(1, colors.base);
+            ctx.fillStyle = bg;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Cristal central (losango)
+            ctx.fillStyle = colors.top;
+            ctx.globalAlpha = 0.85;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - r * 0.6);
+            ctx.lineTo(cx + r * 0.35, cy);
+            ctx.lineTo(cx, cy + r * 0.5);
+            ctx.lineTo(cx - r * 0.35, cy);
+            ctx.closePath();
+            ctx.fill();
+            ctx.globalAlpha = 1;
+
+            // Cristais menores ao redor
+            const crystalAngles = [0, Math.PI * 0.6, Math.PI * 1.2, Math.PI * 1.7];
+            for (const a of crystalAngles) {
+                const cr = r * 0.7;
+                const ccx = cx + Math.cos(a) * cr;
+                const ccy = cy + Math.sin(a) * cr;
+                ctx.fillStyle = `rgba(180,240,255,${0.4 + Math.sin(animFrame * 0.05 + a) * 0.15})`;
+                ctx.beginPath();
+                ctx.moveTo(ccx, ccy - 5);
+                ctx.lineTo(ccx + 3, ccy + 2);
+                ctx.lineTo(ccx - 3, ccy + 2);
+                ctx.closePath();
+                ctx.fill();
+            }
+
+            // Brilho de gelo
+            const iceGlow = ctx.createRadialGradient(cx, cy, 4, cx, cy, r);
+            iceGlow.addColorStop(0, 'rgba(200,240,255,0.3)');
+            iceGlow.addColorStop(1, 'rgba(200,240,255,0)');
+            ctx.fillStyle = iceGlow;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Flocos de neve animados
+            ctx.fillStyle = 'rgba(255,255,255,0.5)';
+            for (let i = 0; i < 4; i++) {
+                const ft = animFrame * 0.03 + i * 1.6;
+                const fx = cx + Math.cos(ft) * (r * 0.8);
+                const fy = cy + Math.sin(ft) * (r * 0.6);
+                ctx.beginPath();
+                ctx.arc(fx, fy, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // ─── ENEMIES ───────────────────────────────────────────
         function drawEnemies() {
             for (const enemy of gameState.enemies) {
-                const centerX = OFFSET_X + enemy.x * CELL_SIZE + CELL_SIZE / 2;
-                const centerY = OFFSET_Y + enemy.y * CELL_SIZE + CELL_SIZE / 2;
-                
-                // Corpo do inimigo
-                ctx.fillStyle = COLORS.enemy[enemy.type] || '#FF0000';
-                ctx.beginPath();
-                ctx.arc(centerX, centerY, CELL_SIZE / 4, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // Barra de vida
-                const barWidth = CELL_SIZE / 2;
-                const barHeight = 5;
-                const healthPercent = enemy.hp / enemy.max_hp;
-                
-                ctx.fillStyle = 'red';
-                ctx.fillRect(centerX - barWidth / 2, centerY - CELL_SIZE / 2 - 10, barWidth, barHeight);
-                
-                ctx.fillStyle = '#00FF00';
-                ctx.fillRect(centerX - barWidth / 2, centerY - CELL_SIZE / 2 - 10, barWidth * healthPercent, barHeight);
-                
-                // Efeito de slow
+                const cx = OFFSET_X + enemy.x * CELL_SIZE + CELL_SIZE / 2;
+                const cy = OFFSET_Y + enemy.y * CELL_SIZE + CELL_SIZE / 2;
+                const t = animFrame * 0.08;
+
+                ctx.save();
+
+                // Efeito de slow (aura de gelo)
                 if (enemy.slowed) {
-                    ctx.strokeStyle = '#00CED1';
-                    ctx.lineWidth = 2;
+                    ctx.strokeStyle = 'rgba(100,220,255,0.6)';
+                    ctx.lineWidth = 2.5;
+                    ctx.setLineDash([3, 3]);
                     ctx.beginPath();
-                    ctx.arc(centerX, centerY, CELL_SIZE / 3, 0, Math.PI * 2);
+                    ctx.arc(cx, cy, CELL_SIZE * 0.38, 0, Math.PI * 2);
                     ctx.stroke();
+                    ctx.setLineDash([]);
+                    // Cristais de gelo
+                    for (let i = 0; i < 3; i++) {
+                        const a = t * 2 + i * 2.1;
+                        const ix = cx + Math.cos(a) * 14;
+                        const iy = cy + Math.sin(a) * 14;
+                        ctx.fillStyle = 'rgba(180,240,255,0.5)';
+                        ctx.beginPath();
+                        ctx.moveTo(ix, iy - 3);
+                        ctx.lineTo(ix + 2, iy + 1);
+                        ctx.lineTo(ix - 2, iy + 1);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
                 }
+
+                if (enemy.type === 'fly') {
+                    drawFly(cx, cy, t, enemy);
+                } else if (enemy.type === 'beetle') {
+                    drawBeetle(cx, cy, t, enemy);
+                } else if (enemy.type === 'sky_bug') {
+                    drawSkyBug(cx, cy, t, enemy);
+                }
+
+                // Barra de vida
+                const barW = CELL_SIZE * 0.55;
+                const barH = 5;
+                const barY = cy - CELL_SIZE * 0.38;
+                const hpPct = Math.max(0, enemy.hp / enemy.max_hp);
+
+                // Fundo
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.fillRect(cx - barW / 2 - 1, barY - 1, barW + 2, barH + 2);
+                // Vida
+                const hpColor = hpPct > 0.6 ? '#30E030' : hpPct > 0.3 ? '#E0D020' : '#E03020';
+                ctx.fillStyle = hpColor;
+                ctx.fillRect(cx - barW / 2, barY, barW * hpPct, barH);
+
+                ctx.restore();
             }
         }
 
-        function drawProjectiles() {
-            for (const projectile of gameState.projectiles || []) {
-                const fromX = OFFSET_X + projectile.from_x * CELL_SIZE + CELL_SIZE / 2;
-                const fromY = OFFSET_Y + projectile.from_y * CELL_SIZE + CELL_SIZE / 2;
-                const toX = OFFSET_X + projectile.to_x * CELL_SIZE + CELL_SIZE / 2;
-                const toY = OFFSET_Y + projectile.to_y * CELL_SIZE + CELL_SIZE / 2;
-                
-                ctx.strokeStyle = COLORS.tower[projectile.type] || 'yellow';
-                ctx.lineWidth = 3;
+        function drawFly(cx, cy, t, enemy) {
+            const s = CELL_SIZE * 0.28;
+            const wingBeat = Math.sin(t * 3) * 0.4;
+
+            // Asas (atrás, translúcidas)
+            ctx.fillStyle = COLORS.enemy.fly.wing;
+            ctx.beginPath();
+            ctx.ellipse(cx - s * 0.7, cy - s * 0.3, s * 0.7, s * 0.35, -0.3 + wingBeat, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(cx + s * 0.7, cy - s * 0.3, s * 0.7, s * 0.35, 0.3 - wingBeat, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Corpo
+            ctx.fillStyle = COLORS.enemy.fly.body;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, s * 0.5, s * 0.7, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Cabeça
+            ctx.fillStyle = '#C07008';
+            ctx.beginPath();
+            ctx.arc(cx, cy - s * 0.65, s * 0.35, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Olhos
+            ctx.fillStyle = COLORS.enemy.fly.eye;
+            ctx.beginPath();
+            ctx.arc(cx - 3, cy - s * 0.7, 2, 0, Math.PI * 2);
+            ctx.arc(cx + 3, cy - s * 0.7, 2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Pernas
+            ctx.strokeStyle = '#8A5A08';
+            ctx.lineWidth = 1;
+            for (let i = -1; i <= 1; i++) {
                 ctx.beginPath();
-                ctx.moveTo(fromX, fromY);
-                ctx.lineTo(toX, toY);
+                ctx.moveTo(cx + i * 3, cy + s * 0.3);
+                ctx.lineTo(cx + i * 6, cy + s * 0.9);
                 ctx.stroke();
             }
         }
 
+        function drawBeetle(cx, cy, t, enemy) {
+            const s = CELL_SIZE * 0.35;
+
+            // Pernas
+            ctx.strokeStyle = COLORS.enemy.beetle.leg;
+            ctx.lineWidth = 2;
+            for (let i = -1; i <= 1; i++) {
+                const legAnim = Math.sin(t * 2 + i) * 2;
+                ctx.beginPath();
+                ctx.moveTo(cx + i * s * 0.4, cy + s * 0.2);
+                ctx.lineTo(cx + i * s * 0.9, cy + s * 0.8 + legAnim);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(cx + i * s * 0.4, cy - s * 0.1);
+                ctx.lineTo(cx + i * s * 0.9, cy - s * 0.5 + legAnim);
+                ctx.stroke();
+            }
+
+            // Corpo
+            ctx.fillStyle = COLORS.enemy.beetle.body;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy, s * 0.55, s * 0.75, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Carapaça (shell) com divisão
+            ctx.fillStyle = COLORS.enemy.beetle.shell;
+            ctx.beginPath();
+            ctx.ellipse(cx, cy - 1, s * 0.48, s * 0.65, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Linha central da carapaça
+            ctx.strokeStyle = '#4A0E0E';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.moveTo(cx, cy - s * 0.6);
+            ctx.lineTo(cx, cy + s * 0.5);
+            ctx.stroke();
+
+            // Brilho na carapaça
+            ctx.fillStyle = 'rgba(255,180,180,0.15)';
+            ctx.beginPath();
+            ctx.ellipse(cx - s * 0.15, cy - s * 0.25, s * 0.2, s * 0.3, -0.3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Cabeça
+            ctx.fillStyle = COLORS.enemy.beetle.body;
+            ctx.beginPath();
+            ctx.arc(cx, cy - s * 0.7, s * 0.3, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Mandíbulas
+            ctx.strokeStyle = '#4A0E0E';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(cx - 4, cy - s * 0.9, 4, 0.5, 2.5);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(cx + 4, cy - s * 0.9, 4, 0.6, 2.6);
+            ctx.stroke();
+
+            // Olhos
+            ctx.fillStyle = COLORS.enemy.beetle.eye;
+            ctx.beginPath();
+            ctx.arc(cx - 4, cy - s * 0.75, 2.5, 0, Math.PI * 2);
+            ctx.arc(cx + 4, cy - s * 0.75, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        function drawSkyBug(cx, cy, t, enemy) {
+            const s = CELL_SIZE * 0.3;
+            const hover = Math.sin(t * 1.5) * 2;
+            const yy = cy + hover;
+
+            // Asas grandes
+            ctx.fillStyle = COLORS.enemy.sky_bug.wing;
+            const wingSpread = Math.sin(t * 2.5) * 0.2;
+            ctx.beginPath();
+            ctx.ellipse(cx - s * 0.9, yy - s * 0.1, s * 0.8, s * 0.4, -0.4 + wingSpread, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(cx + s * 0.9, yy - s * 0.1, s * 0.8, s * 0.4, 0.4 - wingSpread, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Asas internas (mais pequenas)
+            ctx.fillStyle = 'rgba(180,210,230,0.25)';
+            ctx.beginPath();
+            ctx.ellipse(cx - s * 0.5, yy + s * 0.1, s * 0.45, s * 0.2, -0.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.ellipse(cx + s * 0.5, yy + s * 0.1, s * 0.45, s * 0.2, 0.2, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Corpo
+            ctx.fillStyle = COLORS.enemy.sky_bug.body;
+            ctx.beginPath();
+            ctx.ellipse(cx, yy, s * 0.4, s * 0.6, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Brilho metálico
+            const metallicGrad = ctx.createLinearGradient(cx - s * 0.3, yy - s * 0.5, cx + s * 0.3, yy + s * 0.5);
+            metallicGrad.addColorStop(0, 'rgba(200,220,240,0.3)');
+            metallicGrad.addColorStop(0.5, 'rgba(100,140,180,0.15)');
+            metallicGrad.addColorStop(1, 'rgba(200,220,240,0.3)');
+            ctx.fillStyle = metallicGrad;
+            ctx.beginPath();
+            ctx.ellipse(cx, yy, s * 0.35, s * 0.55, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Cabeça
+            ctx.fillStyle = '#607080';
+            ctx.beginPath();
+            ctx.arc(cx, yy - s * 0.6, s * 0.25, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Antenas
+            ctx.strokeStyle = '#506070';
+            ctx.lineWidth = 1.2;
+            ctx.beginPath();
+            ctx.moveTo(cx - 2, yy - s * 0.75);
+            ctx.quadraticCurveTo(cx - 8, yy - s * 1.1, cx - 6, yy - s * 1.2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(cx + 2, yy - s * 0.75);
+            ctx.quadraticCurveTo(cx + 8, yy - s * 1.1, cx + 6, yy - s * 1.2);
+            ctx.stroke();
+
+            // Olhos (brilhantes)
+            ctx.fillStyle = COLORS.enemy.sky_bug.eye;
+            ctx.beginPath();
+            ctx.arc(cx - 3, yy - s * 0.65, 2.5, 0, Math.PI * 2);
+            ctx.arc(cx + 3, yy - s * 0.65, 2.5, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Brilho nos olhos
+            ctx.fillStyle = 'rgba(255,255,255,0.6)';
+            ctx.beginPath();
+            ctx.arc(cx - 2, yy - s * 0.67, 1, 0, Math.PI * 2);
+            ctx.arc(cx + 4, yy - s * 0.67, 1, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // ─── PROJECTILES ───────────────────────────────────────
+        function drawProjectiles() {
+            for (const proj of gameState.projectiles || []) {
+                const fx = OFFSET_X + proj.from_x * CELL_SIZE + CELL_SIZE / 2;
+                const fy = OFFSET_Y + proj.from_y * CELL_SIZE + CELL_SIZE / 2;
+                const tx = OFFSET_X + proj.to_x * CELL_SIZE + CELL_SIZE / 2;
+                const ty = OFFSET_Y + proj.to_y * CELL_SIZE + CELL_SIZE / 2;
+
+                ctx.save();
+
+                if (proj.type === 'archer') {
+                    // Flecha
+                    const angle = Math.atan2(ty - fy, tx - fx);
+                    ctx.strokeStyle = '#FFD700';
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.moveTo(fx, fy);
+                    ctx.lineTo(tx, ty);
+                    ctx.stroke();
+                    // Ponta da flecha
+                    ctx.fillStyle = '#FFF';
+                    ctx.save();
+                    ctx.translate(tx, ty);
+                    ctx.rotate(angle);
+                    ctx.beginPath();
+                    ctx.moveTo(6, 0);
+                    ctx.lineTo(-3, -3);
+                    ctx.lineTo(-3, 3);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.restore();
+                } else if (proj.type === 'bomb') {
+                    // Bola de fogo
+                    const gradient = ctx.createRadialGradient(tx, ty, 1, tx, ty, 10);
+                    gradient.addColorStop(0, '#FFFFFF');
+                    gradient.addColorStop(0.3, '#FFAA00');
+                    gradient.addColorStop(0.7, '#FF4400');
+                    gradient.addColorStop(1, 'rgba(255,68,0,0)');
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(tx, ty, 10, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (proj.type === 'ice') {
+                    // Raio de gelo
+                    ctx.strokeStyle = 'rgba(120,220,255,0.8)';
+                    ctx.lineWidth = 3;
+                    ctx.setLineDash([4, 3]);
+                    ctx.beginPath();
+                    ctx.moveTo(fx, fy);
+                    // Linha ziguezague
+                    const steps = 6;
+                    for (let i = 1; i <= steps; i++) {
+                        const mx = fx + (tx - fx) * (i / steps) + (Math.random() - 0.5) * 8;
+                        const my = fy + (ty - fy) * (i / steps) + (Math.random() - 0.5) * 8;
+                        ctx.lineTo(mx, my);
+                    }
+                    ctx.lineTo(tx, ty);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    // Brilho no impacto
+                    ctx.fillStyle = 'rgba(200,240,255,0.5)';
+                    ctx.beginPath();
+                    ctx.arc(tx, ty, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        // ─── PLACEMENT PREVIEW ─────────────────────────────────
         function drawPlacementPreview() {
             // Implementação futura: mostra preview onde o mouse está
         }
