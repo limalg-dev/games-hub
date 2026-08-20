@@ -16,7 +16,7 @@ from datetime import datetime
 from games.tower_defense.logic import (
     TowerDefenseGame, 
     TowerType, EnemyType,
-    GameState
+    GameState, Difficulty, DIFFICULTY_CONFIGS
 )
 import logging
 
@@ -60,6 +60,10 @@ class StartWaveRequest(BaseModel):
     pass
 
 
+class CreateGameRequest(BaseModel):
+    difficulty: str = "normal"  # "easy", "normal", "hard"
+
+
 @router.get("/")
 async def get_tower_defense_info():
     """Informações sobre o jogo Tower Defense"""
@@ -69,18 +73,35 @@ async def get_tower_defense_info():
         "version": "1.0.0",
         "game_modes": ["single_player"],
         "max_players": 1,
-        "grid_size": "15x10",
+        "grid_size": "30x25",
         "tower_types": ["archer", "bomb", "ice"],
-        "enemy_types": ["fly", "beetle", "sky_bug"]
+        "enemy_types": ["fly", "beetle", "sky_bug"],
+        "difficulties": {
+            d.value: {
+                "label": cfg["label"],
+                "description": cfg["description"],
+                "start_crystals": cfg["start_crystals"],
+                "start_lives": cfg["start_lives"],
+            }
+            for d, cfg in DIFFICULTY_CONFIGS.items()
+        }
     }
 
 
 @router.post("/games/create")
-async def create_game():
+async def create_game(request: CreateGameRequest = CreateGameRequest()):
     """Cria um novo jogo de Tower Defense"""
     _cleanup_expired()
     game_id = f"td_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{os.urandom(4).hex()}"
-    game = TowerDefenseGame(game_id=game_id)
+
+    # Map difficulty string to enum
+    diff_map = {
+        "easy": Difficulty.EASY, "normal": Difficulty.NORMAL,
+        "hard": Difficulty.HARD, "insane": Difficulty.INSANE,
+    }
+    difficulty = diff_map.get(request.difficulty, Difficulty.NORMAL)
+
+    game = TowerDefenseGame(game_id=game_id, difficulty=difficulty)
     active_games[game_id] = game
     game_websockets[game_id] = []
     _game_created[game_id] = time.time()
@@ -287,6 +308,27 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         "message": msg
                     })
                     await broadcast_game_state(game_id)
+
+            elif command == "set_speed":
+                scale = message.get("scale", 1)
+                success, msg = game.set_time_scale(int(scale))
+                await websocket.send_json({
+                    "type": "command_result",
+                    "command": "set_speed",
+                    "success": success,
+                    "message": msg
+                })
+                await broadcast_game_state(game_id)
+
+            elif command == "toggle_auto_wave":
+                success, msg = game.toggle_auto_wave()
+                await websocket.send_json({
+                    "type": "command_result",
+                    "command": "toggle_auto_wave",
+                    "success": success,
+                    "message": msg
+                })
+                await broadcast_game_state(game_id)
     
     except WebSocketDisconnect:
         pass
@@ -323,8 +365,9 @@ async def broadcast_game_state(game_id: str):
 async def game_loop_task():
     """Task que roda o game loop continuamente"""
     _cleanup_counter = 0
+    BASE_DT = 0.016  # ~60 FPS base
     while True:
-        dt = 0.016  # ~60 FPS
+        dt = BASE_DT
         
         # Periodic cleanup every ~60 seconds
         _cleanup_counter += 1
@@ -338,8 +381,13 @@ async def game_loop_task():
                 # Se houve mudanças significativas, notifica clientes
                 if result["attacks"] or result["enemies_destroyed"] or result["state_changes"]:
                     await broadcast_game_state(game_id)
-        
-        await asyncio.sleep(dt)
+
+        # Sleep less when time is scaled up (e.g. 4x → sleep 4x less)
+        max_scale = 1
+        for game in active_games.values():
+            if game.state.time_scale > max_scale:
+                max_scale = game.state.time_scale
+        await asyncio.sleep(dt / max_scale)
 
 
 # Função para iniciar o game loop

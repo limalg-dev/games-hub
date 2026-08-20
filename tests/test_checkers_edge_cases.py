@@ -166,16 +166,10 @@ class TestGameOver:
         board.board = [[""] * 8 for _ in range(8)]
         # Black piece trapped in corner with no moves
         board.board[7][0] = "b"
-        # Block all possible moves for black
-        board.board[6][1] = "w"  # This blocks the only diagonal
+        board.board[6][1] = "w"  # This blocks the only forward diagonal
+        board.board[5][2] = "w"  # This blocks the capture landing square
 
         moves = board.legal_moves("b")
-        # Black has no legal moves — but might have a capture
-        # Actually, black is at (7,0) and can only move to (6,1) which is occupied
-        # Let's check if there's a capture: (5,2) needs to be empty -> yes by default
-        # Wait: black can only move DOWN (dr > 0), but (7,0) is on row 7 already
-        # Actually black moves DOWN: dr > 0, but r=7, so r+1=8 which is off board
-        # So black indeed has no moves
         assert len(moves) == 0
 
     def test_empty_board_no_moves(self):

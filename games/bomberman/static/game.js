@@ -4,7 +4,7 @@ import { sound } from './audio.js';
 
 const COLS = 15;
 const ROWS = 13;
-const TILE = 48; // Canvas native size: 720 x 624
+const TILE = 48; // Canvas size: 720 x 624
 
 // Grid cell codes
 const EMPTY = 0;
@@ -22,11 +22,11 @@ const PWR_SHIELD = 5;
 const PWR_REMOTE = 6;
 
 const COLORS = {
-  white: { body: '#ffffff', suit: '#3498db', head: '#f1c40f', hat: '#ffffff', skin: '#f5cd79' },
-  black: { body: '#2c3e50', suit: '#e74c3c', head: '#e67e22', hat: '#1a1a1a', skin: '#f5cd79' },
-  red:   { body: '#e74c3c', suit: '#ffffff', head: '#f39c12', hat: '#c0392b', skin: '#f5cd79' },
-  blue:  { body: '#2980b9', suit: '#ffffff', head: '#27ae60', hat: '#1f618d', skin: '#f5cd79' },
-  yellow:{ body: '#f1c40f', suit: '#2c3e50', head: '#e67e22', hat: '#d4ac0d', skin: '#f5cd79' },
+  white:  { body: '#ffffff', suit: '#3498db', head: '#f1c40f', hat: '#ffffff', skin: '#f5cd79' },
+  black:  { body: '#2c3e50', suit: '#e74c3c', head: '#e67e22', hat: '#1a1a1a', skin: '#f5cd79' },
+  red:    { body: '#e74c3c', suit: '#ffffff', head: '#f39c12', hat: '#c0392b', skin: '#f5cd79' },
+  blue:   { body: '#2980b9', suit: '#ffffff', head: '#27ae60', hat: '#1f618d', skin: '#f5cd79' },
+  yellow: { body: '#f1c40f', suit: '#2c3e50', head: '#e67e22', hat: '#d4ac0d', skin: '#f5cd79' },
 };
 
 class Particle {
@@ -62,7 +62,7 @@ class FloatingText {
     this.y = y;
     this.text = text;
     this.color = color;
-    this.life = 1.0;
+    this.life = 1.2;
   }
   update(dt) {
     this.y -= 25 * dt;
@@ -106,8 +106,8 @@ export class BombermanGame {
     this.particles = [];
     this.floatingTexts = [];
 
-    this.timer = 180;
-    this.state = 'start'; // 'start', 'playing', 'paused', 'game_over', 'stage_clear', 'match_win'
+    this.timer = 120;
+    this.state = 'start'; // 'start', 'playing', 'paused', 'game_over', 'stage_clear', 'match_win', 'round_over'
     this.lastTime = 0;
     this.suddenDeathStarted = false;
     this.suddenDeathIndex = 0;
@@ -118,6 +118,10 @@ export class BombermanGame {
 
     this.score = 0;
     this.roundWins = [0, 0, 0, 0]; // Wins per player slot
+
+    // Pre-generate background arena
+    this.generateArena();
+    this.spawnEntities();
 
     this.setupListeners();
     this.initUI();
@@ -152,7 +156,7 @@ export class BombermanGame {
       this.keys[e.code] = false;
     });
 
-    // Mobile / Touch controls
+    // Touch controls
     const bindTouch = (id, key) => {
       const el = document.getElementById(id);
       if (!el) return;
@@ -234,6 +238,7 @@ export class BombermanGame {
 
     // Modal buttons
     document.getElementById('btnStartGame')?.addEventListener('click', () => {
+      sound.init();
       this.hideModal('startModal');
       this.resetMatch();
     });
@@ -251,7 +256,7 @@ export class BombermanGame {
       this.hideModal('stageClearModal');
       this.stage++;
       if (this.stage > this.maxStages) {
-        this.showMatchWin('Você completou todas as fases do Modo Arcade!');
+        this.showMatchWin('Você completou todas as 5 fases do Modo Arcade!');
       } else {
         this.startRound();
       }
@@ -317,7 +322,7 @@ export class BombermanGame {
     this.suddenDeathTimer = 0;
     this.exitRevealed = false;
 
-    this.timer = this.mode === 'battle' ? 120 : (220 - this.stage * 15);
+    this.timer = this.mode === 'battle' ? 120 : (200 - this.stage * 10);
     this.generateArena();
     this.spawnEntities();
     this.state = 'playing';
@@ -375,7 +380,6 @@ export class BombermanGame {
       }
     }
 
-    // Distribute powerups
     const pwrPool = [PWR_BOMB, PWR_BOMB, PWR_FIRE, PWR_FIRE, PWR_SPEED, PWR_SPEED, PWR_KICK, PWR_SHIELD, PWR_REMOTE];
     crateList.sort(() => Math.random() - 0.5);
 
@@ -445,14 +449,11 @@ export class BombermanGame {
           animStep: 0,
           invulnTimer: 0,
           botThinkTimer: Math.random() * 0.5,
-          botTarget: null,
           botMoveDir: null,
         });
       });
     } else {
-      // Arcade mode monsters
       const count = 3 + this.stage * 2;
-      const types = ['ballom', 'pass', 'pontan', 'phantom'];
       let availableTiles = [];
 
       for (let r = 3; r < ROWS - 1; r++) {
@@ -486,13 +487,16 @@ export class BombermanGame {
 
   startLoop() {
     const loop = (timestamp) => {
-      if (!this.lastTime) this.lastTime = timestamp;
-      const dt = Math.min((timestamp - this.lastTime) / 1000, 0.1);
-      this.lastTime = timestamp;
+      try {
+        if (!this.lastTime) this.lastTime = timestamp;
+        const dt = Math.min((timestamp - this.lastTime) / 1000, 0.1);
+        this.lastTime = timestamp;
 
-      this.update(dt);
-      this.render();
-
+        this.update(dt);
+        this.render();
+      } catch (err) {
+        console.error('Game loop error:', err);
+      }
       requestAnimationFrame(loop);
     };
     requestAnimationFrame(loop);
@@ -501,13 +505,12 @@ export class BombermanGame {
   update(dt) {
     if (this.state !== 'playing') return;
 
-    // Timer & Sudden death in battle mode
     this.timer -= dt;
     if (this.timer <= 0) {
       if (this.mode === 'battle' && !this.suddenDeathStarted) {
         this.suddenDeathStarted = true;
-        sound.playAlarm();
-        this.floatingTexts.push(new FloatingText(this.canvas.width / 2, 100, 'SUDDEN DEATH!', '#ff4444'));
+        sound.playWarning();
+        this.floatingTexts.push(new FloatingText(this.canvas.width / 2, 100, 'MORTE SÚBITA!', '#ff4444'));
       } else if (this.mode === 'arcade') {
         this.playerDied(this.players[0]);
       }
@@ -532,7 +535,6 @@ export class BombermanGame {
   updatePlayers(dt) {
     this.players.forEach(p => {
       if (!p.alive) return;
-
       if (p.invulnTimer > 0) p.invulnTimer -= dt;
 
       if (p.isBot) {
@@ -553,7 +555,6 @@ export class BombermanGame {
     if (this.keys['ArrowRight'] || this.keys['KeyD'] || this.touchInput.right) dx += 1;
 
     if (dx !== 0 && dy !== 0) {
-      // Normalize diagonal movement
       dx *= 0.7071;
       dy *= 0.7071;
     }
@@ -570,7 +571,6 @@ export class BombermanGame {
     this.moveEntity(p, dx * p.speed * 60 * dt, dy * p.speed * 60 * dt);
     this.checkPowerupPickup(p);
 
-    // Check arcade exit door
     if (this.mode === 'arcade' && this.exitRevealed && this.monsters.length === 0) {
       const tileR = Math.floor(p.y / TILE);
       const tileC = Math.floor(p.x / TILE);
@@ -585,7 +585,7 @@ export class BombermanGame {
     const nextX = entity.x + vx;
     const nextY = entity.y + vy;
 
-    // Corner sliding / Assist logic: snap to corridor center if slightly misaligned
+    // Corner slide assist
     if (vx !== 0 && vy === 0) {
       const currentTileY = Math.floor(entity.y / TILE);
       const targetCenterY = currentTileY * TILE + TILE / 2;
@@ -602,14 +602,12 @@ export class BombermanGame {
       }
     }
 
-    // Try Horizontal
     if (!this.checkSolidCollision(nextX, entity.y, radius, entity)) {
       entity.x = nextX;
     } else if (entity.hasKick && vx !== 0) {
       this.tryKickBomb(entity, Math.sign(vx), 0);
     }
 
-    // Try Vertical
     if (!this.checkSolidCollision(entity.x, nextY, radius, entity)) {
       entity.y = nextY;
     } else if (entity.hasKick && vy !== 0) {
@@ -629,7 +627,6 @@ export class BombermanGame {
         const cell = this.grid[r][c];
         if (cell === WALL || cell === CRATE) return true;
 
-        // Check active bomb collision (unless player is still on the tile where they dropped it)
         const bomb = this.bombs.find(b => b.r === r && b.c === c);
         if (bomb) {
           const isInside = Math.abs(entity.x - (c * TILE + TILE / 2)) < TILE * 0.45 &&
@@ -659,7 +656,6 @@ export class BombermanGame {
     const r = Math.floor(player.y / TILE);
     const c = Math.floor(player.x / TILE);
 
-    // Prevent placing 2 bombs on exact same tile
     if (this.bombs.some(b => b.r === r && b.c === c)) return;
 
     const bomb = {
@@ -690,18 +686,14 @@ export class BombermanGame {
     for (let i = this.bombs.length - 1; i >= 0; i--) {
       const b = this.bombs[i];
       b.timer -= dt;
-
-      // Pulse animation
       b.scale = 1.0 + 0.12 * Math.sin((2.5 - b.timer) * 10);
 
-      // Moving bomb (kicked)
       if (b.moving) {
         b.x += b.dx * 8;
         b.y += b.dy * 8;
         const newR = Math.floor(b.y / TILE);
         const newC = Math.floor(b.x / TILE);
 
-        // Check if next tile hits obstacle
         if (this.grid[newR][newC] !== EMPTY || this.bombs.some(other => other !== b && other.r === newR && other.c === newC)) {
           b.moving = false;
           b.x = b.c * TILE + TILE / 2;
@@ -738,11 +730,11 @@ export class BombermanGame {
         if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) break;
         if (this.grid[nr][nc] === WALL) break;
 
-        rays.push({ r: nr, c: nc, type: d.type, isEnd: step === bomb.range });
+        rays.push({ r: nr, c: nc, type: d.type });
 
         if (this.grid[nr][nc] === CRATE) {
           this.destroyCrate(nr, nc);
-          break; // Stop ray at destroyed crate
+          break;
         }
       }
     });
@@ -753,7 +745,6 @@ export class BombermanGame {
       maxDuration: 0.45,
     });
 
-    // Spawn explosion particles
     for (let i = 0; i < 16; i++) {
       const angle = Math.random() * Math.PI * 2;
       const speed = Math.random() * 4 + 2;
@@ -773,14 +764,12 @@ export class BombermanGame {
     this.grid[r][c] = EMPTY;
     this.score += 50;
 
-    // Check if exit door was hidden here in arcade
     if (this.exitPos && this.exitPos.r === r && this.exitPos.c === c) {
       this.exitRevealed = true;
       sound.playDoorOpen();
       this.floatingTexts.push(new FloatingText(c * TILE + TILE / 2, r * TILE + TILE / 2, 'PORTAL ABERTO! 🚪', '#4ade80'));
     }
 
-    // Spawn crate crumbling particles
     for (let i = 0; i < 8; i++) {
       this.particles.push(new Particle(
         c * TILE + TILE / 2,
@@ -800,7 +789,6 @@ export class BombermanGame {
       f.duration -= dt;
 
       f.rays.forEach(ray => {
-        // Damage players
         this.players.forEach(p => {
           if (p.alive && p.invulnTimer <= 0) {
             const pr = Math.floor(p.y / TILE);
@@ -817,7 +805,6 @@ export class BombermanGame {
           }
         });
 
-        // Damage monsters
         for (let mIdx = this.monsters.length - 1; mIdx >= 0; mIdx--) {
           const m = this.monsters[mIdx];
           const mr = Math.floor(m.y / TILE);
@@ -827,14 +814,12 @@ export class BombermanGame {
           }
         }
 
-        // Chain ignite other bombs
         this.bombs.forEach(b => {
           if (b.r === ray.r && b.c === ray.c && b.timer > 0.05) {
             b.timer = 0.05;
           }
         });
 
-        // Vaporize powerups caught in flame
         if (this.powerupMap[ray.r][ray.c] !== PWR_NONE) {
           this.powerupMap[ray.r][ray.c] = PWR_NONE;
           this.floatingTexts.push(new FloatingText(ray.c * TILE + TILE / 2, ray.r * TILE + TILE / 2, 'ITEM QUEIMOU!', '#ff4444'));
@@ -904,7 +889,6 @@ export class BombermanGame {
         m.changeDirTimer = Math.random() * 1.5 + 0.5;
         const dirs = ['up', 'down', 'left', 'right'];
         if (m.type === 'pass' && this.players[0] && this.players[0].alive) {
-          // Track player
           const dx = this.players[0].x - m.x;
           const dy = this.players[0].y - m.y;
           m.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up');
@@ -931,7 +915,6 @@ export class BombermanGame {
         m.changeDirTimer = 0;
       }
 
-      // Check collision with player
       this.players.forEach(p => {
         if (p.alive && p.invulnTimer <= 0) {
           const dist = Math.hypot(p.x - m.x, p.y - m.y);
@@ -961,26 +944,24 @@ export class BombermanGame {
     return false;
   }
 
-  // Smart AI Bot Controller for Battle Arena
+  // AI Bots in Battle Arena
   updateBot(bot, dt) {
     bot.botThinkTimer -= dt;
     const botR = Math.floor(bot.y / TILE);
     const botC = Math.floor(bot.x / TILE);
 
     const dangerGrid = this.computeDangerGrid();
-    const isUnderDanger = dangerGrid[botR][botC] > 0;
+    const isUnderDanger = dangerGrid[botR] && dangerGrid[botR][botC] > 0;
 
     if (isUnderDanger || bot.botThinkTimer <= 0) {
-      bot.botThinkTimer = this.difficulty === 'easy' ? 0.4 : (this.difficulty === 'medium' ? 0.2 : 0.1);
+      bot.botThinkTimer = this.difficulty === 'easy' ? 0.35 : (this.difficulty === 'medium' ? 0.2 : 0.1);
 
       if (isUnderDanger) {
-        // Priority 1: Evade to safest accessible tile
         const safePath = this.findPathToSafeTile(botR, botC, dangerGrid);
         if (safePath && safePath.length > 0) {
           bot.botMoveDir = safePath[0];
         }
       } else {
-        // Safe: hunt powerups, destroy crates, or place bombs
         const target = this.findBotObjective(bot, botR, botC, dangerGrid);
         if (target) {
           const path = this.findPathTo(botR, botC, target.r, target.c);
@@ -989,7 +970,6 @@ export class BombermanGame {
           }
         }
 
-        // Decision to drop bomb (if near crates or enemies and has a safe escape route)
         if (Math.random() < 0.25 && this.shouldBotDropBomb(bot, botR, botC, dangerGrid)) {
           this.dropBomb(bot);
         }
@@ -1025,7 +1005,7 @@ export class BombermanGame {
       });
     });
     this.flames.forEach(f => {
-      f.rays.forEach(r => { danger[r.r][r.c] = 2; });
+      f.rays.forEach(r => { if (danger[r.r]) danger[r.r][r.c] = 2; });
     });
     return danger;
   }
@@ -1036,7 +1016,7 @@ export class BombermanGame {
 
     while (queue.length > 0) {
       const [r, c, path] = queue.shift();
-      if (dangerGrid[r][c] === 0) return path;
+      if (dangerGrid[r] && dangerGrid[r][c] === 0) return path;
 
       const dirs = [
         { dr: -1, dc: 0, name: 'up' },
@@ -1061,7 +1041,6 @@ export class BombermanGame {
   }
 
   findBotObjective(bot, botR, botC, dangerGrid) {
-    // 1. Look for powerup
     let best = null;
     let minDist = 999;
 
@@ -1078,7 +1057,6 @@ export class BombermanGame {
     }
     if (best) return best;
 
-    // 2. Target nearest enemy
     const enemies = this.players.filter(p => p !== bot && p.alive);
     if (enemies.length > 0) {
       const targetEnemy = enemies[0];
@@ -1130,8 +1108,6 @@ export class BombermanGame {
     });
 
     if (!hasNearbyTarget) return false;
-
-    // Check if there is an escape route
     const safeTiles = this.findPathToSafeTile(botR, botC, dangerGrid);
     return safeTiles !== null;
   }
@@ -1140,7 +1116,6 @@ export class BombermanGame {
     this.suddenDeathTimer -= dt;
     if (this.suddenDeathTimer <= 0) {
       this.suddenDeathTimer = 0.6;
-      // Shrink outer perimeter walls inward
       const spiral = [];
       for (let layer = 1; layer < 4; layer++) {
         for (let c = layer; c < COLS - layer; c++) spiral.push({ r: layer, c });
@@ -1154,7 +1129,6 @@ export class BombermanGame {
         this.grid[t.r][t.c] = WALL;
         sound.playBombDrop();
 
-        // Kill any entity standing here
         this.players.forEach(p => {
           if (p.alive && Math.floor(p.y / TILE) === t.r && Math.floor(p.x / TILE) === t.c) {
             this.playerDied(p);
@@ -1195,7 +1169,6 @@ export class BombermanGame {
         }, 2200);
       }
     } else {
-      // Arcade mode check player alive
       if (!this.players[0].alive) {
         this.state = 'game_over';
         this.showGameOver('Você foi derrotado nas fases Arcade.');
@@ -1216,7 +1189,8 @@ export class BombermanGame {
     const desc = document.getElementById('gameOverDesc');
     if (title) title.textContent = 'FIM DE JOGO';
     if (desc) desc.textContent = msg;
-    document.getElementById('finalScoreVal').textContent = this.score;
+    const finalScore = document.getElementById('finalScoreVal');
+    if (finalScore) finalScore.textContent = this.score;
     this.showModal('gameOverModal');
   }
 
@@ -1225,7 +1199,8 @@ export class BombermanGame {
     sound.playWin();
     const desc = document.getElementById('matchWinDesc');
     if (desc) desc.textContent = msg;
-    document.getElementById('winScoreVal').textContent = this.score;
+    const winScore = document.getElementById('winScoreVal');
+    if (winScore) winScore.textContent = this.score;
     this.showModal('matchWinModal');
   }
 
@@ -1233,18 +1208,27 @@ export class BombermanGame {
     const p1 = this.players[0];
     if (!p1) return;
 
-    document.getElementById('hudScore').textContent = this.score;
-    document.getElementById('hudTimer').textContent = Math.max(0, Math.ceil(this.timer));
-    document.getElementById('hudBombs').textContent = `${p1.maxBombs - p1.activeBombs}/${p1.maxBombs}`;
-    document.getElementById('hudFire').textContent = p1.fireRange;
-    document.getElementById('hudSpeed').textContent = p1.speed.toFixed(1);
+    const scoreEl = document.getElementById('hudScore');
+    const timerEl = document.getElementById('hudTimer');
+    const bombsEl = document.getElementById('hudBombs');
+    const fireEl = document.getElementById('hudFire');
+    const speedEl = document.getElementById('hudSpeed');
 
-    document.getElementById('badgeKick').style.display = p1.hasKick ? 'flex' : 'none';
-    document.getElementById('badgeShield').style.display = p1.hasShield ? 'flex' : 'none';
-    document.getElementById('badgeRemote').style.display = p1.hasRemote ? 'flex' : 'none';
+    if (scoreEl) scoreEl.textContent = this.score;
+    if (timerEl) timerEl.textContent = Math.max(0, Math.ceil(this.timer));
+    if (bombsEl) bombsEl.textContent = `${p1.maxBombs - p1.activeBombs}/${p1.maxBombs}`;
+    if (fireEl) fireEl.textContent = p1.fireRange;
+    if (speedEl) speedEl.textContent = p1.speed.toFixed(1);
+
+    const kickEl = document.getElementById('badgeKick');
+    const shieldEl = document.getElementById('badgeShield');
+    const remoteEl = document.getElementById('badgeRemote');
+
+    if (kickEl) kickEl.style.display = p1.hasKick ? 'flex' : 'none';
+    if (shieldEl) shieldEl.style.display = p1.hasShield ? 'flex' : 'none';
+    if (remoteEl) remoteEl.style.display = p1.hasRemote ? 'flex' : 'none';
   }
 
-  // Canvas Drawing & Rendering
   render() {
     this.ctx.fillStyle = '#0f1423';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -1268,23 +1252,19 @@ export class BombermanGame {
         const cell = this.grid[r][c];
 
         if (cell === WALL) {
-          // Indestructible metal/stone pillar
           this.ctx.fillStyle = '#16213e';
           this.ctx.fillRect(x, y, TILE, TILE);
           this.ctx.strokeStyle = '#2a2a4a';
           this.ctx.strokeRect(x + 2, y + 2, TILE - 4, TILE - 4);
 
-          // Top highlight
           this.ctx.fillStyle = '#1f2e54';
           this.ctx.fillRect(x + 4, y + 4, TILE - 8, 6);
         } else if (cell === CRATE) {
-          // Destructible brick / wood crate
           this.ctx.fillStyle = '#8b5a2b';
           this.ctx.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
           this.ctx.fillStyle = '#a06835';
           this.ctx.fillRect(x + 4, y + 4, TILE - 8, TILE - 8);
 
-          // Cross rivets
           this.ctx.strokeStyle = '#5c3a1e';
           this.ctx.lineWidth = 2;
           this.ctx.strokeRect(x + 4, y + 4, TILE - 8, TILE - 8);
@@ -1295,7 +1275,6 @@ export class BombermanGame {
           this.ctx.lineTo(x + 4, y + TILE - 4);
           this.ctx.stroke();
         } else {
-          // Floor tile
           this.ctx.fillStyle = (r + c) % 2 === 0 ? '#12182b' : '#141b30';
           this.ctx.fillRect(x, y, TILE, TILE);
         }
@@ -1328,7 +1307,6 @@ export class BombermanGame {
           const x = c * TILE + TILE / 2;
           const y = r * TILE + TILE / 2 + Math.sin(time) * 3;
 
-          // Glowing background pill
           this.ctx.save();
           this.ctx.fillStyle = 'rgba(255, 215, 0, 0.2)';
           this.ctx.beginPath();
@@ -1359,13 +1337,11 @@ export class BombermanGame {
       const r = 16 * b.scale;
 
       this.ctx.save();
-      // Drop shadow
       this.ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
       this.ctx.beginPath();
       this.ctx.ellipse(cx, cy + 12, r, r * 0.5, 0, 0, Math.PI * 2);
       this.ctx.fill();
 
-      // Bomb sphere
       const grad = this.ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, 2, cx, cy, r);
       grad.addColorStop(0, '#555');
       grad.addColorStop(0.5, '#222');
@@ -1375,11 +1351,9 @@ export class BombermanGame {
       this.ctx.arc(cx, cy, r, 0, Math.PI * 2);
       this.ctx.fill();
 
-      // Fuse top
       this.ctx.fillStyle = '#d35400';
       this.ctx.fillRect(cx - 3, cy - r - 4, 6, 6);
 
-      // Fuse spark
       this.ctx.fillStyle = ['#f39c12', '#e74c3c', '#ffffff'][Math.floor(Math.random() * 3)];
       this.ctx.beginPath();
       this.ctx.arc(cx, cy - r - 6, 4 + Math.random() * 2, 0, Math.PI * 2);
@@ -1399,15 +1373,12 @@ export class BombermanGame {
         const x = ray.c * TILE;
         const y = ray.r * TILE;
 
-        // Outer blast
         this.ctx.fillStyle = '#ff3838';
         this.ctx.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
 
-        // Mid blast
         this.ctx.fillStyle = '#ff9f1a';
         this.ctx.fillRect(x + 6, y + 6, TILE - 12, TILE - 12);
 
-        // Core white-hot blast
         this.ctx.fillStyle = '#ffffff';
         this.ctx.fillRect(x + 12, y + 12, TILE - 24, TILE - 24);
       });
@@ -1422,7 +1393,6 @@ export class BombermanGame {
 
       this.ctx.save();
       if (m.type === 'ballom') {
-        // Orange smiling balloon
         this.ctx.fillStyle = '#e67e22';
         this.ctx.beginPath();
         this.ctx.arc(cx, cy, 15, 0, Math.PI * 2);
@@ -1431,7 +1401,6 @@ export class BombermanGame {
         this.ctx.fillRect(cx - 6, cy - 4, 4, 4);
         this.ctx.fillRect(cx + 2, cy - 4, 4, 4);
       } else if (m.type === 'pass') {
-        // Blue fierce creature
         this.ctx.fillStyle = '#2980b9';
         this.ctx.beginPath();
         this.ctx.arc(cx, cy, 15, 0, Math.PI * 2);
@@ -1440,7 +1409,6 @@ export class BombermanGame {
         this.ctx.fillRect(cx - 6, cy - 4, 4, 4);
         this.ctx.fillRect(cx + 2, cy - 4, 4, 4);
       } else if (m.type === 'pontan') {
-        // Red fiery flame
         this.ctx.fillStyle = '#e74c3c';
         this.ctx.beginPath();
         this.ctx.arc(cx, cy, 16, 0, Math.PI * 2);
@@ -1450,7 +1418,6 @@ export class BombermanGame {
         this.ctx.arc(cx, cy, 8, 0, Math.PI * 2);
         this.ctx.fill();
       } else if (m.type === 'phantom') {
-        // Purple specter
         this.ctx.fillStyle = 'rgba(155, 89, 182, 0.85)';
         this.ctx.beginPath();
         this.ctx.arc(cx, cy - 2, 15, 0, Math.PI * 2);
@@ -1473,12 +1440,10 @@ export class BombermanGame {
 
       this.ctx.save();
 
-      // Invulnerability flash
       if (p.invulnTimer > 0 && Math.floor(p.invulnTimer * 10) % 2 === 0) {
         this.ctx.globalAlpha = 0.4;
       }
 
-      // Shield Aura
       if (p.hasShield) {
         this.ctx.strokeStyle = '#00f0ff';
         this.ctx.lineWidth = 3;
@@ -1487,42 +1452,36 @@ export class BombermanGame {
         this.ctx.stroke();
       }
 
-      // Shadow
       this.ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
       this.ctx.beginPath();
       this.ctx.ellipse(cx, cy + 14, 14, 6, 0, 0, Math.PI * 2);
       this.ctx.fill();
 
-      // Body / Suit
       this.ctx.fillStyle = c.suit;
       this.ctx.beginPath();
       this.ctx.arc(cx, cy + 4, 11, 0, Math.PI * 2);
       this.ctx.fill();
 
-      // White Head / Helmet
       this.ctx.fillStyle = c.hat;
       this.ctx.beginPath();
       this.ctx.arc(cx, cy - 4, 13, 0, Math.PI * 2);
       this.ctx.fill();
 
-      // Face Visor
       this.ctx.fillStyle = c.skin;
       this.ctx.fillRect(cx - 7, cy - 7, 14, 9);
 
-      // Eyes
       this.ctx.fillStyle = '#000';
       if (p.facing === 'down') {
         this.ctx.fillRect(cx - 4, cy - 6, 2, 5);
         this.ctx.fillRect(cx + 2, cy - 6, 2, 5);
       } else if (p.facing === 'up') {
-        // Rear view of helmet
+        // Helmet rear
       } else if (p.facing === 'left') {
         this.ctx.fillRect(cx - 6, cy - 6, 2, 5);
       } else if (p.facing === 'right') {
         this.ctx.fillRect(cx + 4, cy - 6, 2, 5);
       }
 
-      // Top antenna / pom-pom
       this.ctx.fillStyle = c.head;
       this.ctx.beginPath();
       this.ctx.arc(cx, cy - 17, 4, 0, Math.PI * 2);
@@ -1540,7 +1499,6 @@ export class BombermanGame {
     this.floatingTexts.forEach(t => t.draw(this.ctx));
   }
 
-  // API Highscore Integration
   async loadHighscores() {
     try {
       const res = await fetch('/api/bomberman/highscores');
@@ -1588,6 +1546,12 @@ export class BombermanGame {
 }
 
 // Bootstrap game instance
-window.addEventListener('DOMContentLoaded', () => {
-  window.game = new BombermanGame();
-});
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'loading') {
+    window.addEventListener('DOMContentLoaded', () => {
+      window.game = new BombermanGame();
+    });
+  } else {
+    window.game = new BombermanGame();
+  }
+}

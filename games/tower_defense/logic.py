@@ -118,6 +118,74 @@ ENEMY_STATS = {
     },
 }
 
+# ═══════════════════════════════════════════════════════════════
+#  DIFFICULTY CONFIGS
+# ═══════════════════════════════════════════════════════════════
+
+class Difficulty(Enum):
+    EASY = "easy"
+    NORMAL = "normal"
+    HARD = "hard"
+    INSANE = "insane"
+
+
+def _enemy_hp_mult_for_damage(base_hp: int, mult: float) -> float:
+    """Helper: scale HP and return effective multiplier."""
+    return base_hp * mult
+
+
+DIFFICULTY_CONFIGS = {
+    Difficulty.EASY: {
+        "label": "Fácil",
+        "start_crystals": 200,
+        "start_lives": 25,
+        "enemy_hp_mult": 0.7,     # -30% enemy HP
+        "enemy_speed_mult": 0.85, # -15% enemy speed
+        "tower_cost_mult": 0.80,  # -20% tower costs
+        "enemy_armor_mult": 1.0,  # armor unchanged
+        "enemy_regen_mult": 1.0,  # regen unchanged
+        "permadeath": False,
+        "description": "Inimigos mais fracos, mais recursos iniciais",
+    },
+    Difficulty.NORMAL: {
+        "label": "Normal",
+        "start_crystals": 150,
+        "start_lives": 20,
+        "enemy_hp_mult": 1.0,
+        "enemy_speed_mult": 1.0,
+        "tower_cost_mult": 1.0,
+        "enemy_armor_mult": 1.0,
+        "enemy_regen_mult": 1.0,
+        "permadeath": False,
+        "description": "Experiência padrão balanceada",
+    },
+    Difficulty.HARD: {
+        "label": "Difícil",
+        "start_crystals": 120,
+        "start_lives": 15,
+        "enemy_hp_mult": 1.4,     # +40% enemy HP
+        "enemy_speed_mult": 1.15, # +15% enemy speed
+        "tower_cost_mult": 1.15,  # +15% tower costs
+        "enemy_armor_mult": 1.2,  # +20% armor
+        "enemy_regen_mult": 1.3,  # +30% regen
+        "permadeath": False,
+        "description": "Inimigos mais fortes, menos recursos",
+    },
+    Difficulty.INSANE: {
+        "label": "Insano",
+        "start_crystals": 100,
+        "start_lives": 10,
+        "enemy_hp_mult": 2.0,     # +100% enemy HP
+        "enemy_speed_mult": 1.35, # +35% enemy speed
+        "tower_cost_mult": 1.30,  # +30% tower costs
+        "enemy_armor_mult": 1.5,  # +50% armor
+        "enemy_regen_mult": 2.0,  # +100% regen
+        "permadeath": True,       # No restart — game over is final
+        "description": "Sem segundas chances. Inimigos brutais.",
+    },
+}
+
+
 # Wave scaling: HP multiplier and speed multiplier per wave number
 def _wave_hp_mult(wave: int) -> float:
     """Enemy HP scales +12% per wave, starting at wave 1 = 1.0"""
@@ -356,17 +424,24 @@ class Tower:
 @dataclass
 class GameState:
     id: str
-    grid_width: int = 15
-    grid_height: int = 10
-    crystals: int = 150     # Starting currency (was 100)
+    grid_width: int = 30
+    grid_height: int = 25
+    world_width: int = 1500   # pixels
+    world_height: int = 1250  # pixels
+    cell_size: int = 50       # pixels per cell
+    crystals: int = 150     # Starting currency
     lives: int = 20
     current_wave: int = 0
-    total_waves: int = 15    # Was 10
+    total_waves: int = 15
     game_over: bool = False
     victory: bool = False
     score: int = 0
     enemies_killed: int = 0
     towers_placed: int = 0
+    # Time control
+    time_scale: int = 1       # 1, 2, or 4
+    auto_wave: bool = False   # auto-start next wave after clear
+    permadeath: bool = False  # no restart on game over
 
     @property
     def leaves(self) -> int:
@@ -381,6 +456,9 @@ class GameState:
             "id": self.id,
             "grid_width": self.grid_width,
             "grid_height": self.grid_height,
+            "world_width": self.world_width,
+            "world_height": self.world_height,
+            "cell_size": self.cell_size,
             "crystals": self.crystals,
             "lives": self.lives,
             "current_wave": self.current_wave,
@@ -390,7 +468,9 @@ class GameState:
             "score": self.score,
             "enemies_killed": self.enemies_killed,
             "towers_placed": self.towers_placed,
-            # Backward compat alias
+            "time_scale": self.time_scale,
+            "auto_wave": self.auto_wave,
+            "permadeath": self.permadeath,
             "leaves": self.crystals,
         }
 
@@ -398,24 +478,110 @@ class GameState:
 # ═══════════════════════════════════════════════════════════════
 #  GAME CLASS
 # ═══════════════════════════════════════════════════════════════
-
 class TowerDefenseGame:
 
     def _get_enemy_stats(self, etype: EnemyType) -> Dict[str, Any]:
         return ENEMY_STATS.get(etype, {})
 
-    DEFAULT_PATH = [
-        (0, 5), (1, 5), (2, 5), (3, 5), (4, 5),
-        (4, 4), (4, 3), (4, 2),
-        (5, 2), (6, 2), (7, 2), (8, 2),
-        (8, 3), (8, 4), (8, 5), (8, 6), (8, 7),
-        (9, 7), (10, 7), (11, 7), (12, 7), (13, 7), (14, 7)
-    ]
+    @staticmethod
+    def _generate_serpentine_path(gw: int = 30, gh: int = 25) -> List[Tuple[int, int]]:
+        """Generate an S-curve serpentine path through the center rows."""
+        path = []
+        # Start off-screen left, row 3
+        path.append((-1, 3))
+        path.append((0, 3))
+
+        # Horizontal run to col 28
+        for x in range(1, 29):
+            path.append((x, 3))
+        # Down to row 7
+        for y in range(4, 8):
+            path.append((28, y))
+        # Left to col 1
+        for x in range(27, 0, -1):
+            path.append((x, 7))
+        # Down to row 12
+        for y in range(8, 13):
+            path.append((1, y))
+        # Right to col 28
+        for x in range(2, 29):
+            path.append((x, 12))
+        # Down to row 16
+        for y in range(13, 17):
+            path.append((28, y))
+        # Left to col 1
+        for x in range(27, 0, -1):
+            path.append((x, 16))
+        # Down to row 21
+        for y in range(17, 22):
+            path.append((1, y))
+        # Right to exit off-screen
+        for x in range(2, gw):
+            path.append((x, 21))
+        path.append((gw, 21))
+
+        return path
+
+    @staticmethod
+    def _generate_terrain(path: List[Tuple[int, int]],
+                          gw: int, gh: int) -> List[List[int]]:
+        """Generate terrain matrix: 0=path, 1=buildable, 2=blocked."""
+        # Initialize all as blocked
+        terrain = [[2 for _ in range(gw)] for _ in range(gh)]
+
+        # Mark path cells
+        for x, y in path:
+            if 0 <= x < gw and 0 <= y < gh:
+                terrain[y][x] = 0
+
+        # Mark buildable cells: empty cells adjacent to path
+        # Also mark some decorative blocked cells (scenery)
+        path_set = set(path)
+        for y in range(gh):
+            for x in range(gw):
+                if (x, y) in path_set or terrain[y][x] == 0:
+                    continue
+                # Check if adjacent to any path cell
+                is_adjacent = False
+                for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                    nx, ny = x + dx, y + dy
+                    if (nx, ny) in path_set:
+                        is_adjacent = True
+                        break
+                if is_adjacent:
+                    terrain[y][x] = 1  # buildable
+                else:
+                    # Two cells away from path = buildable
+                    for dx in range(-2, 3):
+                        for dy in range(-2, 3):
+                            if (x + dx, y + dy) in path_set:
+                                terrain[y][x] = 1
+                                break
+                        if terrain[y][x] == 1:
+                            break
+
+        return terrain
 
     def __init__(self, game_id: Optional[str] = None,
-                 custom_path: Optional[List[Tuple[int, int]]] = None):
-        self.state = GameState(id=game_id or str(uuid.uuid4()))
-        self.path = custom_path or self.DEFAULT_PATH
+                 custom_path: Optional[List[Tuple[int, int]]] = None,
+                 grid_width: int = 30, grid_height: int = 25,
+                 difficulty: Difficulty = Difficulty.NORMAL):
+        diff_cfg = DIFFICULTY_CONFIGS[difficulty]
+        self.difficulty = difficulty
+        self.diff_config = diff_cfg
+
+        self.state = GameState(id=game_id or str(uuid.uuid4()),
+                               grid_width=grid_width,
+                               grid_height=grid_height,
+                               world_width=grid_width * 50,
+                               world_height=grid_height * 50,
+                               crystals=diff_cfg["start_crystals"],
+                               lives=diff_cfg["start_lives"],
+                               permadeath=diff_cfg["permadeath"])
+        self.path = custom_path or self._generate_serpentine_path(
+            grid_width, grid_height)
+        self.terrain = self._generate_terrain(
+            self.path, grid_width, grid_height)
         self.towers: List[Tower] = []
         self.enemies: List[Enemy] = []
         self.projectiles: List[Dict[str, Any]] = []
@@ -426,10 +592,11 @@ class TowerDefenseGame:
         self.spawn_timer = 0.0
         self._group_spawn_timers: Dict[EnemyType, float] = {}
         self._group_spawn_counts: Dict[EnemyType, int] = {}
+        self.auto_wave_timer: float = 0.0  # countdown for auto-wave
 
         self.occupied_grid = [
-            [False for _ in range(self.state.grid_height)]
-            for _ in range(self.state.grid_width)
+            [False for _ in range(grid_height)]
+            for _ in range(grid_width)
         ]
         self._mark_path_as_occupied()
 
@@ -447,10 +614,13 @@ class TowerDefenseGame:
             return False, "Position out of grid"
         if self.occupied_grid[x][y]:
             return False, "Cannot place on path"
+        # Check terrain: only type 1 (buildable) allows placement
+        if self.terrain[y][x] != 1:
+            return False, "Cannot build here (blocked terrain)"
         for t in self.towers:
             if t.x == x and t.y == y:
                 return False, "Tower already here"
-        cost = TOWER_STATS[tower_type]["cost"]
+        cost = int(TOWER_STATS[tower_type]["cost"] * self.diff_config["tower_cost_mult"])
         if self.state.crystals < cost:
             return False, f"Not enough crystals (need {cost})"
         return True, "OK"
@@ -462,7 +632,8 @@ class TowerDefenseGame:
             return False, msg, None
         tower = Tower(id=str(uuid.uuid4()), tower_type=tower_type, x=x, y=y)
         self.towers.append(tower)
-        self.state.crystals -= tower.cost
+        cost = int(TOWER_STATS[tower_type]["cost"] * self.diff_config["tower_cost_mult"])
+        self.state.crystals -= cost
         self.state.towers_placed += 1
         return True, "Tower placed!", tower
 
@@ -487,6 +658,20 @@ class TowerDefenseGame:
                 t.level += 1
                 return True, f"Tower upgraded to level {t.level}!"
         return False, "Tower not found"
+
+    # ── Time control ────────────────────────────────────────────
+
+    def set_time_scale(self, scale: int) -> Tuple[bool, str]:
+        if scale not in (1, 2, 4):
+            return False, "Speed must be 1, 2, or 4"
+        self.state.time_scale = scale
+        return True, f"Speed set to {scale}x"
+
+    def toggle_auto_wave(self) -> Tuple[bool, str]:
+        self.state.auto_wave = not self.state.auto_wave
+        self.auto_wave_timer = 0.0
+        status = "ON" if self.state.auto_wave else "OFF"
+        return True, f"Auto-wave {status}"
 
     # ── Wave management ─────────────────────────────────────────
 
@@ -522,9 +707,13 @@ class TowerDefenseGame:
         wave = self.state.current_wave
         hp_mult = _wave_hp_mult(wave)
         spd_mult = _wave_speed_mult(wave)
+        diff_hp = self.diff_config["enemy_hp_mult"]
+        diff_spd = self.diff_config["enemy_speed_mult"]
 
-        hp = int(base["hp"] * hp_mult)
-        speed = base["speed"] * spd_mult
+        hp = int(base["hp"] * hp_mult * diff_hp)
+        speed = base["speed"] * spd_mult * diff_spd
+        armor = int(base["armor"] * self.diff_config.get("enemy_armor_mult", 1.0))
+        regen = base["regen"] * self.diff_config.get("enemy_regen_mult", 1.0)
 
         sx, sy = self.path[0]
         enemy = Enemy(
@@ -534,8 +723,8 @@ class TowerDefenseGame:
             hp=hp, max_hp=hp,
             speed=speed, base_speed=speed,
             reward=base["reward"],
-            armor=base["armor"],
-            regen=base["regen"],
+            armor=armor,
+            regen=regen,
             lives_cost=base["lives_cost"],
         )
         self.enemies.append(enemy)
@@ -623,6 +812,9 @@ class TowerDefenseGame:
         if self.state.game_over or self.state.victory:
             return result
 
+        # ── Apply time scale ──
+        scaled_dt = dt * self.state.time_scale
+
         # ── Spawn enemies ──
         if self.wave_active and self.wave_enemies_remaining:
             cfg = self.wave_config[self.state.current_wave - 1]
@@ -632,7 +824,7 @@ class TowerDefenseGame:
                     if self._group_spawn_counts.get(etype, 0) >= count:
                         continue
                     self._group_spawn_timers[etype] = (
-                        self._group_spawn_timers.get(etype, 0.0) + dt
+                        self._group_spawn_timers.get(etype, 0.0) + scaled_dt
                     )
                     interval = cfg.group_intervals[etype]
                     if self._group_spawn_timers[etype] >= interval:
@@ -646,7 +838,7 @@ class TowerDefenseGame:
                         if spawned >= 1:
                             break
             else:
-                self.spawn_timer += dt
+                self.spawn_timer += scaled_dt
                 if self.spawn_timer >= cfg.spawn_interval:
                     etype = self.wave_enemies_remaining.pop(0)
                     self._spawn_enemy(etype)
@@ -673,7 +865,7 @@ class TowerDefenseGame:
         # ── Tower attacks ──
         for tower in self.towers:
             if tower.cooldown > 0:
-                tower.cooldown -= dt
+                tower.cooldown -= scaled_dt
             if tower.cooldown <= 0:
                 targets = self._find_targets(tower)
                 if not targets:
@@ -724,17 +916,17 @@ class TowerDefenseGame:
         for enemy in self.enemies[:]:
             # Regeneration
             if enemy.regen > 0 and enemy.hp < enemy.max_hp:
-                enemy.hp = min(enemy.max_hp, enemy.hp + enemy.regen * dt)
+                enemy.hp = min(enemy.max_hp, enemy.hp + enemy.regen * scaled_dt)
 
             # Slow decay
             if enemy.slowed:
-                enemy.slow_timer -= dt
+                enemy.slow_timer -= scaled_dt
                 if enemy.slow_timer <= 0:
                     enemy.slowed = False
                     enemy.speed = enemy.base_speed
 
             # Movement
-            self._move_enemy(enemy, dt)
+            self._move_enemy(enemy, scaled_dt)
 
             # Reached end
             if enemy.distance_traveled == float('inf'):
@@ -758,9 +950,24 @@ class TowerDefenseGame:
                     "reward": enemy.reward,
                 })
 
+        # ── Auto-wave countdown ──
+        if (not self.wave_active
+                and self.state.auto_wave
+                and not self.state.game_over
+                and not self.state.victory
+                and self.state.current_wave < self.state.total_waves):
+            self.auto_wave_timer += scaled_dt
+            if self.auto_wave_timer >= 3.0:  # 3 second delay
+                self.auto_wave_timer = 0.0
+                success, msg = self.start_wave()
+                if success:
+                    result["state_changes"].append(msg)
+        else:
+            self.auto_wave_timer = 0.0
+
         # ── Projectile cleanup ──
         for p in self.projectiles[:]:
-            p["lifetime"] -= dt
+            p["lifetime"] -= scaled_dt
             if p["lifetime"] <= 0:
                 self.projectiles.remove(p)
 
@@ -769,12 +976,19 @@ class TowerDefenseGame:
     # ── State serialization ─────────────────────────────────────
 
     def get_state(self) -> Dict[str, Any]:
+        state_dict = self.state.to_dict()
+        # Inject difficulty info into state dict for frontend consumption
+        state_dict["difficulty"] = self.difficulty.value
+        state_dict["difficulty_label"] = self.diff_config["label"]
+        state_dict["tower_cost_mult"] = self.diff_config["tower_cost_mult"]
+        state_dict["permadeath"] = self.state.permadeath
         return {
-            "state": self.state.to_dict(),
+            "state": state_dict,
             "towers": [t.to_dict() for t in self.towers],
             "enemies": [e.to_dict() for e in self.enemies],
             "projectiles": self.projectiles,
             "path": self.path,
+            "terrain": self.terrain,
             "occupied_cells": [
                 (x, y)
                 for x in range(self.state.grid_width)
@@ -786,4 +1000,15 @@ class TowerDefenseGame:
         }
 
     def reset(self):
-        self.__init__(game_id=self.state.id, custom_path=self.path)
+        saved_scale = self.state.time_scale
+        saved_auto = self.state.auto_wave
+        saved_diff = self.difficulty
+        self.__init__(
+            game_id=self.state.id,
+            custom_path=self.path,
+            grid_width=self.state.grid_width,
+            grid_height=self.state.grid_height,
+            difficulty=saved_diff,
+        )
+        self.state.time_scale = saved_scale
+        self.state.auto_wave = saved_auto

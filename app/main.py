@@ -80,10 +80,6 @@ async def play_ant_defense():
 async def play_tower_defense():
     return FileResponse(os.path.join(games_dir, "tower_defense", "static", "index.html"))
 
-@app.get("/play/bomberman")
-async def play_bomberman():
-    return FileResponse(os.path.join(games_dir, "bomberman", "static", "index.html"))
-
 # Games that use the main static/index.html (legacy games)
 @app.get("/play/checkers")
 async def play_checkers():

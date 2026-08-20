@@ -42,7 +42,7 @@
         .subtitle { font-size: 14px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px; position: relative; z-index: 1; }
         .game-container {
             background: var(--bg-card); border: 1px solid rgba(0,240,255,0.15);
-            border-radius: 12px; padding: 16px; width: 100%; max-width: 960px;
+            border-radius: 12px; padding: 16px; width: 100%; max-width: 1000px;
             position: relative; z-index: 1;
             box-shadow: 0 0 40px rgba(0,240,255,0.05), inset 0 1px 0 rgba(255,255,255,0.05);
         }
@@ -62,9 +62,11 @@
         .stat.killed .stat-value { color: var(--neon-magenta); text-shadow: 0 0 8px rgba(255,0,170,0.4); }
         #gameCanvas {
             border: 1px solid rgba(0,240,255,0.2); border-radius: 8px;
-            background: #0d0d20; cursor: crosshair; max-width: 100%; height: auto;
+            background: #0a0a1a; cursor: crosshair;
+            width: 100%; max-width: 960px; height: auto;
             display: block; margin: 0 auto;
             box-shadow: 0 0 30px rgba(0,240,255,0.08), inset 0 0 60px rgba(0,0,0,0.5);
+            touch-action: none;
         }
         .controls { margin-top: 14px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; align-items: center; }
         .tower-btn {
@@ -94,11 +96,82 @@
         }
         .action-btn:hover { background: linear-gradient(135deg, rgba(0,240,255,0.25), rgba(170,68,255,0.25)); box-shadow: 0 0 30px rgba(0,240,255,0.3); transform: translateY(-2px); }
         .action-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+        .time-controls { display: flex; gap: 6px; align-items: center; }
+        .speed-btn {
+            background: var(--bg-surface); border: 1.5px solid rgba(255,255,255,0.1);
+            padding: 6px 12px; border-radius: 6px; color: var(--text-dim);
+            font-family: 'Orbitron', monospace; font-size: 12px; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .speed-btn:hover { border-color: var(--neon-lime); color: var(--neon-lime); }
+        .speed-btn.active { background: rgba(0,255,136,0.12); border-color: var(--neon-lime); color: var(--neon-lime); box-shadow: 0 0 12px rgba(0,255,136,0.15); }
+        .auto-wave-btn {
+            background: var(--bg-surface); border: 1.5px solid rgba(255,255,255,0.1);
+            padding: 6px 14px; border-radius: 6px; color: var(--text-dim);
+            font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 13px;
+            cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+        }
+        .auto-wave-btn:hover { border-color: var(--neon-purple); color: var(--neon-purple); }
+        .auto-wave-btn.active { background: rgba(170,68,255,0.12); border-color: var(--neon-purple); color: var(--neon-purple); box-shadow: 0 0 12px rgba(170,68,255,0.15); }
+        .auto-wave-indicator {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--text-dim); transition: all 0.3s;
+        }
+        .auto-wave-btn.active .auto-wave-indicator { background: var(--neon-purple); box-shadow: 0 0 6px var(--neon-purple); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
         .message-area {
             margin-top: 12px; padding: 10px 16px; background: var(--bg-surface);
             border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);
             min-height: 36px; text-align: center; font-size: 13px; color: var(--text-dim);
         }
+        .diff-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5,5,20,0.95); backdrop-filter: blur(10px);
+            display: flex; justify-content: center; align-items: center;
+            flex-direction: column; z-index: 1000;
+        }
+        .diff-overlay.hidden { display: none; }
+        .diff-card {
+            background: var(--bg-card); border: 1px solid rgba(0,240,255,0.2);
+            border-radius: 16px; padding: 40px; text-align: center;
+            max-width: 520px; width: 90%;
+            box-shadow: 0 0 60px rgba(0,240,255,0.08);
+            animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .diff-title {
+            font-family: 'Orbitron', monospace; font-size: 28px; font-weight: 900;
+            letter-spacing: 3px; margin-bottom: 6px;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .diff-subtitle { color: var(--text-dim); font-size: 14px; margin-bottom: 24px; }
+        .diff-options { display: flex; gap: 12px; justify-content: center; margin-bottom: 24px; }
+        .diff-option {
+            flex: 1; padding: 18px 12px; background: var(--bg-surface);
+            border: 2px solid rgba(255,255,255,0.08); border-radius: 12px;
+            cursor: pointer; transition: all 0.25s; text-align: center;
+        }
+        .diff-option:hover { border-color: var(--neon-cyan); transform: translateY(-3px); }
+        .diff-option.selected { border-color: var(--neon-lime); background: rgba(0,255,136,0.06); box-shadow: 0 0 20px rgba(0,255,136,0.1); }
+        .diff-option[data-diff="easy"] .diff-icon { color: var(--neon-lime); }
+        .diff-option[data-diff="hard"] .diff-icon { color: var(--neon-red); }
+        .diff-option[data-diff="insane"] { border-color: rgba(255,0,85,0.2); }
+        .diff-option[data-diff="insane"]:hover { border-color: #ff0055; }
+        .diff-option[data-diff="insane"].selected { border-color: #ff0055; background: rgba(255,0,85,0.08); box-shadow: 0 0 20px rgba(255,0,85,0.15); }
+        .diff-option[data-diff="insane"] .diff-icon { color: #ff0055; }
+        .diff-icon { font-size: 28px; margin-bottom: 6px; }
+        .diff-name { font-family: 'Orbitron', monospace; font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+        .diff-info { font-size: 11px; color: var(--text-dim); line-height: 1.4; }
+        .diff-info b { color: var(--text); }
+        .diff-start-btn {
+            background: linear-gradient(135deg, rgba(0,240,255,0.2), rgba(170,68,255,0.2));
+            border: 2px solid var(--neon-cyan); padding: 14px 40px; border-radius: 10px;
+            color: var(--neon-cyan); font-family: 'Orbitron', monospace; font-weight: 700;
+            font-size: 16px; letter-spacing: 3px; cursor: pointer; transition: all 0.25s;
+        }
+        .diff-start-btn:hover { box-shadow: 0 0 30px rgba(0,240,255,0.3); transform: translateY(-2px); }
+
         .game-over-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(5,5,20,0.92); backdrop-filter: blur(8px);
@@ -179,22 +252,32 @@
             <div class="stat wave"><span class="stat-icon">⚡</span><div><div class="stat-label">Onda</div><div class="stat-value" id="st-wave">0/15</div></div></div>
             <div class="stat score"><span class="stat-icon">⭐</span><div><div class="stat-label">Score</div><div class="stat-value" id="st-score">0</div></div></div>
             <div class="stat killed"><span class="stat-icon">💀</span><div><div class="stat-label">Abates</div><div class="stat-value" id="st-killed">0</div></div></div>
+            <div class="stat"><span class="stat-icon">🎯</span><div><div class="stat-label">Dificuldade</div><div class="stat-value" id="st-difficulty" style="font-size:13px;color:var(--neon-purple)">Normal</div></div></div>
         </div>
-        <canvas id="gameCanvas" width="900" height="600"></canvas>
+        <canvas id="gameCanvas" width="960" height="640"></canvas>
         <div class="controls">
             <button class="tower-btn" onclick="Game.instance.selectTower('archer')" id="btn-archer">
                 <span class="tower-icon">🏹</span><span class="tower-name">Arqueira</span>
-                <span class="tower-cost">50 💎</span><span class="tower-desc">Rápida • Alvo único</span>
+                <span class="tower-cost" id="cost-archer">50 💎</span><span class="tower-desc">Rápida • Alvo único</span>
             </button>
             <button class="tower-btn" onclick="Game.instance.selectTower('bomb')" id="btn-bomb">
                 <span class="tower-icon">💥</span><span class="tower-name">Explosiva</span>
-                <span class="tower-cost">120 💎</span><span class="tower-desc">AoE • Lenta</span>
+                <span class="tower-cost" id="cost-bomb">120 💎</span><span class="tower-desc">AoE • Lenta</span>
             </button>
             <button class="tower-btn" onclick="Game.instance.selectTower('ice')" id="btn-ice">
                 <span class="tower-icon">❄️</span><span class="tower-name">Congelante</span>
-                <span class="tower-cost">80 💎</span><span class="tower-desc">Slow • Utility</span>
+                <span class="tower-cost" id="cost-ice">80 💎</span><span class="tower-desc">Slow • Utility</span>
             </button>
             <button class="action-btn" onclick="Game.instance.startWave()" id="btn-start-wave">⚡ Iniciar Onda</button>
+            <div class="time-controls">
+                <button class="speed-btn active" data-speed="1" onclick="Game.instance.setSpeed(1)">1×</button>
+                <button class="speed-btn" data-speed="2" onclick="Game.instance.setSpeed(2)">2×</button>
+                <button class="speed-btn" data-speed="4" onclick="Game.instance.setSpeed(4)">4×</button>
+            </div>
+            <button class="auto-wave-btn" onclick="Game.instance.toggleAutoWave()" id="btn-auto-wave">
+                <span class="auto-wave-indicator"></span>
+                Auto-Wave
+            </button>
         </div>
         <div class="message-area" id="message-area">Selecione uma torre e clique no grid!</div>
     </div>
@@ -203,15 +286,64 @@
         <h3>Como Jogar</h3>
         <ul>
             <li><strong>Objetivo:</strong> Defenda a colônia (final do caminho) dos invasores</li>
-            <li><strong>Torres:</strong> Selecione um tipo, clique numa célula vazia. Clique numa torre placed para upgrade/sell</li>
+            <li><strong>Torres:</strong> Selecione um tipo, clique numa célula verde (construível). Clique numa torre existente para upgrade/sell</li>
+            <li><strong>Navegação:</strong> 🖱️ Scroll = Zoom • Botão do meio/direito + arrastar = Mover câmera • Minimap = Clique para navegar</li>
             <li><strong>Inimigos:</strong> 🪰Fly (rápido) • 🏃Sprinter (muito rápido) • 🪲Beetle (blindado) • 🦟Sky Bug (balanceado) • 🛡️Tank (tanque) • 💀Boss (chefão!)</li>
             <li><strong>Economia:</strong> +5% juros por onda sobre suas economias</li>
+            <li><strong>Mapa:</strong> Terreno verde = construível • Roxo escuro = bloqueado • Tecla <strong>Esc</strong> = Desselecionar • <strong>Espaço</strong> = Iniciar onda</li>
         </ul>
         <p style="margin-top:8px">
             <span class="tower-tag archer">🏹 Arqueira</span>
             <span class="tower-tag bomb">💥 Explosiva</span>
             <span class="tower-tag ice">❄️ Congelante</span>
         </p>
+    </div>
+
+    <!-- Difficulty Selector Overlay -->
+    <div class="diff-overlay" id="diff-overlay">
+        <div class="diff-card">
+            <div class="diff-title">NEON TOWER DEFENSE</div>
+            <div class="diff-subtitle">Escolha a dificuldade para começar</div>
+            <div class="diff-options">
+                <div class="diff-option" data-diff="easy" onclick="Game.instance.selectDifficulty('easy')">
+                    <div class="diff-icon">🌿</div>
+                    <div class="diff-name">FÁCIL</div>
+                    <div class="diff-info">
+                        <b>200</b> 💎 • <b>25</b> ❤️<br>
+                        Inimigos -30% HP<br>
+                        Torres -20% custo
+                    </div>
+                </div>
+                <div class="diff-option selected" data-diff="normal" onclick="Game.instance.selectDifficulty('normal')">
+                    <div class="diff-icon">⚔️</div>
+                    <div class="diff-name">NORMAL</div>
+                    <div class="diff-info">
+                        <b>150</b> 💎 • <b>20</b> ❤️<br>
+                        Experiência padrão<br>
+                        Balanceamento ideal
+                    </div>
+                </div>
+                <div class="diff-option" data-diff="hard" onclick="Game.instance.selectDifficulty('hard')">
+                    <div class="diff-icon">🔥</div>
+                    <div class="diff-name">DIFÍCIL</div>
+                    <div class="diff-info">
+                        <b>120</b> 💎 • <b>15</b> ❤️<br>
+                        Inimigos +40% HP<br>
+                        Torres +15% custo
+                    </div>
+                </div>
+                <div class="diff-option" data-diff="insane" onclick="Game.instance.selectDifficulty('insane')">
+                    <div class="diff-icon">💀</div>
+                    <div class="diff-name">INSANO</div>
+                    <div class="diff-info">
+                        <b>100</b> 💎 • <b>10</b> ❤️<br>
+                        Inimigos +100% HP<br>
+                        <span style="color:#ff0055;font-weight:700">PERMADEATH</span>
+                    </div>
+                </div>
+            </div>
+            <button class="diff-start-btn" onclick="Game.instance.startGame()">⚡ JOGAR</button>
+        </div>
     </div>
 
     <div class="game-over-overlay" id="game-over-overlay">
@@ -237,8 +369,9 @@
 "use strict";
 
 // ── CONSTANTS ────────────────────────────────────────────────────
-const CELL = 60, GW = 15, GH = 10;
-const INTERNAL_W = 900, INTERNAL_H = 600;
+const CELL = 50, GW = 30, GH = 25;
+const WORLD_W = GW * CELL, WORLD_H = GH * CELL;  // 1500 x 1250
+const INTERNAL_W = 960, INTERNAL_H = 640;  // Viewport (screen)
 const MAX_DT = 1 / 30;  // Cap dt to prevent spiral-of-death
 
 const N = {
@@ -424,76 +557,215 @@ class TrailSystem {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  CAMERA (screen shake)
+//  CAMERA — pan, zoom, screen shake, coordinate conversion
 // ═══════════════════════════════════════════════════════════════════
-class Camera {
-    constructor() { this.x = 0; this.y = 0; this.shakeIntensity = 0; }
-    shake(intensity) { this.shakeIntensity = Math.max(this.shakeIntensity, intensity); }
-    update() {
-        if (this.shakeIntensity > 0.1) {
-            this.x = (Math.random() - 0.5) * this.shakeIntensity * 2;
-            this.y = (Math.random() - 0.5) * this.shakeIntensity * 2;
-            this.shakeIntensity *= 0.9;
+class WorldCamera {
+    constructor(viewW, viewH) {
+        this.viewW = viewW;   // viewport width
+        this.viewH = viewH;   // viewport height
+        // Camera = top-left corner in world space
+        this.x = 0;           // pan X in world pixels
+        this.y = 0;           // pan Y in world pixels
+        this.zoom = 0.75;     // zoom level (0.3 – 2.0)
+        this.minZoom = 0.3;
+        this.maxZoom = 2.0;
+        // Screen shake
+        this.shakeIntensity = 0;
+        this._shakeX = 0;
+        this._shakeY = 0;
+        // Clamp bounds
+        this._clamp();
+        // Center on world initially
+        this.x = (WORLD_W - this.viewW / this.zoom) / 2;
+        this.y = (WORLD_H - this.viewH / this.zoom) / 2;
+        this._clamp();
+    }
+
+    // ── Pan ──────────────────────────────────────────────────────
+    pan(dx, dy) {
+        this.x += dx / this.zoom;
+        this.y += dy / this.zoom;
+        this._clamp();
+    }
+
+    panToWorld(wx, wy) {
+        this.x = wx - this.viewW / (2 * this.zoom);
+        this.y = wy - this.viewH / (2 * this.zoom);
+        this._clamp();
+    }
+
+    // ── Zoom (towards mouse cursor) ──────────────────────────────
+    zoomAt(mouseScreenX, mouseScreenY, delta) {
+        const oldZoom = this.zoom;
+        this.zoom *= delta > 0 ? 0.92 : 1.08;
+        this.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom));
+        // Adjust pan so the world point under the mouse stays put
+        const wx = this.x + mouseScreenX / oldZoom;
+        const wy = this.y + mouseScreenY / oldZoom;
+        this.x = wx - mouseScreenX / this.zoom;
+        this.y = wy - mouseScreenY / this.zoom;
+        this._clamp();
+    }
+
+    setZoom(z) {
+        this.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, z));
+        this._clamp();
+    }
+
+    // ── Clamp to world bounds ────────────────────────────────────
+    _clamp() {
+        const vw = this.viewW / this.zoom;
+        const vh = this.viewH / this.zoom;
+        if (vw >= WORLD_W) {
+            this.x = (WORLD_W - vw) / 2;
         } else {
-            this.x = this.y = 0; this.shakeIntensity = 0;
+            this.x = Math.max(0, Math.min(WORLD_W - vw, this.x));
+        }
+        if (vh >= WORLD_H) {
+            this.y = (WORLD_H - vh) / 2;
+        } else {
+            this.y = Math.max(0, Math.min(WORLD_H - vh, this.y));
         }
     }
-    apply(ctx) { ctx.translate(this.x, this.y); }
+
+    // ── Coordinate conversion ────────────────────────────────────
+    screenToWorld(sx, sy) {
+        return [
+            this.x + sx / this.zoom,
+            this.y + sy / this.zoom
+        ];
+    }
+
+    worldToScreen(wx, wy) {
+        return [
+            (wx - this.x) * this.zoom,
+            (wy - this.y) * this.zoom
+        ];
+    }
+
+    screenToGrid(sx, sy, cellSize) {
+        const [wx, wy] = this.screenToWorld(sx, sy);
+        return [Math.floor(wx / cellSize), Math.floor(wy / cellSize)];
+    }
+
+    gridToScreen(gx, gy, cellSize) {
+        return this.worldToScreen(gx * cellSize + cellSize / 2, gy * cellSize + cellSize / 2);
+    }
+
+    // ── Screen shake ─────────────────────────────────────────────
+    shake(intensity) {
+        this.shakeIntensity = Math.max(this.shakeIntensity, intensity);
+    }
+
+    update() {
+        if (this.shakeIntensity > 0.1) {
+            this._shakeX = (Math.random() - 0.5) * this.shakeIntensity * 2;
+            this._shakeY = (Math.random() - 0.5) * this.shakeIntensity * 2;
+            this.shakeIntensity *= 0.9;
+        } else {
+            this._shakeX = this._shakeY = 0;
+            this.shakeIntensity = 0;
+        }
+    }
+
+    // Apply camera transform to canvas context (for world-space rendering)
+    apply(ctx) {
+        ctx.save();
+        ctx.translate(this._shakeX, this._shakeY);
+        ctx.scale(this.zoom, this.zoom);
+        ctx.translate(-this.x, -this.y);
+    }
+
+    restore(ctx) {
+        ctx.restore();
+    }
+
+    // ── Visible world bounds (for culling) ───────────────────────
+    visibleWorldRect() {
+        const vw = this.viewW / this.zoom;
+        const vh = this.viewH / this.zoom;
+        return { x: this.x, y: this.y, w: vw, h: vh };
+    }
 }
 
 // ═══════════════════════════════════════════════════════════════════
-//  RENDERER — all drawing logic
+//  RENDERER — all drawing logic (world-space, camera-aware)
 // ═══════════════════════════════════════════════════════════════════
 class Renderer {
     constructor(ctx, w, h) {
         this.ctx = ctx; this.W = w; this.H = h;
-        this.OX = (w - GW * CELL) / 2;
-        this.OY = (h - GH * CELL) / 2;
+        // Terrain colors
+        this.TERRAIN_COLORS = {
+            0: { bg: '#181830', border: 'rgba(0,240,255,0.12)' }, // path
+            1: { bg: '#141a2e', border: 'rgba(0,255,136,0.06)' }, // buildable
+            2: { bg: '#0e0e1e', border: 'rgba(255,255,255,0.03)' }, // blocked
+        };
     }
-    cellToPixel(cx, cy) { return [this.OX + cx * CELL + CELL / 2, this.OY + cy * CELL + CELL / 2]; }
+
+    cellToPixel(cx, cy) { return [cx * CELL + CELL / 2, cy * CELL + CELL / 2]; }
 
     clear() { this.ctx.clearRect(0, 0, this.W, this.H); }
 
-    drawBackground() {
+    // ── Draw expanded terrain grid (only visible cells) ───────────
+    drawTerrain(terrain, camera, frame) {
         const c = this.ctx;
-        const g = c.createRadialGradient(this.W/2, this.H/2, 50, this.W/2, this.H/2, this.W*0.6);
-        g.addColorStop(0, '#111128'); g.addColorStop(1, '#0a0a1a');
-        c.fillStyle = g; c.fillRect(0, 0, this.W, this.H);
-        c.strokeStyle = 'rgba(0,240,255,0.04)'; c.lineWidth = 0.5;
-        for (let x = 0; x <= GW; x++) { c.beginPath(); c.moveTo(this.OX+x*CELL,this.OY); c.lineTo(this.OX+x*CELL,this.OY+GH*CELL); c.stroke(); }
-        for (let y = 0; y <= GH; y++) { c.beginPath(); c.moveTo(this.OX,this.OY+y*CELL); c.lineTo(this.OX+GW*CELL,this.OY+y*CELL); c.stroke(); }
+        const vis = camera.visibleWorldRect();
+        const startCol = Math.max(0, Math.floor(vis.x / CELL));
+        const endCol = Math.min(GW, Math.ceil((vis.x + vis.w) / CELL));
+        const startRow = Math.max(0, Math.floor(vis.y / CELL));
+        const endRow = Math.min(GH, Math.ceil((vis.y + vis.h) / CELL));
+
+        for (let y = startRow; y < endRow; y++) {
+            if (!terrain[y]) continue;
+            for (let x = startCol; x < endCol; x++) {
+                const type = terrain[y][x];
+                const col = this.TERRAIN_COLORS[type] || this.TERRAIN_COLORS[2];
+                const px = x * CELL, py = y * CELL;
+
+                c.fillStyle = col.bg;
+                c.fillRect(px, py, CELL, CELL);
+                c.strokeStyle = col.border;
+                c.lineWidth = 0.5;
+                c.strokeRect(px + 0.5, py + 0.5, CELL - 1, CELL - 1);
+
+                // Buildable cells: subtle grid dot
+                if (type === 1) {
+                    c.fillStyle = 'rgba(0,255,136,0.04)';
+                    c.fillRect(px + CELL/2 - 1, py + CELL/2 - 1, 2, 2);
+                }
+            }
+        }
     }
 
     drawPath(path, frame) {
         const c = this.ctx;
-        const pathSet = new Set(path.map(p => `${p[0]},${p[1]}`));
         // Outer glow
-        c.save(); c.shadowColor = N.cyan; c.shadowBlur = 15;
-        for (const [x,y] of path) { c.fillStyle='rgba(0,240,255,0.06)'; c.fillRect(this.OX+x*CELL-1,this.OY+y*CELL-1,CELL+2,CELL+2); }
-        c.restore();
-        // Body
+        c.save(); c.shadowColor = N.cyan; c.shadowBlur = 12;
         for (const [x,y] of path) {
-            const px=this.OX+x*CELL, py=this.OY+y*CELL;
-            const g=c.createLinearGradient(px,py,px+CELL,py+CELL);
-            g.addColorStop(0,'#181830'); g.addColorStop(0.5,'#1e1e3a'); g.addColorStop(1,'#14142a');
-            c.fillStyle=g; c.fillRect(px,py,CELL,CELL);
-            c.strokeStyle='rgba(0,240,255,0.12)'; c.lineWidth=1; c.strokeRect(px+0.5,py+0.5,CELL-1,CELL-1);
+            if (x < 0 || x >= GW || y < 0 || y >= GH) continue;
+            c.fillStyle = 'rgba(0,240,255,0.06)';
+            c.fillRect(x*CELL-1, y*CELL-1, CELL+2, CELL+2);
         }
+        c.restore();
+
         // Energy flow
         const ft = frame * 0.04;
-        for (let i=0;i<path.length;i++) {
-            const [x,y]=path[i]; const pulse=Math.sin(ft+i*0.4)*0.5+0.5;
-            c.fillStyle=`rgba(0,240,255,${0.03+pulse*0.04})`;
-            c.fillRect(this.OX+x*CELL+4,this.OY+y*CELL+4,CELL-8,CELL-8);
+        for (let i = 0; i < path.length; i++) {
+            const [x, y] = path[i];
+            if (x < 0 || x >= GW || y < 0 || y >= GH) continue;
+            const pulse = Math.sin(ft + i * 0.4) * 0.5 + 0.5;
+            c.fillStyle = `rgba(0,240,255,${0.03 + pulse * 0.04})`;
+            c.fillRect(x*CELL+4, y*CELL+4, CELL-8, CELL-8);
         }
+
         // Arrows
-        c.save(); c.globalAlpha=0.15; c.fillStyle=N.cyan;
-        for (let i=2;i<path.length-2;i+=3) {
-            const [ax,ay]=path[i],[bx,by]=path[i+1];
-            const [ccx,ccy]=this.cellToPixel(ax,ay);
-            const angle=Math.atan2(by-ay,bx-ax);
-            c.save(); c.translate(ccx,ccy); c.rotate(angle);
-            c.beginPath(); c.moveTo(8,0); c.lineTo(-4,-5); c.lineTo(-4,5); c.closePath(); c.fill();
+        c.save(); c.globalAlpha = 0.15; c.fillStyle = N.cyan;
+        for (let i = 2; i < path.length - 2; i += 5) {
+            const [ax, ay] = path[i], [bx, by] = path[i + 1];
+            const [ccx, ccy] = this.cellToPixel(ax, ay);
+            const angle = Math.atan2(by - ay, bx - ax);
+            c.save(); c.translate(ccx, ccy); c.rotate(angle);
+            c.beginPath(); c.moveTo(8, 0); c.lineTo(-4, -5); c.lineTo(-4, 5); c.closePath(); c.fill();
             c.restore();
         }
         c.restore();
@@ -501,92 +773,95 @@ class Renderer {
 
     drawBase(path, frame) {
         const c = this.ctx;
-        const [ex,ey]=path[path.length-1];
-        const [cx,cy]=this.cellToPixel(ex,ey);
-        const t=frame*0.04;
+        const [ex, ey] = path[path.length - 1];
+        const [cx, cy] = this.cellToPixel(ex, ey);
+        const t = frame * 0.04;
         // Danger ring
-        c.save(); c.strokeStyle=`rgba(255,51,85,${0.2+Math.sin(t)*0.1})`; c.lineWidth=2;
-        c.beginPath(); c.arc(cx,cy,22+Math.sin(t)*4,0,Math.PI*2); c.stroke(); c.restore();
+        c.save(); c.strokeStyle = `rgba(255,51,85,${0.2 + Math.sin(t) * 0.1})`; c.lineWidth = 2;
+        c.beginPath(); c.arc(cx, cy, 22 + Math.sin(t) * 4, 0, Math.PI * 2); c.stroke(); c.restore();
         // Mound
-        const mg=c.createRadialGradient(cx,cy+6,3,cx,cy+6,24);
-        mg.addColorStop(0,'#3a2a1a'); mg.addColorStop(0.6,'#2a1a0a'); mg.addColorStop(1,'#1a0a00');
-        c.fillStyle=mg; c.beginPath(); c.ellipse(cx,cy+6,22,14,0,0,Math.PI*2); c.fill();
+        const mg = c.createRadialGradient(cx, cy + 6, 3, cx, cy + 6, 24);
+        mg.addColorStop(0, '#3a2a1a'); mg.addColorStop(0.6, '#2a1a0a'); mg.addColorStop(1, '#1a0a00');
+        c.fillStyle = mg; c.beginPath(); c.ellipse(cx, cy + 6, 22, 14, 0, 0, Math.PI * 2); c.fill();
         // Hole
-        c.fillStyle='#050505'; c.beginPath(); c.ellipse(cx,cy+3,8,6,0,0,Math.PI*2); c.fill();
-        c.strokeStyle='rgba(255,51,85,0.4)'; c.lineWidth=1; c.stroke();
+        c.fillStyle = '#050505'; c.beginPath(); c.ellipse(cx, cy + 3, 8, 6, 0, 0, Math.PI * 2); c.fill();
+        c.strokeStyle = 'rgba(255,51,85,0.4)'; c.lineWidth = 1; c.stroke();
         // Label
-        c.save(); c.shadowColor=N.red; c.shadowBlur=8;
-        c.font='bold 9px Orbitron,monospace'; c.fillStyle=N.red; c.textAlign='center';
-        c.fillText('COLONY',cx,cy+24); c.restore();
+        c.save(); c.shadowColor = N.red; c.shadowBlur = 8;
+        c.font = 'bold 9px Orbitron,monospace'; c.fillStyle = N.red; c.textAlign = 'center';
+        c.fillText('COLONY', cx, cy + 24); c.restore();
     }
 
     drawEntry(path, frame) {
         const c = this.ctx;
-        const [sx,sy]=path[0];
-        const [cx,cy]=this.cellToPixel(sx,sy);
-        const t=frame*0.05;
+        const [sx, sy] = path[0];
+        const [cx, cy] = this.cellToPixel(sx, sy);
+        const t = frame * 0.05;
         c.save();
-        for (let i=0;i<3;i++) {
-            c.strokeStyle=`rgba(0,240,255,${0.15-i*0.04+Math.sin(t+i)*0.05})`;
-            c.lineWidth=2; c.beginPath(); c.arc(cx,cy,14+i*4,t+i,t+i+Math.PI*1.5); c.stroke();
+        for (let i = 0; i < 3; i++) {
+            c.strokeStyle = `rgba(0,240,255,${0.15 - i * 0.04 + Math.sin(t + i) * 0.05})`;
+            c.lineWidth = 2; c.beginPath(); c.arc(cx, cy, 14 + i * 4, t + i, t + i + Math.PI * 1.5); c.stroke();
         }
-        const cg=c.createRadialGradient(cx,cy,2,cx,cy,18);
-        cg.addColorStop(0,'rgba(0,240,255,0.3)'); cg.addColorStop(1,'rgba(0,240,255,0)');
-        c.fillStyle=cg; c.beginPath(); c.arc(cx,cy,18,0,Math.PI*2); c.fill();
-        c.shadowColor=N.cyan; c.shadowBlur=6;
-        c.font='bold 8px Orbitron,monospace'; c.fillStyle=N.cyan; c.textAlign='center';
-        c.fillText('PORTAL',cx,cy+22); c.restore();
+        const cg = c.createRadialGradient(cx, cy, 2, cx, cy, 18);
+        cg.addColorStop(0, 'rgba(0,240,255,0.3)'); cg.addColorStop(1, 'rgba(0,240,255,0)');
+        c.fillStyle = cg; c.beginPath(); c.arc(cx, cy, 18, 0, Math.PI * 2); c.fill();
+        c.shadowColor = N.cyan; c.shadowBlur = 6;
+        c.font = 'bold 8px Orbitron,monospace'; c.fillStyle = N.cyan; c.textAlign = 'center';
+        c.fillText('PORTAL', cx, cy + 22); c.restore();
     }
 
-    drawPlacementPreview(path, towers, selTower, mx, my) {
-        if (!selTower || mx < 0) return;
+    drawPlacementPreview(terrain, towers, selTower, gx, gy) {
+        if (!selTower || gx < 0 || gy < 0) return;
         const c = this.ctx;
-        const gx=Math.floor((mx-this.OX)/CELL), gy=Math.floor((my-this.OY)/CELL);
-        if (gx<0||gx>=GW||gy<0||gy>=GH) return;
-        const isPath=path.some(p=>p[0]===gx&&p[1]===gy);
-        const hasTower=towers.some(t=>t.x===gx&&t.y===gy);
-        const valid=!isPath&&!hasTower;
-        const px=this.OX+gx*CELL, py=this.OY+gy*CELL;
-        c.fillStyle=valid?'rgba(0,255,136,0.15)':'rgba(255,51,85,0.15)';
-        c.fillRect(px,py,CELL,CELL);
-        c.strokeStyle=valid?N.lime:N.red; c.lineWidth=2;
-        c.strokeRect(px+1,py+1,CELL-2,CELL-2);
+        if (gx < 0 || gx >= GW || gy < 0 || gy >= GH) return;
+        const terrainType = terrain[gy]?.[gx] ?? 2;
+        const hasTower = towers.some(t => t.x === gx && t.y === gy);
+        const valid = terrainType === 1 && !hasTower;
+        const px = gx * CELL, py = gy * CELL;
+        c.fillStyle = valid ? 'rgba(0,255,136,0.15)' : 'rgba(255,51,85,0.15)';
+        c.fillRect(px, py, CELL, CELL);
+        c.strokeStyle = valid ? N.lime : N.red; c.lineWidth = 2;
+        c.strokeRect(px + 1, py + 1, CELL - 2, CELL - 2);
         if (valid) {
-            const ranges={archer:180,bomb:150,ice:150};
-            const range=ranges[selTower]||150;
-            const col=TOWER_COL[selTower]?.main||N.cyan;
-            c.save(); c.strokeStyle=col; c.globalAlpha=0.2; c.lineWidth=1;
-            c.setLineDash([6,4]); c.beginPath(); c.arc(px+CELL/2,py+CELL/2,range,0,Math.PI*2); c.stroke();
-            c.fillStyle=col; c.globalAlpha=0.04; c.fill(); c.restore();
+            const ranges = { archer: 180, bomb: 150, ice: 150 };
+            const range = ranges[selTower] || 150;
+            const col = TOWER_COL[selTower]?.main || N.cyan;
+            c.save(); c.strokeStyle = col; c.globalAlpha = 0.2; c.lineWidth = 1;
+            c.setLineDash([6, 4]);
+            c.beginPath();
+            // Range circle is in world space, scale by zoom
+            c.arc(px + CELL / 2, py + CELL / 2, range, 0, Math.PI * 2);
+            c.stroke();
+            c.fillStyle = col; c.globalAlpha = 0.04; c.fill(); c.restore();
         }
     }
 
-    drawTowers(towers, mx, my, frame) {
+    drawTowers(towers, frame, wmx, wmy) {
         const c = this.ctx;
         for (const tower of towers) {
-            const [cx,cy]=this.cellToPixel(tower.x,tower.y);
-            const r=CELL*0.38; const col=TOWER_COL[tower.type];
+            const [cx, cy] = this.cellToPixel(tower.x, tower.y);
+            const r = CELL * 0.38; const col = TOWER_COL[tower.type];
             c.save();
             // Shadow
-            c.fillStyle='rgba(0,0,0,0.4)'; c.beginPath(); c.ellipse(cx+2,cy+5,r,r*0.45,0,0,Math.PI*2); c.fill();
+            c.fillStyle = 'rgba(0,0,0,0.4)'; c.beginPath(); c.ellipse(cx + 2, cy + 5, r, r * 0.45, 0, 0, Math.PI * 2); c.fill();
             // Glow ring
-            c.shadowColor=col.main; c.shadowBlur=12+Math.sin(frame*0.06+tower.x)*3;
-            c.strokeStyle=col.main; c.lineWidth=2;
-            c.beginPath(); c.arc(cx,cy,r+2,0,Math.PI*2); c.stroke(); c.shadowBlur=0;
+            c.shadowColor = col.main; c.shadowBlur = 12 + Math.sin(frame * 0.06 + tower.x) * 3;
+            c.strokeStyle = col.main; c.lineWidth = 2;
+            c.beginPath(); c.arc(cx, cy, r + 2, 0, Math.PI * 2); c.stroke(); c.shadowBlur = 0;
             // Base
-            const bg=c.createRadialGradient(cx,cy,2,cx,cy,r);
-            bg.addColorStop(0,col.main); bg.addColorStop(0.6,'#1a1a2e'); bg.addColorStop(1,'#0d0d1a');
-            c.fillStyle=bg; c.beginPath(); c.arc(cx,cy,r,0,Math.PI*2); c.fill();
-            c.strokeStyle=col.main; c.globalAlpha=0.4; c.lineWidth=1.5;
-            c.beginPath(); c.arc(cx,cy,r-3,0,Math.PI*2); c.stroke(); c.globalAlpha=1;
-            // Type-specific
-            this['_draw_'+tower.type](cx,cy,r,col,tower.level,mx,my,frame);
+            const bg = c.createRadialGradient(cx, cy, 2, cx, cy, r);
+            bg.addColorStop(0, col.main); bg.addColorStop(0.6, '#1a1a2e'); bg.addColorStop(1, '#0d0d1a');
+            c.fillStyle = bg; c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.fill();
+            c.strokeStyle = col.main; c.globalAlpha = 0.4; c.lineWidth = 1.5;
+            c.beginPath(); c.arc(cx, cy, r - 3, 0, Math.PI * 2); c.stroke(); c.globalAlpha = 1;
+            // Type-specific (pass world-space mouse for aiming)
+            this['_draw_' + tower.type](cx, cy, r, col, tower.level, wmx || 0, wmy || 0, frame);
             // Level badge
-            if (tower.level>1) {
-                c.fillStyle='rgba(0,0,0,0.7)'; c.beginPath(); c.arc(cx+r*0.7,cy-r*0.7,9,0,Math.PI*2); c.fill();
-                c.strokeStyle=col.main; c.lineWidth=1.5; c.stroke();
-                c.fillStyle=col.main; c.font='bold 9px Orbitron,monospace'; c.textAlign='center'; c.textBaseline='middle';
-                c.fillText(`L${tower.level}`,cx+r*0.7,cy-r*0.7);
+            if (tower.level > 1) {
+                c.fillStyle = 'rgba(0,0,0,0.7)'; c.beginPath(); c.arc(cx + r * 0.7, cy - r * 0.7, 9, 0, Math.PI * 2); c.fill();
+                c.strokeStyle = col.main; c.lineWidth = 1.5; c.stroke();
+                c.fillStyle = col.main; c.font = 'bold 9px Orbitron,monospace'; c.textAlign = 'center'; c.textBaseline = 'middle';
+                c.fillText(`L${tower.level}`, cx + r * 0.7, cy - r * 0.7);
             }
             c.restore();
         }
@@ -733,35 +1008,46 @@ class Renderer {
 
     drawProjectiles(projectiles, trails, particles) {
         const c = this.ctx;
+        let shake = 0;
         for (const p of projectiles) {
-            const [fx,fy]=this.cellToPixel(p.from_x,p.from_y);
-            const [tx,ty]=this.cellToPixel(p.to_x,p.to_y);
-            const col=TOWER_COL[p.type]?.main||'#fff';
+            const [fx, fy] = this.cellToPixel(p.from_x, p.from_y);
+            const [tx, ty] = this.cellToPixel(p.to_x, p.to_y);
+            const col = TOWER_COL[p.type]?.main || '#fff';
             c.save();
-            if (p.type==='archer') {
-                const a=Math.atan2(ty-fy,tx-fx);
-                c.strokeStyle=col;c.lineWidth=2.5;c.shadowColor=col;c.shadowBlur=8;
-                c.beginPath();c.moveTo(fx,fy);c.lineTo(tx,ty);c.stroke();
-                c.fillStyle=col;c.save();c.translate(tx,ty);c.rotate(a);
-                c.beginPath();c.moveTo(7,0);c.lineTo(-3,-4);c.lineTo(-3,4);c.closePath();c.fill();c.restore();
-                // Trail particles
-                for(let s=0;s<3;s++){const t=(s+0.5)/3;trails.spawn(fx+(tx-fx)*t+(Math.random()-0.5)*4,fy+(ty-fy)*t+(Math.random()-0.5)*4,col,2);}
-            } else if (p.type==='bomb') {
-                const g=c.createRadialGradient(tx,ty,1,tx,ty,14);
-                g.addColorStop(0,'#fff');g.addColorStop(0.2,col);g.addColorStop(0.5,N.orange);g.addColorStop(1,'rgba(255,136,0,0)');
-                c.fillStyle=g;c.beginPath();c.arc(tx,ty,14,0,Math.PI*2);c.fill();
-                if(p.lifetime<0.25){const shake=particles.explosion(tx,ty,N.red,true);return shake;}
-            } else if (p.type==='ice') {
-                c.strokeStyle=col;c.lineWidth=2.5;c.shadowColor=col;c.shadowBlur=10;
-                c.beginPath();c.moveTo(fx,fy);
-                for(let i=1;i<=6;i++){c.lineTo(fx+(tx-fx)*(i/6)+(Math.random()-0.5)*10,fy+(ty-fy)*(i/6)+(Math.random()-0.5)*10);}
-                c.lineTo(tx,ty);c.stroke();
-                c.fillStyle='rgba(0,240,255,0.3)';c.beginPath();c.arc(tx,ty,8,0,Math.PI*2);c.fill();
-                for(let s=0;s<3;s++){const t=(s+0.5)/3;trails.spawn(fx+(tx-fx)*t,fy+(ty-fy)*t,col,2);}
+            if (p.type === 'archer') {
+                const a = Math.atan2(ty - fy, tx - fx);
+                c.strokeStyle = col; c.lineWidth = 2.5; c.shadowColor = col; c.shadowBlur = 8;
+                c.beginPath(); c.moveTo(fx, fy); c.lineTo(tx, ty); c.stroke();
+                c.fillStyle = col; c.save(); c.translate(tx, ty); c.rotate(a);
+                c.beginPath(); c.moveTo(7, 0); c.lineTo(-3, -4); c.lineTo(-3, 4); c.closePath(); c.fill(); c.restore();
+                for (let s = 0; s < 3; s++) {
+                    const t = (s + 0.5) / 3;
+                    trails.spawn(fx + (tx - fx) * t + (Math.random() - 0.5) * 4, fy + (ty - fy) * t + (Math.random() - 0.5) * 4, col, 2);
+                }
+            } else if (p.type === 'bomb') {
+                const g = c.createRadialGradient(tx, ty, 1, tx, ty, 14);
+                g.addColorStop(0, '#fff'); g.addColorStop(0.2, col); g.addColorStop(0.5, N.orange); g.addColorStop(1, 'rgba(255,136,0,0)');
+                c.fillStyle = g; c.beginPath(); c.arc(tx, ty, 14, 0, Math.PI * 2); c.fill();
+                if (p.lifetime < 0.25) {
+                    const s = particles.explosion(tx, ty, N.red, true);
+                    if (s > shake) shake = s;
+                }
+            } else if (p.type === 'ice') {
+                c.strokeStyle = col; c.lineWidth = 2.5; c.shadowColor = col; c.shadowBlur = 10;
+                c.beginPath(); c.moveTo(fx, fy);
+                for (let i = 1; i <= 6; i++) {
+                    c.lineTo(fx + (tx - fx) * (i / 6) + (Math.random() - 0.5) * 10, fy + (ty - fy) * (i / 6) + (Math.random() - 0.5) * 10);
+                }
+                c.lineTo(tx, ty); c.stroke();
+                c.fillStyle = 'rgba(0,240,255,0.3)'; c.beginPath(); c.arc(tx, ty, 8, 0, Math.PI * 2); c.fill();
+                for (let s = 0; s < 3; s++) {
+                    const t = (s + 0.5) / 3;
+                    trails.spawn(fx + (tx - fx) * t, fy + (ty - fy) * t, col, 2);
+                }
             }
             c.restore();
         }
-        return 0;
+        return shake;
     }
 }
 
@@ -787,6 +1073,8 @@ class NetworkManager {
     upgradeTower(id) { this.send({ command: 'upgrade_tower', tower_id: id }); }
     sellTower(id) { this.send({ command: 'sell_tower', tower_id: id }); }
     startWave() { this.send({ command: 'start_wave' }); }
+    setSpeed(scale) { this.send({ command: 'set_speed', scale }); }
+    toggleAutoWave() { this.send({ command: 'toggle_auto_wave' }); }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -804,18 +1092,55 @@ class UIManager {
         document.getElementById('st-wave').textContent = `${s.current_wave}/${s.total_waves}`;
         document.getElementById('st-score').textContent = s.score;
         document.getElementById('st-killed').textContent = s.enemies_killed;
-        const costs = { archer: 50, bomb: 120, ice: 80 };
-        for (const t of ['archer','bomb','ice']) document.getElementById(`btn-${t}`).disabled = s.crystals < costs[t];
-        document.getElementById('btn-start-wave').disabled = state.wave_active || s.game_over || s.victory;
+        const baseCosts = { archer: 50, bomb: 120, ice: 80 };
+        const costMult = s.tower_cost_mult || 1.0;
+        for (const t of ['archer','bomb','ice']) {
+            const adjustedCost = Math.round(baseCosts[t] * costMult);
+            document.getElementById(`btn-${t}`).disabled = s.crystals < adjustedCost;
+            const costEl = document.getElementById(`cost-${t}`);
+            if (costEl) costEl.textContent = `${adjustedCost} 💎`;
+        }        document.getElementById('btn-start-wave').disabled = state.wave_active || s.game_over || s.victory;
+
+        // Speed buttons sync with server state
+        const currentScale = s.time_scale || 1;
+        document.querySelectorAll('.speed-btn').forEach(b => {
+            b.classList.toggle('active', parseInt(b.dataset.speed) === currentScale);
+        });
+
+        // Auto-wave toggle sync
+        const autoBtn = document.getElementById('btn-auto-wave');
+        if (autoBtn) autoBtn.classList.toggle('active', !!s.auto_wave);
+
+        // Difficulty label
+        const diffEl = document.getElementById('st-difficulty');
+        if (diffEl && s.difficulty_label) diffEl.textContent = s.difficulty_label;
     }
+
     updateFPS(fps) { this.fpsEl.textContent = `${fps} FPS`; }
     showMessage(msg) { document.getElementById('message-area').textContent = msg; }
     showGameOver(victory, score) {
         const o = document.getElementById('game-over-overlay');
+        const restartBtn = o.querySelector('.restart-btn');
+        const isPermadeath = this.gameState?.state?.permadeath;
+
         document.getElementById('go-title').textContent = victory ? '⚡ VITÓRIA ⚡' : '💀 GAME OVER';
         document.getElementById('go-title').style.color = victory ? N.lime : N.red;
-        document.getElementById('go-message').textContent = victory ? 'A colônia foi defendida!' : 'A colônia foi invadida!';
         document.getElementById('go-score').textContent = score;
+
+        if (victory) {
+            document.getElementById('go-message').textContent = 'A colônia foi defendida!';
+            if (restartBtn) restartBtn.style.display = '';
+        } else if (isPermadeath) {
+            document.getElementById('go-message').innerHTML =
+                '<span style="color:#ff0055;font-weight:700">PERMADEATH</span><br>' +
+                'Não há segunda chance no modo Insano.<br>' +
+                'Sua pontuação final: <b>' + score + '</b> PTS';
+            if (restartBtn) restartBtn.style.display = 'none';
+        } else {
+            document.getElementById('go-message').textContent = 'A colônia foi invadida!';
+            if (restartBtn) restartBtn.style.display = '';
+        }
+
         o.style.display = 'flex';
     }
     showTowerPanel(tower) {
@@ -853,7 +1178,7 @@ class Game {
         this.particles = new ParticleSystem();
         this.floatingTexts = new FloatingTextSystem();
         this.trails = new TrailSystem();
-        this.camera = new Camera();
+        this.camera = new WorldCamera(this.W, this.H);
         this.renderer = new Renderer(this.ctx, this.W, this.H);
         this.ui = new UIManager();
         this.net = null;
@@ -862,25 +1187,82 @@ class Game {
         this.gameState = null;
         this.selectedTower = null;
         this.selectedPlacedTower = null;
-        this.mouseX = -1; this.mouseY = -1;
+        this.mouseX = -1; this.mouseY = -1;  // screen coords
+        this.worldMouseX = -1; this.worldMouseY = -1;  // world coords
+        this.mouseGridX = -1; this.mouseGridY = -1;  // grid coords
         this.frame = 0;
         this.gameId = null;
+        this.selectedDifficulty = 'normal';
+
+        // Panning state
+        this._isPanning = false;
+        this._panStartX = 0; this._panStartY = 0;
+        this._camStartX = 0; this._camStartY = 0;
 
         // Frame timing
         this._lastTime = 0;
         this._fpsAccum = 0; this._fpsFrames = 0; this._fpsDisplay = 0;
 
-        // Input
+        // Input: Mouse
         this.canvas.addEventListener('mousemove', (e) => this._onMouseMove(e));
-        this.canvas.addEventListener('mouseleave', () => { this.mouseX = this.mouseY = -1; });
+        this.canvas.addEventListener('mousedown', (e) => this._onMouseDown(e));
+        this.canvas.addEventListener('mouseup', (e) => this._onMouseUp(e));
+        this.canvas.addEventListener('mouseleave', () => {
+            this.mouseX = this.mouseY = -1;
+            this.worldMouseX = this.worldMouseY = -1;
+            this.mouseGridX = this.mouseGridY = -1;
+            this._isPanning = false;
+        });
         this.canvas.addEventListener('click', (e) => this._onClick(e));
+        this.canvas.addEventListener('wheel', (e) => this._onWheel(e), { passive: false });
+
+        // Input: Touch (mobile pinch-zoom + pan)
+        this._touches = [];
+        this._lastPinchDist = 0;
+        this.canvas.addEventListener('touchstart', (e) => this._onTouchStart(e), { passive: false });
+        this.canvas.addEventListener('touchmove', (e) => this._onTouchMove(e), { passive: false });
+        this.canvas.addEventListener('touchend', (e) => this._onTouchEnd(e), { passive: false });
+
+        // Prevent context menu on canvas (for right-click pan)
+        this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
+        // Keyboard shortcuts
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                this.selectedTower = null;
+                this.selectedPlacedTower = null;
+                this.ui.hideTowerPanel();
+                document.querySelectorAll('.tower-btn').forEach(b => b.classList.remove('selected'));
+            }
+            if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                this.startWave();
+            }
+        });
 
         Game.instance = this;
     }
 
     async init() {
+        // Show difficulty selector, don't start game yet
+        this._lastTime = performance.now();
+        requestAnimationFrame((t) => this._loop(t));
+    }
+
+    selectDifficulty(diff) {
+        this.selectedDifficulty = diff;
+        document.querySelectorAll('.diff-option').forEach(el => {
+            el.classList.toggle('selected', el.dataset.diff === diff);
+        });
+    }
+
+    async startGame() {
         try {
-            const res = await fetch('/tower-defense/games/create', { method: 'POST' });
+            const res = await fetch('/tower-defense/games/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ difficulty: this.selectedDifficulty }),
+            });
             const data = await res.json();
             if (!data.success) return;
             this.gameId = data.game_id;
@@ -890,11 +1272,15 @@ class Game {
                 (msg) => this.ui.showMessage(msg)
             );
             this.net.connect();
-            this._lastTime = performance.now();
-            requestAnimationFrame((t) => this._loop(t));
             this.ui.showMessage('Selecione uma torre e clique no grid!');
+            // Hide difficulty overlay
+            document.getElementById('diff-overlay').classList.add('hidden');
+            // Permadeath warning
+            if (this.gameState?.state?.permadeath) {
+                this.ui.showMessage('💀 MODO INSANO — PERMADEATH ATIVADO. Sem restart!');
+            }
         } catch (e) {
-            console.error('Init failed:', e);
+            console.error('Start failed:', e);
             this.ui.showMessage('Erro ao criar jogo. Recarregue.');
         }
     }
@@ -938,15 +1324,30 @@ class Game {
         if (!this.gameState) return;
 
         r.clear();
-        c.save();
+
+        // ── WORLD SPACE: camera transform ──
         this.camera.apply(c);
 
-        r.drawBackground();
+        // Background fill (visible area)
+        c.fillStyle = '#0a0a1a';
+        const vis = this.camera.visibleWorldRect();
+        c.fillRect(vis.x, vis.y, vis.w, vis.h);
+
+        // Terrain grid
+        if (this.gameState.terrain) {
+            r.drawTerrain(this.gameState.terrain, this.camera, this.frame);
+        }
+
         r.drawPath(this.gameState.path, this.frame);
         r.drawBase(this.gameState.path, this.frame);
         r.drawEntry(this.gameState.path, this.frame);
-        r.drawPlacementPreview(this.gameState.path, this.gameState.towers, this.selectedTower, this.mouseX, this.mouseY);
-        r.drawTowers(this.gameState.towers, this.mouseX, this.mouseY, this.frame);
+
+        // Placement preview (grid coords)
+        if (this.selectedTower && this.mouseGridX >= 0) {
+            r.drawPlacementPreview(this.gameState.terrain, this.gameState.towers, this.selectedTower, this.mouseGridX, this.mouseGridY);
+        }
+
+        r.drawTowers(this.gameState.towers, this.frame, this.worldMouseX, this.worldMouseY);
         r.drawEnemies(this.gameState.enemies, this.frame);
 
         // Projectiles return shake intensity
@@ -957,7 +1358,99 @@ class Game {
         this.particles.draw(c);
         this.floatingTexts.draw(c);
 
-        c.restore();
+        this.camera.restore(c);
+
+        // ── SCREEN SPACE: UI overlay (minimap, zoom indicator) ──
+        this._drawMinimap();
+        this._drawZoomIndicator();
+    }
+
+    // ── Minimap ──────────────────────────────────────────────────
+    _drawMinimap() {
+        const c = this.ctx;
+        const mapW = 180, mapH = 140;
+        const mx = this.W - mapW - 12, my = this.H - mapH - 12;
+
+        // Background
+        c.fillStyle = 'rgba(5,5,20,0.85)';
+        c.fillRect(mx, my, mapW, mapH);
+        c.strokeStyle = 'rgba(0,240,255,0.2)';
+        c.lineWidth = 1;
+        c.strokeRect(mx, my, mapW, mapH);
+
+        // Scale
+        const scaleX = mapW / WORLD_W, scaleY = mapH / WORLD_H;
+        const sc = Math.min(scaleX, scaleY);
+        const offX = mx + (mapW - WORLD_W * sc) / 2;
+        const offY = my + (mapH - WORLD_H * sc) / 2;
+
+        // Terrain
+        if (this.gameState?.terrain) {
+            for (let y = 0; y < GH; y++) {
+                if (!this.gameState.terrain[y]) continue;
+                for (let x = 0; x < GW; x++) {
+                    const t = this.gameState.terrain[y][x];
+                    c.fillStyle = t === 0 ? '#1a2040' : t === 1 ? '#162030' : '#0a0a18';
+                    c.fillRect(offX + x * CELL * sc, offY + y * CELL * sc, Math.max(1, CELL * sc), Math.max(1, CELL * sc));
+                }
+            }
+        }
+
+        // Path highlight on minimap
+        if (this.gameState?.path) {
+            c.fillStyle = 'rgba(0,240,255,0.3)';
+            for (const [x, y] of this.gameState.path) {
+                if (x >= 0 && x < GW && y >= 0 && y < GH)
+                    c.fillRect(offX + x * CELL * sc, offY + y * CELL * sc, Math.max(1, CELL * sc), Math.max(1, CELL * sc));
+            }
+        }
+
+        // Towers on minimap
+        if (this.gameState?.towers) {
+            for (const t of this.gameState.towers) {
+                c.fillStyle = TOWER_COL[t.type]?.main || '#fff';
+                c.fillRect(offX + t.x * CELL * sc, offY + t.y * CELL * sc, Math.max(2, CELL * sc), Math.max(2, CELL * sc));
+            }
+        }
+
+        // Enemies on minimap
+        if (this.gameState?.enemies) {
+            c.fillStyle = N.red;
+            for (const e of this.gameState.enemies) {
+                const ex = offX + e.x * CELL * sc;
+                const ey = offY + e.y * CELL * sc;
+                c.fillRect(ex - 1, ey - 1, 3, 3);
+            }
+        }
+
+        // Camera viewport rectangle
+        const vis = this.camera.visibleWorldRect();
+        c.strokeStyle = N.cyan;
+        c.lineWidth = 1.5;
+        c.strokeRect(
+            offX + vis.x * sc,
+            offY + vis.y * sc,
+            vis.w * sc,
+            vis.h * sc
+        );
+
+        // Click to navigate
+        if (this._minimapClickRect) {
+            // Store for click detection
+            this._minimapClickRect = { mx: offX, my: offY, sc };
+        }
+        this._minimapClickRect = { mx: offX, my: offY, sc };
+    }
+
+    _drawZoomIndicator() {
+        const c = this.ctx;
+        const zoom = Math.round(this.camera.zoom * 100);
+        c.fillStyle = 'rgba(0,0,0,0.5)';
+        c.fillRect(this.W - 80, 8, 72, 24);
+        c.fillStyle = N.cyan;
+        c.font = '11px Orbitron, monospace';
+        c.textAlign = 'center';
+        c.fillText(`${zoom}%`, this.W - 44, 24);
     }
 
     // ── State update from server ────────────────────────────────
@@ -982,20 +1475,93 @@ class Game {
         }
     }
 
-    // ── Input handlers ──────────────────────────────────────────
-    _onMouseMove(e) {
+    // ── Input helpers ──────────────────────────────────────────
+    _getCanvasCoords(e) {
         const rect = this.canvas.getBoundingClientRect();
-        this.mouseX = (e.clientX - rect.left) * (this.W / rect.width);
-        this.mouseY = (e.clientY - rect.top) * (this.H / rect.height);
+        return [
+            (e.clientX - rect.left) * (this.W / rect.width),
+            (e.clientY - rect.top) * (this.H / rect.height)
+        ];
+    }
+
+    _updateWorldMouse() {
+        if (this.mouseX < 0) {
+            this.worldMouseX = this.worldMouseY = -1;
+            this.mouseGridX = this.mouseGridY = -1;
+            return;
+        }
+        [this.worldMouseX, this.worldMouseY] = this.camera.screenToWorld(this.mouseX, this.mouseY);
+        this.mouseGridX = Math.floor(this.worldMouseX / CELL);
+        this.mouseGridY = Math.floor(this.worldMouseY / CELL);
+    }
+
+    // ── Mouse input ─────────────────────────────────────────────
+    _onMouseMove(e) {
+        [this.mouseX, this.mouseY] = this._getCanvasCoords(e);
+        this._updateWorldMouse();
+        // Pan while dragging
+        if (this._isPanning) {
+            const dx = this.mouseX - this._panStartX;
+            const dy = this.mouseY - this._panStartY;
+            this.camera.x = this._camStartX - dx / this.camera.zoom;
+            this.camera.y = this._camStartY - dy / this.camera.zoom;
+            this.camera._clamp();
+        }
+    }
+
+    _onMouseDown(e) {
+        [this.mouseX, this.mouseY] = this._getCanvasCoords(e);
+        this._updateWorldMouse();
+        // Right-click or middle-click starts panning
+        if (e.button === 1 || e.button === 2) {
+            e.preventDefault();
+            this._isPanning = true;
+            this._panStartX = this.mouseX;
+            this._panStartY = this.mouseY;
+            this._camStartX = this.camera.x;
+            this._camStartY = this.camera.y;
+            this.canvas.style.cursor = 'grabbing';
+        }
+        // Left-click on minimap: navigate
+        if (e.button === 0 && this._minimapClickRect) {
+            const rect = this._minimapClickRect;
+            const mx = this.mouseX - rect.mx;
+            const my = this.mouseY - rect.my;
+            if (mx >= 0 && my >= 0) {
+                const worldX = mx / rect.sc;
+                const worldY = my / rect.sc;
+                if (worldX >= 0 && worldX <= WORLD_W && worldY >= 0 && worldY <= WORLD_H) {
+                    this.camera.panToWorld(worldX, worldY);
+                    return;
+                }
+            }
+        }
+    }
+
+    _onMouseUp(e) {
+        if (this._isPanning && (e.button === 1 || e.button === 2)) {
+            this._isPanning = false;
+            this.canvas.style.cursor = 'crosshair';
+        }
+    }
+
+    _onWheel(e) {
+        e.preventDefault();
+        const [sx, sy] = this._getCanvasCoords(e);
+        this.camera.zoomAt(sx, sy, e.deltaY);
     }
 
     _onClick(e) {
         if (!this.gameId) return;
-        const rect = this.canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left) * (this.W / rect.width);
-        const y = (e.clientY - rect.top) * (this.H / rect.height);
-        const gx = Math.floor((x - this.renderer.OX) / CELL);
-        const gy = Math.floor((y - this.renderer.OY) / CELL);
+        // Ignore if we just panned
+        if (this._isPanning) return;
+        // Ignore right-click
+        if (e.button !== 0) return;
+
+        const [sx, sy] = this._getCanvasCoords(e);
+        const [wx, wy] = this.camera.screenToWorld(sx, sy);
+        const gx = Math.floor(wx / CELL);
+        const gy = Math.floor(wy / CELL);
         if (gx < 0 || gx >= GW || gy < 0 || gy >= GH) return;
 
         // Click on existing tower?
@@ -1017,6 +1583,66 @@ class Game {
         }
     }
 
+    // ── Touch input (mobile) ────────────────────────────────────
+    _onTouchStart(e) {
+        e.preventDefault();
+        const touches = e.touches;
+        if (touches.length === 1) {
+            this.mouseX = (touches[0].clientX - this.canvas.getBoundingClientRect().left) * (this.W / this.canvas.getBoundingClientRect().width);
+            this.mouseY = (touches[0].clientY - this.canvas.getBoundingClientRect().top) * (this.H / this.canvas.getBoundingClientRect().height);
+            this._updateWorldMouse();
+            this._isPanning = true;
+            this._panStartX = this.mouseX;
+            this._panStartY = this.mouseY;
+            this._camStartX = this.camera.x;
+            this._camStartY = this.camera.y;
+        } else if (touches.length === 2) {
+            // Pinch zoom
+            this._isPanning = false;
+            const dx = touches[0].clientX - touches[1].clientX;
+            const dy = touches[0].clientY - touches[1].clientY;
+            this._lastPinchDist = Math.sqrt(dx * dx + dy * dy);
+        }
+    }
+
+    _onTouchMove(e) {
+        e.preventDefault();
+        const touches = e.touches;
+        if (touches.length === 1 && this._isPanning) {
+            const rect = this.canvas.getBoundingClientRect();
+            const mx = (touches[0].clientX - rect.left) * (this.W / rect.width);
+            const my = (touches[0].clientY - rect.top) * (this.H / rect.height);
+            const dx = mx - this._panStartX;
+            const dy = my - this._panStartY;
+            this.camera.x = this._camStartX - dx / this.camera.zoom;
+            this.camera.y = this._camStartY - dy / this.camera.zoom;
+            this.camera._clamp();
+        } else if (touches.length === 2) {
+            const dx = touches[0].clientX - touches[1].clientX;
+            const dy = touches[0].clientY - touches[1].clientY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (this._lastPinchDist > 0) {
+                const midX = (touches[0].clientX + touches[1].clientX) / 2;
+                const midY = (touches[0].clientY + touches[1].clientY) / 2;
+                const rect = this.canvas.getBoundingClientRect();
+                const sx = (midX - rect.left) * (this.W / rect.width);
+                const sy = (midY - rect.top) * (this.H / rect.height);
+                const factor = dist / this._lastPinchDist;
+                this.camera.zoomAt(sx, sy, factor > 1 ? 1 : -1);
+            }
+            this._lastPinchDist = dist;
+        }
+    }
+
+    _onTouchEnd(e) {
+        if (e.touches.length === 0 && this._isPanning) {
+            // Tap = click
+            this._onClick({ button: 0 });
+            this._isPanning = false;
+        }
+        if (e.touches.length < 2) this._lastPinchDist = 0;
+    }
+
     // ── Public API (called from HTML onclick) ───────────────────
     selectTower(type) {
         this.selectedTower = this.selectedTower === type ? null : type;
@@ -1032,6 +1658,18 @@ class Game {
     startWave() { this.net.startWave(); }
     upgradeTower(id) { this.net.upgradeTower(id); }
     sellTower(id) { this.net.sellTower(id); this.selectedPlacedTower = null; this.ui.hideTowerPanel(); }
+
+    setSpeed(scale) {
+        this.net.setSpeed(scale);
+        // Optimistic UI update
+        document.querySelectorAll('.speed-btn').forEach(b => {
+            b.classList.toggle('active', parseInt(b.dataset.speed) === scale);
+        });
+    }
+
+    toggleAutoWave() {
+        this.net.toggleAutoWave();
+    }
 }
 
 // ── Bootstrap ────────────────────────────────────────────────────
