@@ -66,6 +66,15 @@
     </header>
     <main class="game-main">
       <aside class="sidebar" id="sidebar" aria-label="Game info">
+        <section class="panel difficulty-select" id="ai-difficulty-panel">
+          <h4>Dificuldade da IA</h4>
+          <div class="diff-buttons">
+            <button class="diff-btn active" data-diff="easy" onclick="window.setCheckersDifficulty('easy')">Fácil</button>
+            <button class="diff-btn" data-diff="medium" onclick="window.setCheckersDifficulty('medium')">Médio</button>
+            <button class="diff-btn" data-diff="hard" onclick="window.setCheckersDifficulty('hard')">Difícil</button>
+          </div>
+          <p class="diff-desc" id="ai-diff-desc">Profundidade: 2</p>
+        </section>
         <section class="panel captured" id="captured-white">
           <h4>Capturadas (Brancas)</h4>
           <div class="pieces" id="captured-white-pieces"></div>

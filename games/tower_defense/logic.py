@@ -37,9 +37,9 @@ class EnemyType(Enum):
 TOWER_STATS = {
     TowerType.ARCHER: {
         "cost": 50,
-        "damage": (18, 28),
+        "damage": (8, 14),
         "attack_speed": 0.7,       # seconds between shots
-        "range": 3.2,
+        "range": 2.8,
         "description": "Fast single-target",
         # Per-level bonuses
         "damage_mult": [1.0, 1.25, 1.55],     # L1, L2, L3
@@ -117,6 +117,7 @@ ENEMY_STATS = {
         "description": "Boss — loses 3 lives on reach",
     },
 }
+
 
 # ═══════════════════════════════════════════════════════════════
 #  DIFFICULTY CONFIGS
@@ -322,6 +323,7 @@ class Enemy:
     slowed: bool = False
     slow_timer: float = 0.0
     distance_traveled: float = 0.0
+    waypoint_index: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -775,23 +777,24 @@ class TowerDefenseGame:
         if not self.path:
             return
 
-        # Find current waypoint
-        wp_idx = 0
-        for i, (wx, wy) in enumerate(self.path):
-            if self._distance(enemy.x, enemy.y, wx, wy) > 0.5:
-                wp_idx = max(0, i - 1)
-                break
-            wp_idx = i
-
-        if wp_idx >= len(self.path) - 1:
+        if enemy.waypoint_index >= len(self.path) - 1:
             enemy.distance_traveled = float('inf')
             return
 
-        nx, ny = self.path[wp_idx + 1]
-        dx, dy = nx - enemy.x, ny - enemy.y
+        target_x, target_y = self.path[enemy.waypoint_index + 1]
+        dx = float(target_x) - enemy.x
+        dy = float(target_y) - enemy.y
         dist = math.sqrt(dx * dx + dy * dy)
-        if dist > 0:
-            move = enemy.speed * dt
+        move = enemy.speed * dt
+
+        if dist <= move:
+            enemy.x = float(target_x)
+            enemy.y = float(target_y)
+            enemy.distance_traveled += dist
+            enemy.waypoint_index += 1
+            if enemy.waypoint_index >= len(self.path) - 1:
+                enemy.distance_traveled = float('inf')
+        else:
             enemy.x += (dx / dist) * move
             enemy.y += (dy / dist) * move
             enemy.distance_traveled += move

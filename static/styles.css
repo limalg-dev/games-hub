@@ -146,6 +146,11 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .captured .pieces { display: flex; flex-wrap: wrap; gap: 0.4rem; justify-content: center; min-height: 60px; }
 .captured-piece { width: 32px; height: 32px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, var(--piece-white) 0%, var(--piece-black) 100%); box-shadow: 0 2px 4px rgba(0,0,0,0.3); position: relative; }
 .captured-piece.black { background: radial-gradient(circle at 30% 30%, #444 0%, var(--piece-black) 100%); }
+.diff-buttons { display: flex; gap: 0.4rem; margin-bottom: 0.5rem; }
+.diff-btn { flex: 1; padding: 0.4rem 0.6rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; color: var(--text-secondary); font-size: 0.8rem; font-weight: 500; cursor: pointer; transition: all var(--transition); }
+.diff-btn:hover { border-color: var(--accent); color: var(--text-primary); }
+.diff-btn.active { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+.diff-desc { font-size: 0.75rem; color: var(--text-secondary); text-align: center; margin: 0; }
 .history ol { display: grid; gap: 0.3rem; }
 .history li { font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-secondary); padding: 0.25rem 0.5rem; background: var(--bg-card); border-radius: 4px; transition: all var(--transition); cursor: pointer; }
 .history li:hover { background: var(--border); color: var(--text-primary); }

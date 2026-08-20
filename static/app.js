@@ -569,13 +569,34 @@ function renderGameGrid(category) {
 
 // ===== WEBSOCKET =====
 let checkersGame = null;
+let checkersDifficulty = 'medium';
+
+window.setCheckersDifficulty = function(diff) {
+  checkersDifficulty = diff;
+  document.querySelectorAll('.diff-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.diff === diff);
+  });
+  const desc = document.getElementById('ai-diff-desc');
+  const labels = { easy: 'Profundidade: 2', medium: 'Profundidade: 3', hard: 'Profundidade: 5' };
+  if (desc) desc.textContent = labels[diff] || '';
+  // Send to server if connected
+  if (STATE.game.ws && STATE.game.ws.readyState === WebSocket.OPEN) {
+    STATE.game.ws.send(JSON.stringify({ type: 'set_difficulty', difficulty: diff }));
+  }
+};
 
 async function connectWebSocket() {
   const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
   const ws = new WebSocket(`${protocol}://${location.host}/ws/${STATE.game.id}`);
   STATE.game.ws = ws;
 
-  ws.onopen = () => console.log('WebSocket opened');
+  ws.onopen = () => {
+    console.log('WebSocket opened');
+    // Send difficulty to AI
+    if (STATE.currentGameType === 'checkers') {
+      ws.send(JSON.stringify({ type: 'set_difficulty', difficulty: checkersDifficulty }));
+    }
+  };
   ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
     if (STATE.currentGameType === 'crossword') {
@@ -590,6 +611,10 @@ async function connectWebSocket() {
 }
 
 function handleCheckersMessage(msg, ws) {
+  if (msg.type === 'difficulty_set') {
+    console.log(`AI difficulty set to: ${msg.difficulty} (${msg.label}, depth ${msg.depth})`);
+    return;
+  }
   if (msg.type === 'color') {
     STATE.game.myColor = msg.color;
     if (!checkersGame) {

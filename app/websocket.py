@@ -1,11 +1,13 @@
 from __future__ import annotations
 import json
 import asyncio
+import hashlib
 from typing import Dict, List, Optional, Tuple
 from fastapi import WebSocket, WebSocketDisconnect
 from games.checkers.game import Board
-from games.checkers.ai import choose_move
-from app.models import Game
+from games.checkers.ai import choose_move, Difficulty, CHALLENGE_CONFIGS
+from app.models import Game, PlayerRating
+from app.elo import process_game_result, AI_RATINGS
 from sqlmodel import Session, select
 from app.database import engine
 
@@ -13,6 +15,9 @@ class ConnectionManager:
     def __init__(self):
         self.boards: Dict[str, Board] = {}  # for checkers
         self.turn: Dict[str, str] = {}  # game_id -> "w" or "b"
+        self.ai_difficulty: Dict[str, Difficulty] = {}  # game_id -> Difficulty
+        self.human_color: Dict[str, str] = {}  # game_id -> "w" or "b" (the human player)
+        self.player_id: Dict[str, str] = {}  # game_id -> stable player identifier
         self.crossword_state: Dict[str, dict] = {}  # game_id -> state dict
         self.clients: Dict[str, Dict[int, dict]] = {}  # game_id -> {ws_id: {"ws": WebSocket, "color": str}}
 
@@ -89,11 +94,7 @@ class ConnectionManager:
             self.clients[game_id].pop(ws_id, None)
             if not self.clients[game_id]:
                 del self.clients[game_id]
-                if game_id in self.boards:
-                    del self.boards[game_id]
-                    del self.turn[game_id]
-                if game_id in self.crossword_state:
-                    del self.crossword_state[game_id]
+                self._cleanup_game(game_id)
 
     async def broadcast(self, game_id: str, message: dict, exclude: WebSocket | None = None):
         for data in self.clients.get(game_id, {}).values():
@@ -103,6 +104,95 @@ class ConnectionManager:
 
     async def send_personal(self, websocket: WebSocket, message: dict):
         await websocket.send_json(message)
+
+    def _get_player_id(self, game_id: str, websocket: WebSocket) -> str:
+        """Return a stable player identifier derived from the websocket."""
+        if game_id in self.player_id:
+            return self.player_id[game_id]
+        # Generate a deterministic but opaque ID from the connection
+        raw = f"{game_id}:{id(websocket)}"
+        pid = hashlib.sha256(raw.encode()).hexdigest()[:16]
+        self.player_id[game_id] = pid
+        return pid
+
+    def _update_rating(self, game_id: str, player_won: bool, player_draw: bool = False) -> Optional[dict]:
+        """Update ELO rating after a game ends. Returns the ELO result dict or None."""
+        pid = self.player_id.get(game_id)
+        difficulty = self.ai_difficulty.get(game_id, Difficulty.MEDIUM)
+        if not pid:
+            return None
+
+        diff_str = difficulty.value if isinstance(difficulty, Difficulty) else str(difficulty)
+
+        with Session(engine) as session:
+            # Find or create rating record
+            rating_record = session.exec(
+                select(PlayerRating).where(
+                    PlayerRating.player_id == pid,
+                    PlayerRating.game_type == "checkers",
+                    PlayerRating.difficulty == diff_str,
+                )
+            ).first()
+
+            if not rating_record:
+                rating_record = PlayerRating(
+                    player_id=pid,
+                    game_type="checkers",
+                    difficulty=diff_str,
+                    rating=1000,
+                    wins=0,
+                    losses=0,
+                    draws=0,
+                    peak_rating=1000,
+                    games_played=0,
+                )
+                session.add(rating_record)
+
+            # Calculate ELO change
+            result = process_game_result(
+                player_rating=rating_record.rating,
+                player_won=player_won,
+                player_draw=player_draw,
+                difficulty=diff_str,
+                games_played=rating_record.games_played,
+            )
+
+            # Update record
+            rating_record.rating = result.new_rating
+            rating_record.games_played += 1
+            rating_record.peak_rating = max(rating_record.peak_rating, result.new_rating)
+            if player_won:
+                rating_record.wins += 1
+            elif player_draw:
+                rating_record.draws += 1
+            else:
+                rating_record.losses += 1
+
+            session.add(rating_record)
+            session.commit()
+
+            return {
+                "old_rating": result.old_rating,
+                "new_rating": result.new_rating,
+                "change": result.change,
+                "wins": rating_record.wins,
+                "losses": rating_record.losses,
+                "draws": rating_record.draws,
+                "peak_rating": rating_record.peak_rating,
+                "games_played": rating_record.games_played,
+                "opponent_name": result.opponent_name,
+                "opponent_rating": result.opponent_rating,
+                "result": result.result_label,
+            }
+
+    def _cleanup_game(self, game_id: str):
+        """Remove in-memory state for a finished game."""
+        self.boards.pop(game_id, None)
+        self.turn.pop(game_id, None)
+        self.ai_difficulty.pop(game_id, None)
+        self.human_color.pop(game_id, None)
+        self.player_id.pop(game_id, None)
+        self.crossword_state.pop(game_id, None)
 
 manager = ConnectionManager()
 
@@ -119,6 +209,11 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
     if color is None:
         await websocket.close(code=4003, reason="Game full")
         return
+
+    # Track human player color and generate stable player ID
+    if game_type == "checkers" and not manager.human_color.get(game_id):
+        manager.human_color[game_id] = color
+        manager._get_player_id(game_id, websocket)
     
     # update player fields in DB
     with Session(engine) as session:
@@ -180,7 +275,21 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
             except json.JSONDecodeError:
                 await manager.send_personal(websocket, {"type": "error", "message": "Invalid JSON payload"})
                 continue
-            if msg.get("type") not in ("move", "input", "resign"):
+            if msg.get("type") not in ("move", "input", "resign", "set_difficulty"):
+                continue
+            if msg.get("type") == "set_difficulty":
+                diff_str = msg.get("difficulty", "medium")
+                try:
+                    diff = Difficulty(diff_str.lower())
+                except ValueError:
+                    diff = Difficulty.MEDIUM
+                manager.ai_difficulty[game_id] = diff
+                await manager.send_personal(websocket, {
+                    "type": "difficulty_set",
+                    "difficulty": diff.value,
+                    "label": CHALLENGE_CONFIGS[diff]["label"],
+                    "depth": CHALLENGE_CONFIGS[diff]["depth"],
+                })
                 continue
             if msg.get("type") == "resign" and game.game_type == "checkers":
                 winner = "b" if color == "w" else "w"
@@ -190,7 +299,11 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         g.status = "finished"
                         session.add(g)
                         session.commit()
-                await manager.broadcast(game_id, {"type": "game_over", "winner": winner, "reason": "resign"})
+                elo_info = manager._update_rating(game_id, player_won=(winner == color))
+                msg_out = {"type": "game_over", "winner": winner, "reason": "resign"}
+                if elo_info:
+                    msg_out["elo"] = elo_info
+                await manager.broadcast(game_id, msg_out)
                 continue
             if game.game_type == "checkers":
                 # Existing checkers move handling
@@ -216,7 +329,11 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 for c in ("w", "b"):
                     if not board.legal_moves(c):
                         winner = "b" if c == "w" else "w"
-                        await manager.broadcast(game_id, {"type": "game_over", "winner": winner})
+                        elo_info = manager._update_rating(game_id, player_won=(winner == color))
+                        msg_out = {"type": "game_over", "winner": winner}
+                        if elo_info:
+                            msg_out["elo"] = elo_info
+                        await manager.broadcast(game_id, msg_out)
                         break
                 else:
                     # AI opponent
@@ -226,15 +343,20 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                             ai_color = "b" if color == "w" else "w"
                             ban = manager.boards.get(game_id)
                             if ban:
-                                ai_move = await asyncio.to_thread(choose_move, ban, ai_color)
+                                diff = manager.ai_difficulty.get(game_id, Difficulty.MEDIUM)
+                                ai_move = await asyncio.to_thread(choose_move, ban, ai_color, diff)
                                 if ai_move:
-                                    ban.apply_move(*ai_move)
+                                    ban.apply_move(ai_move["from"], ai_move["to"], ai_move.get("captured"))
                                     manager.turn[game_id] = color
                                     await manager.broadcast(game_id, {"type": "board", "board": ban.board})
                                     for c in ("w", "b"):
                                         if not ban.legal_moves(c):
                                             winner = "b" if c == "w" else "w"
-                                            await manager.broadcast(game_id, {"type": "game_over", "winner": winner})
+                                            elo_info = manager._update_rating(game_id, player_won=(winner == color))
+                                            msg_out = {"type": "game_over", "winner": winner}
+                                            if elo_info:
+                                                msg_out["elo"] = elo_info
+                                            await manager.broadcast(game_id, msg_out)
                                             break
             elif game.game_type == "crossword":
                 if msg.get("type") == "input":

@@ -365,21 +365,29 @@ async def broadcast_game_state(game_id: str):
 async def game_loop_task():
     """Task que roda o game loop continuamente"""
     _cleanup_counter = 0
-    BASE_DT = 0.016  # ~60 FPS base
+    BASE_DT = 0.033  # ~30 FPS server tick rate
     while True:
         dt = BASE_DT
         
         # Periodic cleanup every ~60 seconds
         _cleanup_counter += 1
-        if _cleanup_counter % 3750 == 0:
+        if _cleanup_counter % 1800 == 0:
             _cleanup_expired()
         
         for game_id, game in list(active_games.items()):
             if not game.state.game_over and not game.state.victory:
                 result = game.update(dt)
                 
-                # Se houve mudanças significativas, notifica clientes
-                if result["attacks"] or result["enemies_destroyed"] or result["state_changes"]:
+                # Broadcast em qualquer gameplay ativa: onda rodando, inimigos andando, projéteis, ataques ou mudanças
+                should_broadcast = (
+                    game.wave_active
+                    or len(game.enemies) > 0
+                    or len(game.projectiles) > 0
+                    or bool(result["attacks"])
+                    or bool(result["enemies_destroyed"])
+                    or bool(result["state_changes"])
+                )
+                if should_broadcast:
                     await broadcast_game_state(game_id)
 
         # Sleep less when time is scaled up (e.g. 4x → sleep 4x less)

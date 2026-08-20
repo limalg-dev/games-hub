@@ -1244,6 +1244,11 @@ class Game {
     }
 
     async init() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const diffParam = urlParams.get('difficulty');
+        if (diffParam && ['easy', 'normal', 'hard', 'insane'].includes(diffParam.toLowerCase())) {
+            this.selectDifficulty(diffParam.toLowerCase());
+        }
         // Show difficulty selector, don't start game yet
         this._lastTime = performance.now();
         requestAnimationFrame((t) => this._loop(t));
@@ -1655,12 +1660,12 @@ class Game {
         this.ui.hideTowerPanel();
     }
 
-    startWave() { this.net.startWave(); }
-    upgradeTower(id) { this.net.upgradeTower(id); }
-    sellTower(id) { this.net.sellTower(id); this.selectedPlacedTower = null; this.ui.hideTowerPanel(); }
+    startWave() { if (this.net) this.net.startWave(); }
+    upgradeTower(id) { if (this.net) this.net.upgradeTower(id); }
+    sellTower(id) { if (this.net) this.net.sellTower(id); this.selectedPlacedTower = null; this.ui.hideTowerPanel(); }
 
     setSpeed(scale) {
-        this.net.setSpeed(scale);
+        if (this.net) this.net.setSpeed(scale);
         // Optimistic UI update
         document.querySelectorAll('.speed-btn').forEach(b => {
             b.classList.toggle('active', parseInt(b.dataset.speed) === scale);
@@ -1668,7 +1673,9 @@ class Game {
     }
 
     toggleAutoWave() {
-        this.net.toggleAutoWave();
+        if (this.net) this.net.toggleAutoWave();
+        const autoBtn = document.getElementById('btn-auto-wave');
+        if (autoBtn) autoBtn.classList.toggle('active');
     }
 }
 
