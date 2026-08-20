@@ -193,4 +193,4 @@ async def get_player_ratings(player_id: str, game_type: str = "checkers"):
         }
 
 
-@app.websocket("/ws/{game_id}")(websocket_endpoint)
+app.websocket("/ws/{game_id}")(websocket_endpoint)
