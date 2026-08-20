@@ -9,3 +9,5 @@ package-lock.json
 package.json
 skills-lock.json
 .DS_Store
+.claude/
+.maestri/

@@ -64,7 +64,7 @@ def test_lists_the_playable_games(result):
         "crossword",
         "snake",
         "tower_defense",
-        "colony_hex",
+        "bomberman",
     ]
 
 

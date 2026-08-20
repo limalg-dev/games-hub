@@ -29,8 +29,7 @@ Confirmed capabilities:
 - Checkers: 8×8 English draughts, minimax AI with Easy/Medium/Hard, or two players over WebSocket (server-authoritative).
 - Word search (Caça-Palavras): client-side grid, easy/medium/hard, multiple categories, timer, local high scores.
 - Crossword (Palavras Cruzadas): server-generated via backtracking from a 150-word seeded dictionary (5 categories), solo or collaborative online over WebSocket, letter-by-letter server validation.
-- Snake, Tower Defense (ant-themed), Ant Defense: self-contained games with dedicated play pages and FastAPI routers.
-- Planned: Colônia Hex — turn-based light 4X strategy (hex map, ant theme) per spec `docs/superpowers/specs/2026-08-11-colony-hex-design.md`; not yet implemented.
+- Snake, Tower Defense (ant-themed), Ant Defense, Super Bomberman: self-contained games with dedicated play pages and FastAPI routers.
 
 Constraints and technical facts:
 

@@ -122,29 +122,29 @@ export const GAMES = {
       'Sobreviva a 10 ondas para vencer!'
     ]
   },
-  colony_hex: {
-    id: 'colony_hex',
-    title: 'Colônia Hex',
-    desc: 'Jogo de estratégia 4X por turnos. Expanda seu território em um mapa hexagonal, recrute operárias/soldados e conquiste ninhos inimigos.',
-    shortDesc: 'Estratégia hexagonal de formigas. Solo ou multiplayer.',
-    players: '2–4',
-    modes: ['Solo', 'IA', 'Online'],
-    category: ['estrategia', 'tabuleiro'],
-    collections: ['treine-sua-mente'],
-    duration: '10–20 min',
-    difficulty: ['Médio'],
-    rating: 4.8,
-    plays: 54000,
+  bomberman: {
+    id: 'bomberman',
+    title: 'Super Bomberman',
+    desc: 'Clássico jogo arcade de estratégia e ação. Exploda blocos, colete power-ups e derrote todos os bots na arena.',
+    shortDesc: 'Exploda blocos, colete itens e vença na arena!',
+    players: '1–4',
+    modes: ['Batalha', 'Arcade', 'Bots'],
+    category: ['acao', 'estrategia', 'classicos'],
+    collections: ['acao-pura', 'classicos-atemporais'],
+    duration: '3–10 min',
+    difficulty: ['Fácil', 'Médio', 'Difícil'],
+    rating: 4.9,
+    plays: 180000,
     featured: true,
     badge: 'novo',
-    thumbnail: '🐜',
-    icon: '🐜',
+    thumbnail: '',
+    icon: '💣',
     rules: [
-      'Controle ninhos de formigas em grade hexagonal (raio 4)',
-      'Gere 1 folha por turno para cada célula de território dominado',
-      'Ações: expandir território, recrutar unidades (operária/soldado) ou mover/atacar',
-      'Soldados atacam e capturam unidades ou territórios oponentes',
-      'Capture o ninho adversário para eliminá-lo. Vence quem sobrar ou tiver maior pontuação'
+      'Use WASD ou setas para se mover pela arena',
+      'Pressione Espaço ou J para soltar bombas',
+      'Destrua blocos para liberar power-ups (Fogo, Bomba Extra, Velocidade, Chute, Escudo)',
+      'Não seja atingido pelas explosões nem encoste nos monstros',
+      'No Modo Batalha, sobreviva e seja o último Bomberman de pé'
     ]
   }
 };

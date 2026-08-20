@@ -4,7 +4,7 @@ export const PLAYABLE_GAMES = [
   'crossword',
   'snake',
   'tower_defense',
-  'colony_hex',
+  'bomberman',
 ];
 
 const DIFFICULTIES = ['easy', 'medium', 'hard'];

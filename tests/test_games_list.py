@@ -75,7 +75,7 @@ def result(tmp_path_factory):
 
 def test_exports_exactly_the_six_games(result):
     assert set(result["ids"]) == {
-        "checkers", "wordsearch", "crossword", "snake", "tower_defense", "colony_hex"
+        "checkers", "wordsearch", "crossword", "snake", "tower_defense", "bomberman"
     }
 
 

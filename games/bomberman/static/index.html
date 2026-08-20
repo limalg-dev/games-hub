@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Super Bomberman - GameHub</title>
+  <link rel="stylesheet" href="/games/bomberman/static/style.css">
+</head>
+<body>
+
+  <!-- Game Header -->
+  <header class="game-header">
+    <div class="header-left">
+      <a href="/" class="btn-icon" title="Voltar ao GameHub">←</a>
+      <h1 class="game-title">💣 Super Bomberman</h1>
+    </div>
+    <div class="header-center">
+      <span class="game-badge" id="modeBadge">Modo Batalha</span>
+    </div>
+    <div class="header-right">
+      <button class="btn-icon" id="btnMute" title="Ativar/Desativar Som">🔊</button>
+    </div>
+  </header>
+
+  <!-- Top HUD Bar -->
+  <section class="hud-bar">
+    <div class="hud-group">
+      <div class="hud-item score-item">
+        <span>🏆 PONTOS:</span>
+        <span class="val" id="hudScore">0</span>
+      </div>
+      <div class="hud-item timer-item">
+        <span>⏱️ TEMPO:</span>
+        <span class="val" id="hudTimer">120</span>
+      </div>
+    </div>
+
+    <div class="hud-group">
+      <div class="hud-item">
+        <span>💣 BOMBAS:</span>
+        <span class="val" id="hudBombs">1/1</span>
+      </div>
+      <div class="hud-item">
+        <span>🔥 FOGO:</span>
+        <span class="val" id="hudFire">2</span>
+      </div>
+      <div class="hud-item">
+        <span>👟 VEL:</span>
+        <span class="val" id="hudSpeed">3.2</span>
+      </div>
+    </div>
+
+    <div class="powerup-indicators">
+      <div class="powerup-chip" id="badgeKick" style="display: none;">🥊 CHUTE</div>
+      <div class="powerup-chip" id="badgeShield" style="display: none;">🛡️ ESCUDO</div>
+      <div class="powerup-chip" id="badgeRemote" style="display: none;">⏱️ DETONADOR</div>
+    </div>
+  </section>
+
+  <!-- Game Stage -->
+  <main class="game-container">
+    <div class="canvas-wrapper">
+      <canvas id="gameCanvas"></canvas>
+
+      <!-- Start Game / Mode Select Modal -->
+      <div class="modal-overlay" id="startModal">
+        <div class="modal-card">
+          <h2 class="modal-title">SUPER BOMBERMAN</h2>
+          <p class="modal-desc">Destrua blocos, colete power-ups e derrote todos os oponentes na arena!</p>
+
+          <div class="mode-selector">
+            <button class="mode-tab active" data-mode="battle">🏆 Modo Batalha</button>
+            <button class="mode-tab" data-mode="arcade">👾 Modo Arcade</button>
+          </div>
+
+          <div class="difficulty-row">
+            <button class="diff-btn" data-diff="easy">Fácil</button>
+            <button class="diff-btn active" data-diff="medium">Médio</button>
+            <button class="diff-btn" data-diff="hard">Difícil</button>
+          </div>
+
+          <div class="btn-row">
+            <button class="btn-primary" id="btnStartGame">JOGAR AGORA</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pause Modal -->
+      <div class="modal-overlay hidden" id="pauseModal">
+        <div class="modal-card">
+          <h2 class="modal-title">JOGO PAUSADO</h2>
+          <p class="modal-desc">Tome um fôlego e planeje sua rota de explosão.</p>
+          <div class="btn-row">
+            <button class="btn-primary" id="btnResume">CONTINUAR</button>
+            <button class="btn-secondary" id="btnRestartPause">REINICIAR PARTIDA</button>
+            <a href="/" class="btn-secondary" style="text-decoration: none; text-align: center;">SAIR PARA O HUB</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stage Clear Modal (Arcade Mode) -->
+      <div class="modal-overlay hidden" id="stageClearModal">
+        <div class="modal-card">
+          <h2 class="modal-title win">FASE CONCLUÍDA! ✨</h2>
+          <p class="modal-desc">Você eliminou todos os inimigos e alcançou o portal da próxima fase.</p>
+          <div class="btn-row">
+            <button class="btn-primary" id="btnNextStage">PRÓXIMA FASE</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Game Over Modal -->
+      <div class="modal-overlay hidden" id="gameOverModal">
+        <div class="modal-card">
+          <h2 class="modal-title loss" id="gameOverTitle">FIM DE JOGO</h2>
+          <p class="modal-desc" id="gameOverDesc">Você foi derrotado pela explosão.</p>
+          <p style="margin-bottom: 12px; font-weight: bold;">Pontuação Final: <span id="finalScoreVal" style="color: var(--marquee-gold);">0</span> PTS</p>
+          
+          <div style="margin-bottom: 16px; display: flex; gap: 8px;">
+            <input type="text" id="playerNameInput" placeholder="Seu Nome" maxlength="15" style="flex: 1; padding: 8px 12px; background: var(--night-card); border: 1px solid var(--hairline); color: var(--text-mist); border-radius: var(--radius-sm);">
+            <button class="btn-secondary" id="btnSaveScore">SALVAR</button>
+          </div>
+
+          <div class="highscores-list" id="highscoresList"></div>
+
+          <div class="btn-row">
+            <button class="btn-primary" id="btnRestartGameOver">JOGAR NOVAMENTE</button>
+            <a href="/" class="btn-secondary" style="text-decoration: none; text-align: center;">VOLTAR AO HUB</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Match Win Modal -->
+      <div class="modal-overlay hidden" id="matchWinModal">
+        <div class="modal-card">
+          <h2 class="modal-title win">VITÓRIA TOTAL! 👑</h2>
+          <p class="modal-desc" id="matchWinDesc">Você conquistou o título de Mestre das Bombas!</p>
+          <p style="margin-bottom: 12px; font-weight: bold;">Pontuação: <span id="winScoreVal" style="color: var(--marquee-gold);">0</span> PTS</p>
+          <div class="btn-row">
+            <button class="btn-primary" id="btnPlayAgainWin">JOGAR NOVAMENTE</button>
+            <a href="/" class="btn-secondary" style="text-decoration: none; text-align: center;">VOLTAR AO HUB</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls Guide -->
+    <div class="controls-guide">
+      <div class="key-hint"><span class="kbd">WASD</span> ou <span class="kbd">Setas</span> Mover</div>
+      <div class="key-hint"><span class="kbd">Espaço</span> ou <span class="kbd">J</span> Soltar Bomba</div>
+      <div class="key-hint"><span class="kbd">E</span> ou <span class="kbd">K</span> Detonar Remoto</div>
+      <div class="key-hint"><span class="kbd">P</span> ou <span class="kbd">Esc</span> Pausar</div>
+    </div>
+
+    <!-- Mobile Virtual Touch Controls -->
+    <div class="touch-controls">
+      <div class="dpad">
+        <button class="dpad-btn dpad-up" id="btnUp">▲</button>
+        <button class="dpad-btn dpad-left" id="btnLeft">◀</button>
+        <button class="dpad-btn dpad-right" id="btnRight">▶</button>
+        <button class="dpad-btn dpad-down" id="btnDown">▼</button>
+      </div>
+      <div class="action-buttons">
+        <button class="touch-btn" id="btnBomb">💣<span>BOMBA</span></button>
+        <button class="touch-btn secondary" id="btnRemote">💥<span>DETONAR</span></button>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="/games/bomberman/static/game.js"></script>
+</body>
+</html>

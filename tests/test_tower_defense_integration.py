@@ -64,17 +64,17 @@ class TestTowerUpgrade:
 
         assert tower.range > range_before
 
-    def test_upgrade_deducts_leaves(self, game):
-        """Upgrade cost is deducted from leaves"""
+    def test_upgrade_deducts_crystals(self, game):
+        """Upgrade cost is deducted from crystals"""
         game.place_tower(1, 1, TowerType.ARCHER)
         tower = game.towers[0]
 
-        leaves_before = game.state.leaves
+        crystals_before = game.state.crystals
         upgrade_cost = tower.upgrade_cost
         success, msg = game.upgrade_tower(tower.id)
         assert success
 
-        assert game.state.leaves == leaves_before - upgrade_cost
+        assert game.state.crystals == crystals_before - upgrade_cost
 
     def test_upgrade_insufficient_leaves(self, game):
         """Cannot upgrade tower with insufficient leaves"""
@@ -84,7 +84,7 @@ class TestTowerUpgrade:
         game.state.leaves = 0  # No leaves
         success, msg = game.upgrade_tower(tower.id)
         assert not success
-        assert "insuficientes" in msg.lower() or "Folhas" in msg
+        assert "insuficientes" in msg.lower() or "folhas" in msg.lower() or "not enough" in msg.lower()
 
     def test_upgrade_nonexistent_tower(self, game):
         """Upgrading a nonexistent tower fails"""
@@ -143,7 +143,7 @@ class TestTowerStats:
     def test_archer_attack_speed(self):
         """Archer tower has correct attack speed"""
         tower = Tower(id="t1", tower_type=TowerType.ARCHER, x=0, y=0)
-        assert tower.attack_speed == 0.8
+        assert tower.attack_speed == 0.7
 
     def test_bomb_attack_speed(self):
         """Bomb tower has correct attack speed"""
@@ -179,22 +179,26 @@ class TestEnemyStats:
 
     def test_fly_stats(self, game):
         """Fly enemy has correct stats"""
-        stats = game._get_enemy_stats(EnemyType.FLY)
-        assert stats["hp"] == 30
+        from games.tower_defense.logic import ENEMY_STATS
+        stats = ENEMY_STATS[EnemyType.FLY]
+        assert stats["hp"] == 35
         assert stats["speed"] == 2.0
         assert stats["reward"] == 8
 
     def test_beetle_stats(self, game):
         """Beetle enemy has correct stats"""
-        stats = game._get_enemy_stats(EnemyType.BEETLE)
-        assert stats["hp"] == 120
+        from games.tower_defense.logic import ENEMY_STATS
+        stats = ENEMY_STATS[EnemyType.BEETLE]
+        assert stats["hp"] == 130
         assert stats["speed"] == 0.8
         assert stats["reward"] == 18
+        assert stats["armor"] == 3
 
     def test_sky_bug_stats(self, game):
         """Sky bug enemy has correct stats"""
-        stats = game._get_enemy_stats(EnemyType.SKY_BUG)
-        assert stats["hp"] == 50
+        from games.tower_defense.logic import ENEMY_STATS
+        stats = ENEMY_STATS[EnemyType.SKY_BUG]
+        assert stats["hp"] == 55
         assert stats["speed"] == 1.5
         assert stats["reward"] == 12
 
@@ -257,7 +261,7 @@ class TestGameOver:
     def test_reset_restores_initial_state(self, game):
         """Reset restores the game to initial state"""
         # Modify state
-        game.state.leaves = 999
+        game.state.crystals = 999
         game.state.lives = 1
         game.state.score = 5000
         game.state.current_wave = 5
@@ -266,7 +270,7 @@ class TestGameOver:
 
         game.reset()
 
-        assert game.state.leaves == 100
+        assert game.state.crystals == 150
         assert game.state.lives == 20
         assert game.state.score == 0
         assert game.state.current_wave == 0
@@ -297,9 +301,9 @@ class TestTowerPlacement:
             assert game.occupied_grid[x][y] is True
 
     def test_default_wave_configs(self):
-        """Default wave configs have 10 waves"""
+        """Default wave configs have 15 waves"""
         configs = WaveConfig.get_default_waves()
-        assert len(configs) == 10
+        assert len(configs) == 15
 
 
 # --- Integration with main app ---
@@ -366,8 +370,9 @@ class TestIntegration:
         assert "path" in state
         assert "wave_active" in state
         assert "occupied_cells" in state
-        assert state["state"]["leaves"] == 100
+        assert state["state"]["crystals"] == 150
         assert state["state"]["lives"] == 20
+        assert state["state"]["leaves"] == 150  # backward compat alias
 
 
 # --- Per-Group Spawn Timer Tests ---
@@ -470,8 +475,10 @@ class TestPerGroupSpawnTimers:
         game.enemies.clear()
         game.update(0.016)
 
-        game.start_wave()  # wave 2 (no group_intervals)
-        assert game._group_spawn_timers == {}
+        # Wave 2 has group_intervals (SPRINTER + FLY)
+        game.start_wave()
+        assert EnemyType.SPRINTER in game._group_spawn_timers
+        assert EnemyType.FLY in game._group_spawn_timers
 
         game.wave_enemies_remaining.clear()
         game.enemies.clear()
