@@ -39,7 +39,7 @@ export function getLegalMoves(board, color) {
       const piece = board[r][c];
       if (!piece || piece.color !== color) continue;
       const pieceMoves = piece.king ? kingDirs : dirs;
-      findCaptures(board, r, c, piece, pieceMoves, [], moves);
+      findCaptures(board, r, c, piece, pieceMoves, [], moves, r, c);
     }
   }
   if (moves.length) return moves;
@@ -61,7 +61,7 @@ export function getLegalMoves(board, color) {
   return moves;
 }
 
-function findCaptures(board, r, c, piece, dirs, path, moves) {
+function findCaptures(board, r, c, piece, dirs, path, moves, startR, startC) {
   let found = false;
   for (const [dr, dc] of dirs) {
     const midR = r + dr, midC = c + dc;
@@ -76,7 +76,7 @@ function findCaptures(board, r, c, piece, dirs, path, moves) {
       board[landR][landC] = piece;
       board[r][c] = null;
       const newPath = [...path, [midR, midC]];
-      findCaptures(board, landR, landC, piece, dirs, newPath, moves);
+      findCaptures(board, landR, landC, piece, dirs, newPath, moves, startR, startC);
       // Undo
       board[r][c] = piece;
       board[landR][landC] = null;
@@ -84,7 +84,7 @@ function findCaptures(board, r, c, piece, dirs, path, moves) {
     }
   }
   if (!found && path.length > 0) {
-    moves.push({ from: path[0].slice(0,2), to: [r,c], capture: true, captured: path });
+    moves.push({ from: [startR, startC], to: [r,c], capture: true, captured: path });
   }
 }
 
