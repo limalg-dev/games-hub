@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse, Response
 from sqlmodel import Session, select
 import json
-from app.models import Game
+from app.models import Game, PlayerRating
 from app.schemas import GameRead, GameCreate, WordCreate, WordRead
 from app.websocket import websocket_endpoint
 from app.database import engine, init_db
@@ -166,4 +166,31 @@ async def get_game(game_id: str):
             raise HTTPException(status_code=404, detail="Game not found")
         return game
 
-app.websocket("/ws/{game_id}")(websocket_endpoint)
+@app.get("/api/ratings/{player_id}")
+async def get_player_ratings(player_id: str, game_type: str = "checkers"):
+    """Return all ELO ratings for a player across difficulties."""
+    with Session(engine) as session:
+        records = session.exec(
+            select(PlayerRating).where(
+                PlayerRating.player_id == player_id,
+                PlayerRating.game_type == game_type,
+            )
+        ).all()
+        return {
+            "player_id": player_id,
+            "game_type": game_type,
+            "ratings": {
+                r.difficulty: {
+                    "rating": r.rating,
+                    "wins": r.wins,
+                    "losses": r.losses,
+                    "draws": r.draws,
+                    "games_played": r.games_played,
+                    "peak_rating": r.peak_rating,
+                }
+                for r in records
+            },
+        }
+
+
+@app.websocket("/ws/{game_id}")(websocket_endpoint)
