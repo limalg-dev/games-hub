@@ -25,6 +25,47 @@ const STATE = {
   }
 };
 
+// ===== PLAYER ID (stable across sessions) =====
+function getPlayerId() {
+  let pid = localStorage.getItem('checkers_player_id');
+  if (!pid) {
+    pid = crypto.randomUUID ? crypto.randomUUID().replace(/-/g, '').slice(0, 16) : Math.random().toString(36).slice(2, 18);
+    localStorage.setItem('checkers_player_id', pid);
+  }
+  return pid;
+}
+const PLAYER_ID = getPlayerId();
+
+// ===== ELO HELPERS =====
+let currentEloRatings = {};
+
+async function fetchEloRatings() {
+  try {
+    const res = await fetch(`/api/ratings/${PLAYER_ID}?game_type=checkers`);
+    if (!res.ok) return;
+    const data = await res.json();
+    currentEloRatings = data.ratings || {};
+    updateEloPanel();
+  } catch (e) { console.warn('Failed to fetch ELO:', e); }
+}
+
+function updateEloPanel() {
+  const el = document.getElementById('elo-rating');
+  const rec = document.getElementById('elo-record');
+  const peak = document.getElementById('elo-peak');
+  if (!el) return;
+  const r = currentEloRatings[checkersDifficulty];
+  if (r) {
+    el.textContent = r.rating;
+    rec.textContent = `V: ${r.wins} / D: ${r.losses} / E: ${r.draws}`;
+    peak.textContent = `Recorde: ${r.peak_rating} (${r.games_played} jogos)`;
+  } else {
+    el.textContent = '1000';
+    rec.textContent = 'V: 0 / D: 0 / E: 0';
+    peak.textContent = 'Novo jogador';
+  }
+}
+
 // ===== DOM REFS =====
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
@@ -93,11 +134,31 @@ function showView(view) {
   if (!gameActive) hideGameOver();
 }
 
-function showGameOver(title, message) {
+function showGameOver(title, message, eloData) {
   if (!gameOverOverlay) return;
   gameOverTitle.textContent = title;
+  gameOverTitle.className = 'game-over-title ' + (eloData ? (eloData.result === 'win' ? 'win' : 'loss') : '');
   gameOverMessage.textContent = message;
+
+  const eloChange = document.getElementById('elo-change');
+  const eloNew = document.getElementById('elo-new-rating');
+  const eloStats = document.getElementById('elo-stats-line');
+  const eloSummary = document.getElementById('elo-summary');
+
+  if (eloData && eloChange && eloNew && eloStats && eloSummary) {
+    eloSummary.classList.remove('hidden');
+    const sign = eloData.change > 0 ? '+' : '';
+    eloChange.textContent = `${sign}${eloData.change}`;
+    eloChange.className = 'elo-change ' + (eloData.change > 0 ? 'positive' : eloData.change < 0 ? 'negative' : 'neutral');
+    eloNew.textContent = `${eloData.new_rating} ELO  (vs ${eloData.opponent_name} ${eloData.opponent_rating})`;
+    eloStats.textContent = `${eloData.games_played} jogos  ·  V: ${eloData.wins}  D: ${eloData.losses}  E: ${eloData.draws}  ·  Recorde: ${eloData.peak_rating}`;
+  } else if (eloSummary) {
+    eloSummary.classList.add('hidden');
+  }
+
   gameOverOverlay.classList.remove('hidden');
+  // Refresh sidebar ELO
+  fetchEloRatings();
 }
 
 function hideGameOver() {
@@ -579,6 +640,7 @@ window.setCheckersDifficulty = function(diff) {
   const desc = document.getElementById('ai-diff-desc');
   const labels = { easy: 'Profundidade: 2', medium: 'Profundidade: 3', hard: 'Profundidade: 5' };
   if (desc) desc.textContent = labels[diff] || '';
+  updateEloPanel();
   // Send to server if connected
   if (STATE.game.ws && STATE.game.ws.readyState === WebSocket.OPEN) {
     STATE.game.ws.send(JSON.stringify({ type: 'set_difficulty', difficulty: diff }));

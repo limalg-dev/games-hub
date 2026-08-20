@@ -66,6 +66,12 @@
     </header>
     <main class="game-main">
       <aside class="sidebar" id="sidebar" aria-label="Game info">
+        <section class="panel elo-panel" id="elo-panel">
+          <h4>🏅 Ranking</h4>
+          <div class="elo-rating" id="elo-rating">—</div>
+          <div class="elo-record" id="elo-record">V: 0 / D: 0 / E: 0</div>
+          <div class="elo-peak" id="elo-peak"></div>
+        </section>
         <section class="panel difficulty-select" id="ai-difficulty-panel">
           <h4>Dificuldade da IA</h4>
           <div class="diff-buttons">
@@ -94,6 +100,23 @@
       </div>
     </main>
   </section>
+
+  <!-- ===== GAME OVER OVERLAY ===== -->
+  <div class="game-over-overlay hidden" id="game-over-overlay">
+    <div class="game-over-content">
+      <div class="game-over-title" id="game-over-title"></div>
+      <div class="game-over-message" id="game-over-message"></div>
+      <div class="elo-summary" id="elo-summary">
+        <div class="elo-change" id="elo-change"></div>
+        <div class="elo-new-rating" id="elo-new-rating"></div>
+        <div class="elo-stats-line" id="elo-stats-line"></div>
+      </div>
+      <div class="game-over-actions">
+        <button class="btn-primary" id="btn-game-over-again">Jogar Novamente</button>
+        <button class="btn-secondary" id="btn-game-over-back">Voltar</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="/static/app.js?v=2"></script>
 </body>

@@ -375,7 +375,7 @@ export class CheckersGame {
     } else if (msg.type === 'board') {
       this.animateToBoard(msg.board);
     } else if (msg.type === 'game_over') {
-      this.handleGameOver(msg.winner, msg.reason);
+      this.handleGameOver(msg.winner, msg.reason, msg.elo);
     } else if (msg.type === 'error') {
       console.warn('Server error:', msg.message);
     }
