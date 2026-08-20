@@ -130,3 +130,6 @@ Covers the API, WebSocket flow (checkers + crossword), crossword generator/word 
 ## License
 
 MIT
+
+---
+_Repo: limalg-dev/games-hub_
