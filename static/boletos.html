@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gerador de Boletos - Teste</title>
+  <title>Boletos Online - Teste</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0e27; color: #e0e0e0; min-height: 100vh; }
@@ -41,7 +41,7 @@
       margin-bottom: 32px; padding-bottom: 16px; border-bottom: 1px solid #1e2350;
     }
     .dash-header h2 { font-size: 1.4rem; color: #fff; }
-    .dash-header .user-badge {
+    .user-badge {
       background: #1a1f45; border: 1px solid #2a2f5a; border-radius: 20px;
       padding: 8px 18px; font-size: .85rem; color: #9a9ec0;
     }
@@ -51,48 +51,44 @@
     }
     .logout-btn:hover { background: #3a2a4a; }
 
-    .actions-bar {
-      display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap;
+    /* --- Download Area --- */
+    .download-card {
+      background: #111638; border: 1px solid #2a2f5a; border-radius: 16px;
+      padding: 48px; text-align: center; max-width: 600px; margin: 40px auto;
+      box-shadow: 0 4px 20px rgba(0,0,0,.3);
     }
-    .action-btn {
-      padding: 12px 24px; border-radius: 10px; border: none; font-size: .95rem;
-      font-weight: 600; cursor: pointer; transition: all .2s;
-    }
-    .btn-generate { background: #22c55e; color: #fff; }
-    .btn-generate:hover { background: #16a34a; }
-    .btn-logs { background: #4a7cff; color: #fff; }
-    .btn-logs:hover { background: #3a6aee; }
-
-    /* --- Boletos Table --- */
-    .table-wrapper {
-      background: #111638; border: 1px solid #2a2f5a; border-radius: 12px;
-      overflow-x: auto; margin-bottom: 28px;
-    }
-    table { width: 100%; border-collapse: collapse; }
-    th {
-      background: #0d1030; padding: 14px 16px; text-align: left; font-size: .8rem;
-      color: #7a7faa; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap;
-    }
-    td { padding: 12px 16px; border-top: 1px solid #1a1f45; font-size: .9rem; white-space: nowrap; }
-    tr:hover td { background: #151a42; }
-    .badge {
-      display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: .75rem;
-      font-weight: 700;
-    }
-    .badge-bank { background: #1a2a4a; color: #60a5fa; }
-    .badge-valor { background: #1a3a2a; color: #4ade80; }
-    .badge-venc { background: #3a2a1a; color: #fbbf24; }
+    .download-card .icon { font-size: 4rem; margin-bottom: 20px; }
+    .download-card h3 { font-size: 1.3rem; color: #fff; margin-bottom: 12px; }
+    .download-card p { color: #7a7faa; margin-bottom: 32px; font-size: .9rem; line-height: 1.6; }
 
     .dl-btn {
-      background: #1a2a4a; border: 1px solid #3a4a6a; color: #60a5fa; padding: 6px 14px;
-      border-radius: 6px; cursor: pointer; font-size: .8rem; font-weight: 600; transition: all .2s;
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 16px 36px; border: none; border-radius: 12px;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff; font-size: 1.1rem; font-weight: 700; cursor: pointer;
+      transition: all .3s; box-shadow: 0 4px 15px rgba(34,197,94,.3);
     }
-    .dl-btn:hover { background: #2a3a5a; }
+    .dl-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(34,197,94,.4); }
+    .dl-btn:active { transform: translateY(0); }
+    .dl-btn .icon { font-size: 1.3rem; }
+
+    .download-info {
+      margin-top: 24px; padding: 16px; background: #0d1030; border-radius: 8px;
+      font-size: .8rem; color: #4a5a7a; text-align: left;
+    }
+    .download-info strong { color: #7a7faa; }
 
     /* --- Logs Panel --- */
+    .logs-toggle {
+      display: block; margin: 20px auto; padding: 12px 24px; border: 1px solid #2a2f5a;
+      background: transparent; color: #7a7faa; border-radius: 8px; cursor: pointer;
+      font-size: .85rem; transition: all .2s;
+    }
+    .logs-toggle:hover { border-color: #4a7cff; color: #4a7cff; }
+
     .logs-panel {
       display: none; background: #111638; border: 1px solid #2a2f5a;
-      border-radius: 12px; padding: 24px; margin-bottom: 28px;
+      border-radius: 12px; padding: 24px; margin: 20px auto; max-width: 800px;
     }
     .logs-panel h3 { margin-bottom: 16px; color: #9a9ec0; font-size: 1rem; }
     .log-entry {
@@ -107,7 +103,7 @@
 
     @media (max-width: 600px) {
       .login-box { padding: 32px 24px; }
-      .actions-bar { flex-direction: column; }
+      .download-card { padding: 32px 24px; margin: 20px; }
     }
   </style>
 </head>
@@ -144,36 +140,34 @@
       </div>
     </div>
 
-    <div class="actions-bar">
-      <button class="action-btn btn-generate" onclick="generateBoletos()">⚡ Gerar Boletos</button>
-      <button class="action-btn btn-logs" onclick="toggleLogs()">📋 Ver Logs de Download</button>
+    <!-- Download Card -->
+    <div class="download-card">
+      <div class="icon">📄</div>
+      <h3>Gerar Boleto</h3>
+      <p>
+        Clique no botão abaixo para gerar e baixar um boleto aleatório em formato PDF.
+        Cada clique gera um novo boleto com banco, valor e vencimento diferentes.
+      </p>
+      <button class="dl-btn" onclick="downloadRandomBoleto()" id="dlBtn">
+        <span class="icon">⬇</span>
+        Baixar Boleto PDF
+      </button>
+      <div class="download-info">
+        <strong>ℹ️ Informações:</strong><br>
+        • Cada download gera um boleto com dados aleatórios<br>
+        • Banco, valor, vencimento e descrição mudam a cada clique<br>
+        • O boleto é gerado no formato PDF padrão bancário<br>
+        • Todos os downloads são registrados nos logs
+      </div>
     </div>
+
+    <!-- Logs Toggle -->
+    <button class="logs-toggle" onclick="toggleLogs()">📋 Ver Logs de Download</button>
 
     <!-- Logs Panel -->
     <div class="logs-panel" id="logsPanel">
       <h3>📋 Log de Downloads</h3>
       <div id="logsList"><p class="empty-state">Nenhum download registrado ainda.</p></div>
-    </div>
-
-    <!-- Boletos Table -->
-    <div class="table-wrapper" id="boletosWrapper" style="display:none;">
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Código de Barras</th>
-            <th>Banco</th>
-            <th>Valor (R$)</th>
-            <th>Vencimento</th>
-            <th>Descrição</th>
-            <th>Download</th>
-          </tr>
-        </thead>
-        <tbody id="boletosBody"></tbody>
-      </table>
-    </div>
-    <div id="emptyState" class="empty-state" style="display:none;">
-      Clique em <strong>Gerar Boletos</strong> para criar boletos de teste.
     </div>
   </div>
 
@@ -200,8 +194,6 @@
         document.getElementById('dashboard').style.display = 'block';
         document.getElementById('userBadge').textContent = `👤 ${user}`;
         errEl.style.display = 'none';
-        loadBoletos();
-        loadLogs();
       } catch { errEl.style.display = 'block'; }
     });
 
@@ -213,60 +205,37 @@
       document.getElementById('password').value = '';
     }
 
-    // --- Boletos ---
-    async function generateBoletos() {
+    // --- Download Random Boleto ---
+    async function downloadRandomBoleto() {
+      if (!token) { alert('Faça login primeiro.'); return; }
+      const btn = document.getElementById('dlBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="icon">⏳</span> Gerando...';
+
       try {
-        const res = await fetch(`${API}/generate`, {
-          method: 'POST',
+        const randomId = Math.random().toString(36).substring(2, 10);
+        const res = await fetch(`${API}/download/${randomId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        if (res.status === 401) { alert('Sessão expirada. Faça login novamente.'); logout(); return; }
-        loadBoletos();
-      } catch (err) { alert('Erro ao gerar boletos: ' + err.message); }
-    }
+        if (res.status === 401) { alert('Sessão expirada.'); logout(); return; }
+        if (!res.ok) { throw new Error('Erro ao gerar boleto'); }
 
-    async function loadBoletos() {
-      const res = await fetch(`${API}/boletos`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (res.status === 401) { logout(); return; }
-      const boletos = await res.json();
-      const body = document.getElementById('boletosBody');
-      const wrapper = document.getElementById('boletosWrapper');
-      const empty = document.getElementById('emptyState');
-      if (!boletos.length) {
-        wrapper.style.display = 'none';
-        empty.style.display = 'block';
-        return;
-      }
-      empty.style.display = 'none';
-      wrapper.style.display = 'block';
-      body.innerHTML = boletos.map((b, i) => `
-        <tr>
-          <td>${i + 1}</td>
-          <td style="font-family:monospace;font-size:.8rem;color:#9a9ec0">${b.barcode}</td>
-          <td><span class="badge badge-bank">${b.bank}</span></td>
-          <td><span class="badge badge-valor">R$ ${b.amount.toFixed(2).replace('.', ',')}</span></td>
-          <td><span class="badge badge-venc">${b.due_date}</span></td>
-          <td style="color:#b0b4d0;font-size:.85rem">${b.description}</td>
-          <td><button class="dl-btn" onclick="downloadBoleto('${b.id}')">⬇ Download</button></td>
-        </tr>
-      `).join('');
-    }
-
-    async function downloadBoleto(id) {
-      try {
-        const res = await fetch(`${API}/download/${id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.status === 401) { logout(); return; }
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url; a.download = `boleto_${id}.txt`; a.click();
+        a.href = url;
+        a.download = `boleto_${randomId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        loadLogs(); // refresh logs
-      } catch (err) { alert('Erro ao baixar: ' + err.message); }
+
+        btn.innerHTML = '<span class="icon">✅</span> Baixar Outro Boleto';
+      } catch (err) {
+        alert('Erro ao baixar: ' + err.message);
+        btn.innerHTML = '<span class="icon">⬇</span> Baixar Boleto PDF';
+      }
+      btn.disabled = false;
     }
 
     // --- Logs ---
@@ -277,6 +246,7 @@
     }
 
     async function loadLogs() {
+      if (!token) return;
       const res = await fetch(`${API}/logs`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
