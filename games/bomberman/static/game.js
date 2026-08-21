@@ -701,16 +701,16 @@ export class BombermanGame {
       }
     }
 
-    // Bomb collision: check against entity's ACTUAL center tile only.
-    // This ensures the isInside check always uses the correct bomb position,
-    // even when the entity is between tiles.
-    const ecr = Math.floor(entity.y / TILE);
-    const ecc = Math.floor(entity.x / TILE);
-    const bomb = this.bombs.find(b => b.r === ecr && b.c === ecc);
-    if (bomb) {
-      const isInside = Math.abs(x - (ecc * TILE + TILE / 2)) < TILE * 0.45 &&
-                       Math.abs(y - (ecr * TILE + TILE / 2)) < TILE * 0.45;
-      if (!isInside) return true;
+    // Bomb collision: block entities from entering a tile that has a bomb,
+    // but allow them to leave their own bomb tile.
+    const targetR = Math.floor(y / TILE);
+    const targetC = Math.floor(x / TILE);
+    const currentR = Math.floor(entity.y / TILE);
+    const currentC = Math.floor(entity.x / TILE);
+    // Only block if moving INTO a bomb tile (not already on it)
+    if (targetR !== currentR || targetC !== currentC) {
+      const bomb = this.bombs.find(b => b.r === targetR && b.c === targetC);
+      if (bomb) return true;
     }
 
     return false;
