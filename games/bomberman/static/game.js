@@ -82,6 +82,55 @@ class FloatingText {
   }
 }
 
+class Sparkle {
+  constructor(x, y, color, angle, speed, size, life) {
+    this.x = x;
+    this.y = y;
+    this.color = color;
+    this.vx = Math.cos(angle) * speed;
+    this.vy = Math.sin(angle) * speed;
+    this.size = size;
+    this.maxLife = life;
+    this.life = life;
+    this.rotation = Math.random() * Math.PI * 2;
+    this.rotSpeed = (Math.random() - 0.5) * 8;
+  }
+  update(dt) {
+    this.x += this.vx * dt * 60;
+    this.y += this.vy * dt * 60;
+    this.vx *= 0.96;
+    this.vy *= 0.96;
+    this.rotation += this.rotSpeed * dt;
+    this.life -= dt;
+    return this.life > 0;
+  }
+  draw(ctx) {
+    const t = 1 - (this.life / this.maxLife);
+    const alpha = Math.max(0, 1 - t * t);
+    const s = this.size * (1 - t * 0.5);
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.rotate(this.rotation);
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = this.color;
+    // Draw a 4-pointed star
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const a = (i * Math.PI) / 4;
+      const r = i % 2 === 0 ? s : s * 0.4;
+      ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+    }
+    ctx.closePath();
+    ctx.fill();
+    // Bright center glow
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.beginPath();
+    ctx.arc(0, 0, s * 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
 export class BombermanGame {
   constructor() {
     this.canvas = document.getElementById('gameCanvas');
@@ -105,6 +154,7 @@ export class BombermanGame {
     this.flames = [];
     this.particles = [];
     this.floatingTexts = [];
+    this.sparkles = [];
 
     this.timer = 120;
     this.state = 'start'; // 'start', 'playing', 'paused', 'game_over', 'stage_clear', 'match_win', 'round_over'
@@ -112,6 +162,9 @@ export class BombermanGame {
     this.suddenDeathStarted = false;
     this.suddenDeathIndex = 0;
     this.suddenDeathTimer = 0;
+
+    // Screen shake
+    this.shake = { x: 0, y: 0, intensity: 0, duration: 0 };
 
     this.keys = {};
     this.touchInput = { up: false, down: false, left: false, right: false, bomb: false, remote: false };
@@ -317,10 +370,12 @@ export class BombermanGame {
     this.flames = [];
     this.particles = [];
     this.floatingTexts = [];
+    this.sparkles = [];
     this.suddenDeathStarted = false;
     this.suddenDeathIndex = 0;
     this.suddenDeathTimer = 0;
     this.exitRevealed = false;
+    this.shake = { x: 0, y: 0, intensity: 0, duration: 0 };
 
     this.timer = this.mode === 'battle' ? 120 : (200 - this.stage * 10);
     this.generateArena();
@@ -419,6 +474,7 @@ export class BombermanGame {
       facing: 'down',
       animStep: 0,
       invulnTimer: 0,
+      bombFlash: 0,
     };
     this.players.push(p1);
 
@@ -448,6 +504,7 @@ export class BombermanGame {
           facing: 'down',
           animStep: 0,
           invulnTimer: 0,
+          bombFlash: 0,
           botThinkTimer: Math.random() * 0.5,
           botMoveDir: null,
         });
@@ -520,6 +577,19 @@ export class BombermanGame {
       this.updateSuddenDeath(dt);
     }
 
+    // Update screen shake
+    if (this.shake.duration > 0) {
+      this.shake.duration -= dt;
+      const t = Math.max(0, this.shake.duration / 0.35);
+      this.shake.intensity *= (0.85 + t * 0.1); // decays faster as it fades
+      this.shake.x = (Math.random() * 2 - 1) * this.shake.intensity;
+      this.shake.y = (Math.random() * 2 - 1) * this.shake.intensity;
+    } else {
+      this.shake.x = 0;
+      this.shake.y = 0;
+      this.shake.intensity = 0;
+    }
+
     this.updatePlayers(dt);
     this.updateMonsters(dt);
     this.updateBombs(dt);
@@ -527,6 +597,7 @@ export class BombermanGame {
 
     this.particles = this.particles.filter(p => p.update(dt));
     this.floatingTexts = this.floatingTexts.filter(t => t.update(dt));
+    this.sparkles = this.sparkles.filter(s => s.update(dt));
 
     this.checkWinConditions();
     this.updateHUD();
@@ -536,6 +607,7 @@ export class BombermanGame {
     this.players.forEach(p => {
       if (!p.alive) return;
       if (p.invulnTimer > 0) p.invulnTimer -= dt;
+      if (p.bombFlash > 0) p.bombFlash -= dt;
 
       if (p.isBot) {
         this.updateBot(p, dt);
@@ -626,15 +698,21 @@ export class BombermanGame {
         if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return true;
         const cell = this.grid[r][c];
         if (cell === WALL || cell === CRATE) return true;
-
-        const bomb = this.bombs.find(b => b.r === r && b.c === c);
-        if (bomb) {
-          const isInside = Math.abs(entity.x - (c * TILE + TILE / 2)) < TILE * 0.45 &&
-                           Math.abs(entity.y - (r * TILE + TILE / 2)) < TILE * 0.45;
-          if (!isInside) return true;
-        }
       }
     }
+
+    // Bomb collision: check against entity's ACTUAL center tile only.
+    // This ensures the isInside check always uses the correct bomb position,
+    // even when the entity is between tiles.
+    const ecr = Math.floor(entity.y / TILE);
+    const ecc = Math.floor(entity.x / TILE);
+    const bomb = this.bombs.find(b => b.r === ecr && b.c === ecc);
+    if (bomb) {
+      const isInside = Math.abs(x - (ecc * TILE + TILE / 2)) < TILE * 0.45 &&
+                       Math.abs(y - (ecr * TILE + TILE / 2)) < TILE * 0.45;
+      if (!isInside) return true;
+    }
+
     return false;
   }
 
@@ -672,6 +750,7 @@ export class BombermanGame {
 
     this.bombs.push(bomb);
     player.activeBombs++;
+    player.bombFlash = 0.35;
     sound.playBombDrop();
   }
 
@@ -757,6 +836,29 @@ export class BombermanGame {
         Math.random() * 6 + 3,
         0.4
       ));
+    }
+
+    // Screen shake — intensity scales with proximity to nearest player
+    const bx = bomb.c * TILE + TILE / 2;
+    const by = bomb.r * TILE + TILE / 2;
+    let minDist = Infinity;
+    for (const p of this.players) {
+      if (!p.alive) continue;
+      const dx = p.x - bx;
+      const dy = p.y - by;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < minDist) minDist = dist;
+    }
+    // Max shake at 0 tiles, fades to 0 at ~6 tiles away
+    const maxShakeDist = 6 * TILE;
+    if (minDist < maxShakeDist) {
+      const proximity = 1 - (minDist / maxShakeDist);
+      const intensity = 2 + proximity * 8; // 2px (far) → 10px (on top)
+      const duration = 0.15 + proximity * 0.2; // 150ms → 350ms
+      if (intensity > this.shake.intensity) {
+        this.shake.intensity = intensity;
+        this.shake.duration = duration;
+      }
     }
   }
 
@@ -879,6 +981,18 @@ export class BombermanGame {
 
       this.score += 100;
       this.floatingTexts.push(new FloatingText(p.x, p.y - 20, label, '#4ade80'));
+
+      // Sparkle burst at pickup location
+      const sparkleColors = ['#ffd700', '#fff200', '#ffec80', '#ffffff', '#7df9ff'];
+      const count = 12 + Math.floor(Math.random() * 6);
+      for (let i = 0; i < count; i++) {
+        const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+        const speed = 1.5 + Math.random() * 3;
+        const size = 3 + Math.random() * 4;
+        const life = 0.3 + Math.random() * 0.4;
+        const color = sparkleColors[Math.floor(Math.random() * sparkleColors.length)];
+        this.sparkles.push(new Sparkle(p.x, p.y, color, angle, speed, size, life));
+      }
     }
   }
 
@@ -1233,6 +1347,12 @@ export class BombermanGame {
     this.ctx.fillStyle = '#0f1423';
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
+    // Apply screen shake offset
+    this.ctx.save();
+    if (this.shake.intensity > 0.5) {
+      this.ctx.translate(this.shake.x, this.shake.y);
+    }
+
     this.drawGrid();
     this.drawExitDoor();
     this.drawPowerups();
@@ -1241,7 +1361,10 @@ export class BombermanGame {
     this.drawMonsters();
     this.drawPlayers();
     this.drawParticles();
+    this.drawSparkles();
     this.drawFloatingTexts();
+
+    this.ctx.restore();
   }
 
   drawGrid() {
@@ -1439,6 +1562,33 @@ export class BombermanGame {
       const c = p.color;
 
       this.ctx.save();
+
+      // Bomb placement flash — expanding shockwave ring + player blink
+      if (p.bombFlash > 0) {
+        const t = 1 - (p.bombFlash / 0.35); // 0→1 over duration
+        const radius = 12 + t * 22;
+        const alpha = (1 - t) * 0.7;
+        this.ctx.save();
+        this.ctx.strokeStyle = `rgba(255, 200, 60, ${alpha})`;
+        this.ctx.lineWidth = 3 * (1 - t);
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+        this.ctx.stroke();
+        // Inner glow
+        this.ctx.fillStyle = `rgba(255, 255, 200, ${alpha * 0.25})`;
+        this.ctx.beginPath();
+        this.ctx.arc(cx, cy, radius * 0.6, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.restore();
+        // Brief white blink on the player sprite
+        if (t < 0.3) {
+          this.ctx.globalAlpha = 0.6;
+          this.ctx.fillStyle = 'rgba(255, 255, 220, 0.5)';
+          this.ctx.beginPath();
+          this.ctx.arc(cx, cy, 18, 0, Math.PI * 2);
+          this.ctx.fill();
+        }
+      }
 
       if (p.invulnTimer > 0 && Math.floor(p.invulnTimer * 10) % 2 === 0) {
         this.ctx.globalAlpha = 0.4;

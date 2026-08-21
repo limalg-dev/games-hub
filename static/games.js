@@ -211,9 +211,9 @@ function playerLabel(players) {
   return players === 1 ? '1 Jogador' : `${players} Jogadores`;
 }
 
-export function gameCard(game) {
+export function gameCard(game, index) {
   return `
-    <article class="game-card" data-game="${game.id}">
+    <article class="game-card reveal" data-game="${game.id}">
       <div class="game-thumb">
         ${renderThumbnail(game)}
       </div>
@@ -227,8 +227,7 @@ export function gameCard(game) {
       </div>
       <button class="btn-card" data-game="${game.id}">Jogar Agora</button>
       ${gameHoverOverlay(game)}
-    </article>
-  `;
+    </article>`;
 }
 
 function generateGamePreviewSVG(gameId) {

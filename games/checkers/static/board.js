@@ -303,6 +303,9 @@ export class CheckersGame {
     // Multi-capture chain state
     this.captureChain = null;  // { pieceR, pieceC, capturedSoFar: [[r,c],...] }
 
+    // Pending move state (for rollback on server error)
+    this.pendingMove = null;  // { from, to, savedBoard, savedTurn }
+
     // King promotion animation
     this.kingPromotion = null;
 
@@ -378,10 +381,13 @@ export class CheckersGame {
       this.handleGameOver(msg.winner, msg.reason, msg.elo);
     } else if (msg.type === 'error') {
       console.warn('Server error:', msg.message);
+      this._revertPendingMove(msg.message);
     }
   }
 
   animateToBoard(rawBoard) {
+    // Board update received — move was accepted, clear pending state
+    this.pendingMove = null;
     const newBoard = normalizeServerBoard(rawBoard);
     let from = null, to = null, captured = null;
     for (let r = 0; r < 8; r++) {
@@ -502,6 +508,31 @@ export class CheckersGame {
     this.captureChain = null;
     this.selectedSquare = null;
     this.validMoves = [];
+  }
+
+  _revertPendingMove(errorMessage) {
+    if (!this.pendingMove) return;
+    const { savedBoard, savedTurn } = this.pendingMove;
+    this.board = savedBoard;
+    this.turn = savedTurn;
+    this.pendingMove = null;
+    this.updateTurnIndicator();
+    this.render();
+    // Brief flash to indicate the rejection
+    this._showErrorFlash(errorMessage);
+  }
+
+  _showErrorFlash(message) {
+    const el = document.getElementById('turn-indicator');
+    if (!el) return;
+    const prev = el.textContent;
+    el.textContent = `❌ ${message}`;
+    el.style.color = '#e74c3c';
+    setTimeout(() => {
+      el.textContent = prev;
+      el.style.color = '';
+      this.updateTurnIndicator();
+    }, 2000);
   }
 
   // ── Mouse ──
@@ -684,8 +715,19 @@ export class CheckersGame {
       }
     }
 
-    // No more captures — send the complete move to server
+    // No more captures — save pre-move state for rollback, then send to server
+    this.pendingMove = {
+      from,
+      to,
+      savedBoard: this.board.map(row => row.map(p => p ? {...p} : null)),
+      savedTurn: this.turn,
+    };
     this.sendMove(from, to);
+    // Switch turn immediately on client so the UI reflects the correct state.
+    // The server board broadcast will match our local board (no animation needed),
+    // and without this the turn would only switch on the AI's response — off by one.
+    this.turn = this.turn === 'w' ? 'b' : 'w';
+    this.updateTurnIndicator();
     this._endCaptureChain();
   }
 
@@ -751,10 +793,10 @@ export class CheckersGame {
     }
   }
 
-  handleGameOver(winner, reason = null) {
+  handleGameOver(winner, reason = null, elo = null) {
     this.gameOver = true;
     if (typeof this.onGameOver === 'function') {
-      this.onGameOver(winner, reason);
+      this.onGameOver(winner, reason, elo);
     }
   }
 }

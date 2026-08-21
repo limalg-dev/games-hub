@@ -322,7 +322,14 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 if (fr, to) not in legal_moves:
                     await manager.send_personal(websocket, {"type": "error", "message": "Illegal move"})
                     continue
-                board.apply_move(fr, to)
+                # Find the matching CheckersMove to get the captured list for multi-capture chains
+                matched_move = None
+                for m in legal_moves:
+                    if m["from"] == fr and m["to"] == to:
+                        matched_move = m
+                        break
+                captured_list = matched_move.get("captured") if matched_move else None
+                board.apply_move(fr, to, captured=captured_list)
                 manager.turn[game_id] = "b" if color == "w" else "w"
                 await manager.broadcast(game_id, {"type": "board", "board": board.board})
                 # check win

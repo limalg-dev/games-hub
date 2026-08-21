@@ -100,6 +100,16 @@ const gameOverMessage = $('#game-over-message');
 const btnGameOverAgain = $('#btn-game-over-again');
 const btnGameOverBack = $('#btn-game-over-back');
 
+// ===== SCROLL REVEAL =====
+const revealObserver = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
 // Save original board/sidebar HTML for restoration after wordsearch
 const ORIGINAL_BOARD_HTML = boardWrapper ? boardWrapper.innerHTML : '';
 const ORIGINAL_SIDEBAR_HTML = sidebar ? sidebar.innerHTML : '';
@@ -117,8 +127,17 @@ function restoreBoard() {
 // do jogo em /play/*.
 function setPageVisible(page, visible) {
   if (!page) return;
-  page.classList.toggle('active', visible);
-  page.classList.toggle('hidden', !visible);
+  if (!visible && page.classList.contains('active')) {
+    // Smooth fade-out before hiding
+    page.classList.add('leaving');
+    page.addEventListener('animationend', () => {
+      page.classList.remove('active', 'leaving');
+      page.classList.add('hidden');
+    }, { once: true });
+  } else {
+    page.classList.remove('leaving', 'hidden');
+    page.classList.toggle('active', visible);
+  }
 }
 
 function showView(view) {
@@ -297,6 +316,7 @@ async function startGame(gameId) {
   const resp = await fetch('/games', { method: 'POST' });
   const data = await resp.json();
   STATE.game.id = data.id;
+  fetchEloRatings();
   connectWebSocket();
 }
 
@@ -555,6 +575,31 @@ categoryToggle?.addEventListener('click', () => {
   categoryToggle?.setAttribute('aria-label', open ? 'Fechar categorias' : 'Abrir categorias');
 });
 
+// ===== SCROLL-AWARE STICKY NAV =====
+const categoryNav = document.querySelector('.category-nav');
+if (categoryNav) {
+  let lastScroll = 0;
+  window.addEventListener('scroll', () => {
+    const scrollY = window.scrollY;
+    categoryNav.classList.toggle('scrolled', scrollY > 80);
+    lastScroll = scrollY;
+  }, { passive: true });
+}
+
+// ===== HERO CTA SMOOTH SCROLL =====
+const heroCtaBtn = document.getElementById('hero-cta-btn');
+if (heroCtaBtn) {
+  heroCtaBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const target = document.getElementById('game-grid');
+    if (target) {
+      const navHeight = categoryNav ? categoryNav.offsetHeight : 0;
+      const targetTop = target.getBoundingClientRect().top + window.scrollY - navHeight - 16;
+      window.scrollTo({ top: targetTop, behavior: 'smooth' });
+    }
+  });
+}
+
 // ===== INIT =====
 function init() {
   renderCategoryTabs();
@@ -625,7 +670,14 @@ async function openPlayGate(play) {
 
 function renderGameGrid(category) {
   const games = gamesByCategory(category || activeCategory);
+  // Hide loading skeletons
+  const skeletons = document.querySelectorAll('.game-skeleton');
+  skeletons.forEach(s => s.classList.add('hidden-skeleton'));
   gameGrid.innerHTML = games.map(gameCard).join('');
+  // Trigger scroll-reveal for newly rendered cards
+  requestAnimationFrame(() => {
+    gameGrid.querySelectorAll('.reveal').forEach(el => revealObserver.observe(el));
+  });
 }
 
 // ===== WEBSOCKET =====
@@ -684,7 +736,7 @@ function handleCheckersMessage(msg, ws) {
     }
     checkersGame.init(STATE.game.id, ws);
     checkersGame.setMyColor(msg.color);
-    checkersGame.onGameOver = (winner, reason) => {
+    checkersGame.onGameOver = (winner, reason, elo) => {
       let title = 'Fim de Jogo';
       let message = '';
       if (reason === 'resign') {
@@ -704,7 +756,7 @@ function handleCheckersMessage(msg, ws) {
           message = 'Você perdeu esta partida.';
         }
       }
-      showGameOver(title, message);
+      showGameOver(title, message, elo);
     };
   } else if (checkersGame) {
     checkersGame.handleMessage(msg);
