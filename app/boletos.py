@@ -523,7 +523,7 @@ async def download_boleto(
     _add_log(
         ip,
         "DOWNLOAD",
-        f"Boleto '{boleto_id}' ({boleto['bank']}, R$ {amount:.2f}) baixado em PDF",
+        f"Boleto '{boleto_id}' ({boleto['bank_name']}, R$ {amount:.2f}) baixado em PDF",
     )
 
     return Response(
