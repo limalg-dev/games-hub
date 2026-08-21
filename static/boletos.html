@@ -51,15 +51,45 @@
     }
     .logout-btn:hover { background: #3a2a4a; }
 
-    /* --- Download Area --- */
+    /* --- Menu --- */
+    .menu-title {
+      text-align: center; font-size: 1.1rem; color: #7a7faa; margin-bottom: 24px;
+    }
+    .menu-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 16px; max-width: 900px; margin: 0 auto 32px;
+    }
+    .menu-card {
+      background: #111638; border: 1px solid #2a2f5a; border-radius: 14px;
+      padding: 28px 20px; text-align: center; cursor: pointer; transition: all .25s;
+      display: flex; flex-direction: column; align-items: center; gap: 12px;
+    }
+    .menu-card:hover {
+      border-color: #4a7cff; transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(74,124,255,.15);
+    }
+    .menu-card .icon { font-size: 2.4rem; }
+    .menu-card .label { font-size: .95rem; font-weight: 600; color: #e0e0e0; }
+    .menu-card .desc { font-size: .78rem; color: #5a5f8a; line-height: 1.4; }
+
+    /* --- Boleto Download Page --- */
+    .boleto-page { display: none; max-width: 700px; margin: 0 auto; }
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 20px; border: 1px solid #2a2f5a; background: transparent;
+      color: #7a7faa; border-radius: 8px; cursor: pointer; font-size: .85rem;
+      margin-bottom: 24px; transition: all .2s;
+    }
+    .back-btn:hover { border-color: #4a7cff; color: #4a7cff; }
+
     .download-card {
       background: #111638; border: 1px solid #2a2f5a; border-radius: 16px;
-      padding: 48px; text-align: center; max-width: 600px; margin: 40px auto;
-      box-shadow: 0 4px 20px rgba(0,0,0,.3);
+      padding: 48px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,.3);
     }
-    .download-card .icon { font-size: 4rem; margin-bottom: 20px; }
-    .download-card h3 { font-size: 1.3rem; color: #fff; margin-bottom: 12px; }
-    .download-card p { color: #7a7faa; margin-bottom: 32px; font-size: .9rem; line-height: 1.6; }
+    .download-card .boleto-icon { font-size: 4rem; margin-bottom: 16px; }
+    .download-card .boleto-title { font-size: 1.3rem; color: #fff; margin-bottom: 8px; }
+    .download-card .boleto-sub { color: #7a7faa; margin-bottom: 8px; font-size: .9rem; }
+    .download-card .boleto-desc { color: #5a5f8a; margin-bottom: 32px; font-size: .82rem; line-height: 1.5; }
 
     .dl-btn {
       display: inline-flex; align-items: center; gap: 10px;
@@ -70,11 +100,11 @@
     }
     .dl-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(34,197,94,.4); }
     .dl-btn:active { transform: translateY(0); }
-    .dl-btn .icon { font-size: 1.3rem; }
+    .dl-btn .dl-icon { font-size: 1.3rem; }
 
     .download-info {
       margin-top: 24px; padding: 16px; background: #0d1030; border-radius: 8px;
-      font-size: .8rem; color: #4a5a7a; text-align: left;
+      font-size: .78rem; color: #4a5a7a; text-align: left; line-height: 1.6;
     }
     .download-info strong { color: #7a7faa; }
 
@@ -103,7 +133,9 @@
 
     @media (max-width: 600px) {
       .login-box { padding: 32px 24px; }
-      .download-card { padding: 32px 24px; margin: 20px; }
+      .download-card { padding: 32px 24px; }
+      .menu-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+      .menu-card { padding: 20px 14px; }
     }
   </style>
 </head>
@@ -133,49 +165,137 @@
   <!-- ========== DASHBOARD ========== -->
   <div class="dashboard" id="dashboard">
     <div class="dash-header">
-      <h2>📄 Gerador de Boletos</h2>
+      <h2>📄 Boletos Online</h2>
       <div style="display:flex;gap:12px;align-items:center">
         <span class="user-badge" id="userBadge">👤 user-boleto</span>
         <button class="logout-btn" onclick="logout()">Sair</button>
       </div>
     </div>
 
-    <!-- Download Card -->
-    <div class="download-card">
-      <div class="icon">📄</div>
-      <h3>Gerar Boleto</h3>
-      <p>
-        Clique no botão abaixo para gerar e baixar um boleto aleatório em formato PDF.
-        Cada clique gera um novo boleto com banco, valor e vencimento diferentes.
-      </p>
-      <button class="dl-btn" onclick="downloadRandomBoleto()" id="dlBtn">
-        <span class="icon">⬇</span>
-        Baixar Boleto PDF
-      </button>
-      <div class="download-info">
-        <strong>ℹ️ Informações:</strong><br>
-        • Cada download gera um boleto com dados aleatórios<br>
-        • Banco, valor, vencimento e descrição mudam a cada clique<br>
-        • O boleto é gerado no formato PDF padrão bancário<br>
-        • Todos os downloads são registrados nos logs
+    <!-- Menu de Opções -->
+    <div id="menuScreen">
+      <p class="menu-title">Selecione o tipo de boleto que deseja gerar:</p>
+      <div class="menu-grid">
+        <div class="menu-card" onclick="selectBoleto('2a-via')">
+          <span class="icon">🔁</span>
+          <span class="label">2ª Via de Boleto</span>
+          <span class="desc">Segunda via de boleto vencido ou a vencer</span>
+        </div>
+        <div class="menu-card" onclick="selectBoleto('aluguel')">
+          <span class="icon">🏠</span>
+          <span class="label">Aluguel</span>
+          <span class="desc">Pagamento de aluguel residencial ou comercial</span>
+        </div>
+        <div class="menu-card" onclick="selectBoleto('internet')">
+          <span class="icon">🌐</span>
+          <span class="label">Internet</span>
+          <span class="desc">Conta de internet / banda larga</span>
+        </div>
+        <div class="menu-card" onclick="selectBoleto('agua')">
+          <span class="icon">💧</span>
+          <span class="label">Água</span>
+          <span class="desc">Conta de água e esgoto</span>
+        </div>
+        <div class="menu-card" onclick="selectBoleto('luz')">
+          <span class="icon">💡</span>
+          <span class="label">Luz / Energia</span>
+          <span class="desc">Conta de energia elétrica</span>
+        </div>
+        <div class="menu-card" onclick="selectBoleto('condominio')">
+          <span class="icon">🏢</span>
+          <span class="label">Condomínio</span>
+          <span class="desc">Taxa condominial mensal</span>
+        </div>
+        <div class="menu-card" onclick="selectBoleto('iptu')">
+          <span class="icon">🏛️</span>
+          <span class="label">IPTU</span>
+          <span class="desc">Imposto predial urbano</span>
+        </div>
+        <div class="menu-card" onclick="selectBoleto('faculdade')">
+          <span class="icon">🎓</span>
+          <span class="label">Faculdade</span>
+          <span class="desc">Mensalidade escolar ou universitária</span>
+        </div>
+        <div class="menu-card" onclick="selectBoleto('saude')">
+          <span class="icon">🏥</span>
+          <span class="label">Plano de Saúde</span>
+          <span class="desc">Mensalidade de plano médico</span>
+        </div>
+        <div class="menu-card" onclick="selectBoleto('seguro')">
+          <span class="icon">🛡️</span>
+          <span class="label">Seguro</span>
+          <span class="desc">Seguro auto, residencial ou de vida</span>
+        </div>
+        <div class="menu-card" onclick="selectBoleto('financiamento')">
+          <span class="icon">🚗</span>
+          <span class="label">Financiamento</span>
+          <span class="desc">Parcela de financiamento veicular ou imobiliário</span>
+        </div>
+        <div class="menu-card" onclick="selectBoleto('outros')">
+          <span class="icon">📋</span>
+          <span class="label">Outros</span>
+          <span class="desc">Boleto genérico para outros fins</span>
+        </div>
+      </div>
+
+      <!-- Logs Toggle -->
+      <button class="logs-toggle" onclick="toggleLogs()">📋 Ver Logs de Download</button>
+
+      <!-- Logs Panel -->
+      <div class="logs-panel" id="logsPanel">
+        <h3>📋 Log de Downloads</h3>
+        <div id="logsList"><p class="empty-state">Nenhum download registrado ainda.</p></div>
       </div>
     </div>
 
-    <!-- Logs Toggle -->
-    <button class="logs-toggle" onclick="toggleLogs()">📋 Ver Logs de Download</button>
-
-    <!-- Logs Panel -->
-    <div class="logs-panel" id="logsPanel">
-      <h3>📋 Log de Downloads</h3>
-      <div id="logsList"><p class="empty-state">Nenhum download registrado ainda.</p></div>
+    <!-- Tela de Download do Boleto -->
+    <div class="boleto-page" id="boletoPage">
+      <button class="back-btn" onclick="goBack()">← Voltar ao menu</button>
+      <div class="download-card">
+        <div class="boleto-icon" id="boletoIcon">📄</div>
+        <div class="boleto-title" id="boletoTitle">Boleto</div>
+        <div class="boleto-sub" id="boletoSub">Tipo de boleto selecionado</div>
+        <div class="boleto-desc" id="boletoDesc">
+          Clique no botão abaixo para gerar e baixar o boleto em formato PDF.<br>
+          Cada clique gera um novo boleto com banco, valor e vencimento diferentes.
+        </div>
+        <button class="dl-btn" onclick="downloadRandomBoleto()" id="dlBtn">
+          <span class="dl-icon">⬇</span>
+          Baixar Boleto PDF
+        </button>
+        <div class="download-info">
+          <strong>ℹ️ Informações:</strong><br>
+          • Cada download gera um boleto com dados aleatórios<br>
+          • Banco, valor, vencimento e descrição mudam a cada clique<br>
+          • O boleto é gerado no formato PDF padrão bancário<br>
+          • Todos os downloads são registrados nos logs
+        </div>
+      </div>
     </div>
   </div>
 
   <script>
     const API = '/boletos/api';
     let token = null;
+    let currentType = null;
 
-    // --- Auth ---
+    // ── Mapeamento de tipos ──
+    const BOLETO_TYPES = {
+      '2a-via':       { icon: '🔁', title: '2ª Via de Boleto', desc: 'Segunda via de boleto vencido ou a vencer', keyword: '2ª via' },
+      'aluguel':      { icon: '🏠', title: 'Boleto de Aluguel', desc: 'Pagamento de aluguel residencial ou comercial', keyword: 'Aluguel' },
+      'internet':     { icon: '🌐', title: 'Boleto de Internet', desc: 'Conta de internet / banda larga', keyword: 'Internet' },
+      'agua':         { icon: '💧', title: 'Boleto de Água', desc: 'Conta de água e esgoto', keyword: 'Água' },
+      'luz':          { icon: '💡', title: 'Boleto de Luz', desc: 'Conta de energia elétrica', keyword: 'Luz' },
+      'condominio':   { icon: '🏢', title: 'Boleto de Condomínio', desc: 'Taxa condominial mensal', keyword: 'Condomínio' },
+      'iptu':         { icon: '🏛️', title: 'Boleto de IPTU', desc: 'Imposto predial urbano', keyword: 'IPTU' },
+      'faculdade':    { icon: '🎓', title: 'Boleto de Faculdade', desc: 'Mensalidade escolar ou universitária', keyword: 'Faculdade' },
+      'saude':        { icon: '🏥', title: 'Plano de Saúde', desc: 'Mensalidade de plano médico', keyword: 'Saúde' },
+      'seguro':       { icon: '🛡️', title: 'Boleto de Seguro', desc: 'Seguro auto, residencial ou de vida', keyword: 'Seguro' },
+      'financiamento':{ icon: '🚗', title: 'Boleto de Financiamento', desc: 'Parcela de financiamento veicular ou imobiliário', keyword: 'Financiamento' },
+      'outros':       { icon: '📋', title: 'Boleto Avulso', desc: 'Boleto genérico para outros fins', keyword: 'Boleto de Cobrança' },
+    };
+
+    // ── Auth ──
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const user = document.getElementById('username').value;
@@ -203,42 +323,69 @@
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('username').value = '';
       document.getElementById('password').value = '';
+      document.getElementById('menuScreen').style.display = 'block';
+      document.getElementById('boletoPage').style.display = 'none';
+      document.getElementById('logsPanel').style.display = 'none';
     }
 
-    // --- Download Random Boleto ---
-    async function downloadRandomBoleto() {
+    // ── Menu → Boleto ──
+    function selectBoleto(type) {
       if (!token) { alert('Faça login primeiro.'); return; }
+      currentType = type;
+      const info = BOLETO_TYPES[type];
+      document.getElementById('boletoIcon').textContent = info.icon;
+      document.getElementById('boletoTitle').textContent = info.title;
+      document.getElementById('boletoSub').textContent = info.desc;
+      document.getElementById('boletoDesc').innerHTML =
+        `Clique no botão abaixo para gerar e baixar <strong>${info.title}</strong> em formato PDF.<br>` +
+        `Cada clique gera um novo boleto com banco, valor e vencimento diferentes.`;
+      document.getElementById('dlBtn').innerHTML = '<span class="dl-icon">⬇</span> Baixar Boleto PDF';
+
+      document.getElementById('menuScreen').style.display = 'none';
+      document.getElementById('boletoPage').style.display = 'block';
+    }
+
+    function goBack() {
+      document.getElementById('boletoPage').style.display = 'none';
+      document.getElementById('menuScreen').style.display = 'block';
+      document.getElementById('logsPanel').style.display = 'none';
+    }
+
+    // ── Download ──
+    async function downloadRandomBoleto() {
+      if (!token || !currentType) { alert('Faça login primeiro.'); return; }
       const btn = document.getElementById('dlBtn');
       btn.disabled = true;
-      btn.innerHTML = '<span class="icon">⏳</span> Gerando...';
+      btn.innerHTML = '<span class="dl-icon">⏳</span> Gerando...';
 
       try {
+        const info = BOLETO_TYPES[currentType];
         const randomId = Math.random().toString(36).substring(2, 10);
-        const res = await fetch(`${API}/download/${randomId}`, {
+        const res = await fetch(`${API}/download/${randomId}?type=${encodeURIComponent(info.keyword)}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.status === 401) { alert('Sessão expirada.'); logout(); return; }
-        if (!res.ok) { throw new Error('Erro ao gerar boleto'); }
+        if (!res.ok) throw new Error('Erro ao gerar boleto');
 
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `boleto_${randomId}.pdf`;
+        a.download = `boleto_${currentType}_${randomId}.pdf`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        btn.innerHTML = '<span class="icon">✅</span> Baixar Outro Boleto';
+        btn.innerHTML = '<span class="dl-icon">✅</span> Baixar Outro Boleto';
       } catch (err) {
         alert('Erro ao baixar: ' + err.message);
-        btn.innerHTML = '<span class="icon">⬇</span> Baixar Boleto PDF';
+        btn.innerHTML = '<span class="dl-icon">⬇</span> Baixar Boleto PDF';
       }
       btn.disabled = false;
     }
 
-    // --- Logs ---
+    // ── Logs ──
     function toggleLogs() {
       const panel = document.getElementById('logsPanel');
       panel.style.display = panel.style.display === 'none' ? 'block' : 'none';

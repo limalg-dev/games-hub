@@ -14,7 +14,7 @@ import time
 import uuid
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
 from reportlab.lib import colors
@@ -474,7 +474,7 @@ async def get_random_boleto(request: Request, _token: str = Depends(_authenticat
 
 @router.get("/api/download/{boleto_id}")
 async def download_boleto(
-    boleto_id: str, request: Request, _token: str = Depends(_authenticate)
+    boleto_id: str, request: Request, _token: str = Depends(_authenticate), type: str = Query(default="")
 ):
     """
     Gera e baixa o PDF do boleto.
@@ -485,7 +485,7 @@ async def download_boleto(
     bank_code, bank_name, bank_color = random.choice(BANKS)
     amount = round(random.uniform(15.00, 9999.99), 2)
     due_date = _random_due_date()
-    description = random.choice(DESCRIPTIONS)
+    description = random.choice(DESCRIPTIONS) if not type else type
     documento = _generate_documento()
 
     boleto = {
