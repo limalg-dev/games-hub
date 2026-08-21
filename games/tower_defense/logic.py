@@ -485,82 +485,146 @@ class TowerDefenseGame:
     def _get_enemy_stats(self, etype: EnemyType) -> Dict[str, Any]:
         return ENEMY_STATS.get(etype, {})
 
-    @staticmethod
-    def _generate_serpentine_path(gw: int = 30, gh: int = 25) -> List[Tuple[int, int]]:
-        """Generate an S-curve serpentine path through the center rows."""
-        path = []
-        # Start off-screen left, row 3
-        path.append((-1, 3))
-        path.append((0, 3))
-
-        # Horizontal run to col 28
-        for x in range(1, 29):
-            path.append((x, 3))
-        # Down to row 7
-        for y in range(4, 8):
-            path.append((28, y))
-        # Left to col 1
-        for x in range(27, 0, -1):
-            path.append((x, 7))
-        # Down to row 12
-        for y in range(8, 13):
-            path.append((1, y))
-        # Right to col 28
-        for x in range(2, 29):
-            path.append((x, 12))
-        # Down to row 16
-        for y in range(13, 17):
-            path.append((28, y))
-        # Left to col 1
-        for x in range(27, 0, -1):
-            path.append((x, 16))
-        # Down to row 21
-        for y in range(17, 22):
-            path.append((1, y))
-        # Right to exit off-screen
-        for x in range(2, gw):
-            path.append((x, 21))
-        path.append((gw, 21))
-
-        return path
+    # ── Organic Ant Trail Path ──────────────────────────────────
+    # Terrain codes:
+    #   0 = Path (ant trail)
+    #   1 = Build slot (strategic tower placement)
+    #   2 = Obstacle (thematic: pebble, leaf, twig, water)
+    #   3 = Ground (empty, not buildable)
 
     @staticmethod
-    def _generate_terrain(path: List[Tuple[int, int]],
-                          gw: int, gh: int) -> List[List[int]]:
-        """Generate terrain matrix: 0=path, 1=buildable, 2=blocked."""
-        # Initialize all as blocked
-        terrain = [[2 for _ in range(gw)] for _ in range(gh)]
+    def _catmull_rom_interpolate(
+        waypoints: List[Tuple[float, float]],
+        num_intermediate: int = 6
+    ) -> List[Tuple[int, int]]:
+        """Interpolate sparse waypoints into a dense path using Catmull-Rom splines.
+        
+        Math: For segment P0,P1,P2,P3 → cubic Bezier control points:
+          CP1 = P1 + (P2 - P0) / 6
+          CP2 = P2 - (P3 - P1) / 6
+        Then sample the Bezier curve at t ∈ [0,1].
+        """
+        if len(waypoints) < 2:
+            return [(int(x), int(y)) for x, y in waypoints]
 
-        # Mark path cells
+        # Pad endpoints by duplicating first/last for Catmull-Rom
+        pts = [waypoints[0]] + waypoints + [waypoints[-1]]
+        dense: List[Tuple[int, int]] = []
+
+        for i in range(1, len(pts) - 2):
+            p0, p1, p2, p3 = pts[i-1], pts[i], pts[i+1], pts[i+2]
+            # Bezier control points
+            cp1x = p1[0] + (p2[0] - p0[0]) / 6.0
+            cp1y = p1[1] + (p2[1] - p0[1]) / 6.0
+            cp2x = p2[0] - (p3[0] - p1[0]) / 6.0
+            cp2y = p2[1] - (p3[1] - p1[1]) / 6.0
+
+            steps = num_intermediate + 1
+            for s in range(steps):
+                t = s / steps
+                u = 1 - t
+                # Cubic Bezier formula: B(t) = (1-t)^3·P0 + 3(1-t)^2·t·CP1 + 3(1-t)·t^2·CP2 + t^3·P3
+                bx = u*u*u*p1[0] + 3*u*u*t*cp1x + 3*u*t*t*cp2x + t*t*t*p2[0]
+                by = u*u*u*p1[1] + 3*u*u*t*cp1y + 3*u*t*t*cp2y + t*t*t*p2[1]
+                ix, iy = int(round(bx)), int(round(by))
+                if not dense or dense[-1] != (ix, iy):
+                    dense.append((ix, iy))
+
+        # Ensure last waypoint is included
+        last = (int(waypoints[-1][0]), int(waypoints[-1][1]))
+        if dense[-1] != last:
+            dense.append(last)
+
+        return dense
+
+    @staticmethod
+    def _generate_organic_path(gw: int = 30, gh: int = 25
+        ) -> Tuple[List[Tuple[int, int]], List[Tuple[float, float]]]:
+        """Generate organic ant trail path. Returns (dense_path, sparse_waypoints)."""
+        # Sparse waypoints defining the trail shape
+        waypoints = [
+            (-1.0, 5.0),   # Entry (off-screen left)
+            (3.0, 5.0),
+            (8.0, 2.5),    # Curve upward
+            (14.0, 5.5),   # Dip down
+            (20.0, 3.0),   # Rise
+            (26.0, 6.0),   # Turn
+            (28.0, 10.0),  # Drop
+            (22.0, 13.0),  # Curve left
+            (14.0, 10.5),  # Wiggle up
+            (8.0, 14.0),   # Drop
+            (4.0, 11.5),   # Turn left
+            (2.0, 16.0),   # Drop
+            (7.0, 20.0),   # Curve right
+            (15.0, 17.5),  # Wiggle
+            (22.0, 21.0),  # Rise
+            (28.0, 19.0),  # Final turn
+            (31.0, 21.0),  # Exit (off-screen right)
+        ]
+        dense = TowerDefenseGame._catmull_rom_interpolate(waypoints, num_intermediate=6)
+        return dense, waypoints
+
+    # ── Strategic Build Slots ──────────────────────────────────
+    # Each slot is (x, y). Placed along path margins for tactical variety.
+    BUILD_SLOT_LAYOUTS = [
+        # Row 4-6 area (near first segment)
+        (3, 4), (4, 4), (6, 4), (8, 4), (10, 4), (12, 4),
+        (3, 6), (6, 6), (10, 6), (14, 6),
+        # Near first turn (col 26-28)
+        (25, 5), (26, 8), (27, 8),
+        # Mid section
+        (20, 12), (18, 12), (16, 12),
+        (12, 11), (10, 11), (10, 13),
+        (6, 12), (4, 13),
+        # Left side
+        (1, 14), (3, 15), (1, 17), (3, 17),
+        # Lower section
+        (5, 19), (8, 19), (10, 19),
+        (13, 18), (17, 18), (19, 20),
+        (21, 20), (24, 20), (26, 20),
+        (24, 22), (20, 22),
+    ]
+
+    # ── Thematic Obstacles ─────────────────────────────────────
+    # Each obstacle is (x, y, type).
+    # Types: 'pebble', 'leaf', 'twig', 'water', 'moss'
+    OBSTACLE_LAYOUTS = [
+        (5, 3, 'pebble'), (11, 3, 'leaf'), (16, 2, 'twig'),
+        (23, 5, 'pebble'), (27, 7, 'water'),
+        (19, 11, 'moss'), (13, 13, 'leaf'),
+        (7, 13, 'pebble'), (3, 12, 'twig'),
+        (1, 15, 'water'), (5, 17, 'leaf'),
+        (9, 18, 'moss'), (16, 20, 'pebble'),
+        (25, 19, 'twig'), (23, 22, 'water'),
+    ]
+
+    @staticmethod
+    def _generate_organic_terrain(
+        path: List[Tuple[int, int]],
+        gw: int, gh: int,
+    ) -> List[List[int]]:
+        """Generate terrain matrix for organic ant trail.
+        0=path, 1=build_slot, 2=obstacle, 3=ground.
+        """
+        # Initialize all as ground (3)
+        terrain = [[3 for _ in range(gw)] for _ in range(gh)]
+
+        # Mark path cells (0)
+        path_set = set()
         for x, y in path:
             if 0 <= x < gw and 0 <= y < gh:
                 terrain[y][x] = 0
+                path_set.add((x, y))
 
-        # Mark buildable cells: empty cells adjacent to path
-        # Also mark some decorative blocked cells (scenery)
-        path_set = set(path)
-        for y in range(gh):
-            for x in range(gw):
-                if (x, y) in path_set or terrain[y][x] == 0:
-                    continue
-                # Check if adjacent to any path cell
-                is_adjacent = False
-                for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-                    nx, ny = x + dx, y + dy
-                    if (nx, ny) in path_set:
-                        is_adjacent = True
-                        break
-                if is_adjacent:
-                    terrain[y][x] = 1  # buildable
-                else:
-                    # Two cells away from path = buildable
-                    for dx in range(-2, 3):
-                        for dy in range(-2, 3):
-                            if (x + dx, y + dy) in path_set:
-                                terrain[y][x] = 1
-                                break
-                        if terrain[y][x] == 1:
-                            break
+        # Mark build slots (1) — only if not on path
+        for bx, by in TowerDefenseGame.BUILD_SLOT_LAYOUTS:
+            if 0 <= bx < gw and 0 <= by < gh and terrain[by][bx] != 0:
+                terrain[by][bx] = 1
+
+        # Mark obstacles (2) — only if not on path or slot
+        for ox, oy, _otype in TowerDefenseGame.OBSTACLE_LAYOUTS:
+            if 0 <= ox < gw and 0 <= oy < gh and terrain[oy][ox] == 3:
+                terrain[oy][ox] = 2
 
         return terrain
 
@@ -580,10 +644,24 @@ class TowerDefenseGame:
                                crystals=diff_cfg["start_crystals"],
                                lives=diff_cfg["start_lives"],
                                permadeath=diff_cfg["permadeath"])
-        self.path = custom_path or self._generate_serpentine_path(
+
+        # Organic ant trail: generate dense path + sparse waypoints
+        dense_path, waypoints = self._generate_organic_path(
             grid_width, grid_height)
-        self.terrain = self._generate_terrain(
+        self.path = custom_path or dense_path
+        self.path_waypoints = waypoints
+        self.terrain = self._generate_organic_terrain(
             self.path, grid_width, grid_height)
+
+        # Build slots and obstacles for rendering
+        self.build_slots = [
+            (x, y) for x, y, *_ in []
+        ]  # derived from terrain
+        self.obstacles = [
+            (x, y, otype) for x, y, otype in self.OBSTACLE_LAYOUTS
+            if 0 <= x < grid_width and 0 <= y < grid_height
+        ]
+
         self.towers: List[Tower] = []
         self.enemies: List[Enemy] = []
         self.projectiles: List[Dict[str, Any]] = []
@@ -602,6 +680,12 @@ class TowerDefenseGame:
         ]
         self._mark_path_as_occupied()
 
+        # Derive build slot list from terrain
+        for y in range(grid_height):
+            for x in range(grid_width):
+                if self.terrain[y][x] == 1:
+                    self.build_slots.append((x, y))
+
     # ── Grid helpers ────────────────────────────────────────────
 
     def _mark_path_as_occupied(self):
@@ -616,9 +700,14 @@ class TowerDefenseGame:
             return False, "Position out of grid"
         if self.occupied_grid[x][y]:
             return False, "Cannot place on path"
-        # Check terrain: only type 1 (buildable) allows placement
+        # Check terrain: only type 1 (build slot) allows placement
         if self.terrain[y][x] != 1:
-            return False, "Cannot build here (blocked terrain)"
+            terrain_type = self.terrain[y][x]
+            if terrain_type == 2:
+                return False, "Obstructed by obstacle"
+            if terrain_type == 0:
+                return False, "Cannot build on the trail"
+            return False, "No build slot here"
         for t in self.towers:
             if t.x == x and t.y == y:
                 return False, "Tower already here"
@@ -991,7 +1080,10 @@ class TowerDefenseGame:
             "enemies": [e.to_dict() for e in self.enemies],
             "projectiles": self.projectiles,
             "path": self.path,
+            "path_waypoints": self.path_waypoints,
             "terrain": self.terrain,
+            "build_slots": self.build_slots,
+            "obstacles": self.obstacles,
             "occupied_cells": [
                 (x, y)
                 for x in range(self.state.grid_width)

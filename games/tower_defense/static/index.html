@@ -290,7 +290,7 @@
             <li><strong>Navegação:</strong> 🖱️ Scroll = Zoom • Botão do meio/direito + arrastar = Mover câmera • Minimap = Clique para navegar</li>
             <li><strong>Inimigos:</strong> 🪰Fly (rápido) • 🏃Sprinter (muito rápido) • 🪲Beetle (blindado) • 🦟Sky Bug (balanceado) • 🛡️Tank (tanque) • 💀Boss (chefão!)</li>
             <li><strong>Economia:</strong> +5% juros por onda sobre suas economias</li>
-            <li><strong>Mapa:</strong> Terreno verde = construível • Roxo escuro = bloqueado • Tecla <strong>Esc</strong> = Desselecionar • <strong>Espaço</strong> = Iniciar onda</li>
+            <li><strong>Mapa:</strong> Slots verdes = construível • Trilha marrom = caminho das formigas • Obstáculos = bloqueado • Tecla <strong>Esc</strong> = Desselecionar • <strong>Espaço</strong> = Iniciar onda</li>
         </ul>
         <p style="margin-top:8px">
             <span class="tower-tag archer">🏹 Arqueira</span>
@@ -694,19 +694,23 @@ class WorldCamera {
 class Renderer {
     constructor(ctx, w, h) {
         this.ctx = ctx; this.W = w; this.H = h;
-        // Terrain colors
+        // Organic terrain colors
         this.TERRAIN_COLORS = {
-            0: { bg: '#181830', border: 'rgba(0,240,255,0.12)' }, // path
-            1: { bg: '#141a2e', border: 'rgba(0,255,136,0.06)' }, // buildable
-            2: { bg: '#0e0e1e', border: 'rgba(255,255,255,0.03)' }, // blocked
+            0: { bg: '#2a1f14', border: 'rgba(139,90,43,0.2)' },   // path (dirt brown)
+            1: { bg: '#1a2a18', border: 'rgba(80,160,60,0.15)' },  // build slot (dark green)
+            2: { bg: '#1a2a18', border: 'rgba(80,160,60,0.08)' },  // obstacle (same base, drawn on top)
+            3: { bg: '#121a12', border: 'rgba(60,120,40,0.05)' },  // ground (dark forest floor)
         };
+        // Precomputed noise for organic ground texture
+        this._noise = [];
+        for (let i = 0; i < 400; i++) this._noise.push(Math.random());
     }
 
     cellToPixel(cx, cy) { return [cx * CELL + CELL / 2, cy * CELL + CELL / 2]; }
 
     clear() { this.ctx.clearRect(0, 0, this.W, this.H); }
 
-    // ── Draw expanded terrain grid (only visible cells) ───────────
+    // ── Organic Terrain Grid ──────────────────────────────────
     drawTerrain(terrain, camera, frame) {
         const c = this.ctx;
         const vis = camera.visibleWorldRect();
@@ -719,56 +723,153 @@ class Renderer {
             if (!terrain[y]) continue;
             for (let x = startCol; x < endCol; x++) {
                 const type = terrain[y][x];
-                const col = this.TERRAIN_COLORS[type] || this.TERRAIN_COLORS[2];
+                const col = this.TERRAIN_COLORS[type] || this.TERRAIN_COLORS[3];
                 const px = x * CELL, py = y * CELL;
+                const noiseIdx = (y * GW + x) % this._noise.length;
+                const n = this._noise[noiseIdx];
 
+                // Base fill with organic variation
                 c.fillStyle = col.bg;
                 c.fillRect(px, py, CELL, CELL);
-                c.strokeStyle = col.border;
-                c.lineWidth = 0.5;
-                c.strokeRect(px + 0.5, py + 0.5, CELL - 1, CELL - 1);
 
-                // Buildable cells: subtle grid dot
+                // Organic ground texture — subtle noise dots
+                if (type === 3 || type === 1) {
+                    c.fillStyle = `rgba(${40+n*30}, ${60+n*40}, ${30+n*20}, ${0.15+n*0.1})`;
+                    const dx = (n * 37) % 12, dy = (n * 53) % 12;
+                    c.beginPath(); c.arc(px+8+dx, py+8+dy, 1+n*2, 0, Math.PI*2); c.fill();
+                    c.beginPath(); c.arc(px+CELL-10-dx, py+CELL-12+dy, 1+n, 0, Math.PI*2); c.fill();
+                }
+
+                // Path cells: dirt texture with grain
+                if (type === 0) {
+                    c.fillStyle = `rgba(80,55,25,${0.15+n*0.1})`;
+                    c.fillRect(px+2, py+2, CELL-4, CELL-4);
+                    // Tiny pebbles on path
+                    if (n > 0.6) {
+                        c.fillStyle = `rgba(120,90,50,0.3)`;
+                        c.beginPath(); c.arc(px+12+n*20, py+15+n*10, 2, 0, Math.PI*2); c.fill();
+                    }
+                }
+
+                // Build slot indicator
                 if (type === 1) {
-                    c.fillStyle = 'rgba(0,255,136,0.04)';
-                    c.fillRect(px + CELL/2 - 1, py + CELL/2 - 1, 2, 2);
+                    c.strokeStyle = 'rgba(80,180,60,0.25)';
+                    c.lineWidth = 1;
+                    c.setLineDash([3, 3]);
+                    c.strokeRect(px+2, py+2, CELL-4, CELL-4);
+                    c.setLineDash([]);
+                    // Small green diamond
+                    c.fillStyle = 'rgba(80,180,60,0.15)';
+                    c.beginPath();
+                    c.moveTo(px+CELL/2, py+CELL/2-5);
+                    c.lineTo(px+CELL/2+5, py+CELL/2);
+                    c.lineTo(px+CELL/2, py+CELL/2+5);
+                    c.lineTo(px+CELL/2-5, py+CELL/2);
+                    c.closePath(); c.fill();
+                }
+
+                // Grid border (organic — very subtle)
+                if (type !== 0) {
+                    c.strokeStyle = col.border;
+                    c.lineWidth = 0.3;
+                    c.strokeRect(px+0.5, py+0.5, CELL-1, CELL-1);
                 }
             }
         }
     }
 
-    drawPath(path, frame) {
+    // ── Organic Bezier Path ───────────────────────────────────
+    drawOrganicPath(waypoints, path, frame) {
         const c = this.ctx;
-        // Outer glow
-        c.save(); c.shadowColor = N.cyan; c.shadowBlur = 12;
-        for (const [x,y] of path) {
+        if (!waypoints || waypoints.length < 2) return;
+
+        // Convert waypoints to pixel coordinates
+        const pts = waypoints.map(([x, y]) => [x * CELL + CELL / 2, y * CELL + CELL / 2]);
+
+        // Draw trail shadow/width first
+        c.save();
+        c.lineCap = 'round';
+        c.lineJoin = 'round';
+
+        // Outer dirt border (wider)
+        c.strokeStyle = 'rgba(60,40,15,0.4)';
+        c.lineWidth = CELL * 1.1;
+        this._drawBezierPath(c, pts);
+        c.stroke();
+
+        // Main trail body
+        c.strokeStyle = '#3a2810';
+        c.lineWidth = CELL * 0.85;
+        this._drawBezierPath(c, pts);
+        c.stroke();
+
+        // Inner trail (lighter dirt)
+        c.strokeStyle = 'rgba(80,55,25,0.6)';
+        c.lineWidth = CELL * 0.5;
+        this._drawBezierPath(c, pts);
+        c.stroke();
+
+        // Center groove (darkest)
+        c.strokeStyle = 'rgba(30,18,5,0.5)';
+        c.lineWidth = CELL * 0.2;
+        this._drawBezierPath(c, pts);
+        c.stroke();
+
+        c.restore();
+
+        // Ant trail particles (flowing along path)
+        const ft = frame * 0.02;
+        c.save();
+        c.fillStyle = 'rgba(180,140,80,0.25)';
+        for (let i = 0; i < path.length; i += 4) {
+            const [x, y] = path[i];
             if (x < 0 || x >= GW || y < 0 || y >= GH) continue;
-            c.fillStyle = 'rgba(0,240,255,0.06)';
-            c.fillRect(x*CELL-1, y*CELL-1, CELL+2, CELL+2);
+            const pulse = Math.sin(ft + i * 0.3) * 0.5 + 0.5;
+            const r = 1.5 + pulse * 1.5;
+            c.globalAlpha = 0.15 + pulse * 0.15;
+            c.beginPath();
+            c.arc(x * CELL + CELL/2, y * CELL + CELL/2, r, 0, Math.PI * 2);
+            c.fill();
         }
         c.restore();
 
-        // Energy flow
-        const ft = frame * 0.04;
-        for (let i = 0; i < path.length; i++) {
-            const [x, y] = path[i];
-            if (x < 0 || x >= GW || y < 0 || y >= GH) continue;
-            const pulse = Math.sin(ft + i * 0.4) * 0.5 + 0.5;
-            c.fillStyle = `rgba(0,240,255,${0.03 + pulse * 0.04})`;
-            c.fillRect(x*CELL+4, y*CELL+4, CELL-8, CELL-8);
-        }
-
-        // Arrows
-        c.save(); c.globalAlpha = 0.15; c.fillStyle = N.cyan;
-        for (let i = 2; i < path.length - 2; i += 5) {
-            const [ax, ay] = path[i], [bx, by] = path[i + 1];
-            const [ccx, ccy] = this.cellToPixel(ax, ay);
+        // Directional ants along path
+        c.save(); c.globalAlpha = 0.2;
+        for (let i = 3; i < path.length - 3; i += 8) {
+            const [ax, ay] = path[i];
+            const [bx, by] = path[Math.min(i+1, path.length-1)];
+            if (ax < 0 || ax >= GW || ay < 0 || ay >= GH) continue;
+            const cx = ax * CELL + CELL/2, cy = ay * CELL + CELL/2;
             const angle = Math.atan2(by - ay, bx - ax);
-            c.save(); c.translate(ccx, ccy); c.rotate(angle);
-            c.beginPath(); c.moveTo(8, 0); c.lineTo(-4, -5); c.lineTo(-4, 5); c.closePath(); c.fill();
+            c.save(); c.translate(cx, cy); c.rotate(angle);
+            c.fillStyle = '#8B6914';
+            // Tiny ant body
+            c.beginPath(); c.ellipse(0, 0, 3, 1.5, 0, 0, Math.PI*2); c.fill();
+            c.beginPath(); c.arc(-3, 0, 1, 0, Math.PI*2); c.fill();
+            // Antennae
+            c.strokeStyle = '#8B6914'; c.lineWidth = 0.5;
+            c.beginPath(); c.moveTo(-4, 0); c.lineTo(-6, -2); c.stroke();
+            c.beginPath(); c.moveTo(-4, 0); c.lineTo(-6, 2); c.stroke();
             c.restore();
         }
         c.restore();
+    }
+
+    // Catmull-Rom Bezier path helper
+    _drawBezierPath(c, pts) {
+        if (pts.length < 2) return;
+        // Pad with duplicate endpoints
+        const p = [pts[0], ...pts, pts[pts.length-1]];
+        c.beginPath();
+        c.moveTo(p[1][0], p[1][1]);
+        for (let i = 1; i < p.length - 2; i++) {
+            const p0 = p[i-1], p1 = p[i], p2 = p[i+1], p3 = p[i+2];
+            const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
+            const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
+            const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
+            const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
+            c.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, p2[0], p2[1]);
+        }
     }
 
     drawBase(path, frame) {
@@ -776,20 +877,22 @@ class Renderer {
         const [ex, ey] = path[path.length - 1];
         const [cx, cy] = this.cellToPixel(ex, ey);
         const t = frame * 0.04;
-        // Danger ring
-        c.save(); c.strokeStyle = `rgba(255,51,85,${0.2 + Math.sin(t) * 0.1})`; c.lineWidth = 2;
-        c.beginPath(); c.arc(cx, cy, 22 + Math.sin(t) * 4, 0, Math.PI * 2); c.stroke(); c.restore();
-        // Mound
-        const mg = c.createRadialGradient(cx, cy + 6, 3, cx, cy + 6, 24);
-        mg.addColorStop(0, '#3a2a1a'); mg.addColorStop(0.6, '#2a1a0a'); mg.addColorStop(1, '#1a0a00');
-        c.fillStyle = mg; c.beginPath(); c.ellipse(cx, cy + 6, 22, 14, 0, 0, Math.PI * 2); c.fill();
-        // Hole
-        c.fillStyle = '#050505'; c.beginPath(); c.ellipse(cx, cy + 3, 8, 6, 0, 0, Math.PI * 2); c.fill();
-        c.strokeStyle = 'rgba(255,51,85,0.4)'; c.lineWidth = 1; c.stroke();
+        // Colony mound — organic dirt pile
+        c.save();
+        // Outer dirt ring
+        const mg = c.createRadialGradient(cx, cy + 4, 2, cx, cy + 4, 30);
+        mg.addColorStop(0, '#4a3520'); mg.addColorStop(0.5, '#3a2515'); mg.addColorStop(1, '#1a0a00');
+        c.fillStyle = mg; c.beginPath(); c.ellipse(cx, cy + 4, 28, 18, 0, 0, Math.PI * 2); c.fill();
+        // Hole entrance
+        c.fillStyle = '#0a0500'; c.beginPath(); c.ellipse(cx, cy + 2, 10, 7, 0, 0, Math.PI * 2); c.fill();
+        c.strokeStyle = 'rgba(139,90,43,0.5)'; c.lineWidth = 1.5; c.stroke();
+        // Danger pulse
+        c.strokeStyle = `rgba(200,60,30,${0.15 + Math.sin(t) * 0.08})`; c.lineWidth = 1.5;
+        c.beginPath(); c.arc(cx, cy, 24 + Math.sin(t) * 3, 0, Math.PI * 2); c.stroke();
         // Label
-        c.save(); c.shadowColor = N.red; c.shadowBlur = 8;
-        c.font = 'bold 9px Orbitron,monospace'; c.fillStyle = N.red; c.textAlign = 'center';
-        c.fillText('COLONY', cx, cy + 24); c.restore();
+        c.shadowColor = '#c83c1e'; c.shadowBlur = 6;
+        c.font = 'bold 8px Orbitron,monospace'; c.fillStyle = '#c83c1e'; c.textAlign = 'center';
+        c.fillText('COLONY', cx, cy + 26); c.restore();
     }
 
     drawEntry(path, frame) {
@@ -798,16 +901,96 @@ class Renderer {
         const [cx, cy] = this.cellToPixel(sx, sy);
         const t = frame * 0.05;
         c.save();
+        // Portal glow — organic amber
         for (let i = 0; i < 3; i++) {
-            c.strokeStyle = `rgba(0,240,255,${0.15 - i * 0.04 + Math.sin(t + i) * 0.05})`;
-            c.lineWidth = 2; c.beginPath(); c.arc(cx, cy, 14 + i * 4, t + i, t + i + Math.PI * 1.5); c.stroke();
+            c.strokeStyle = `rgba(200,150,50,${0.12 - i * 0.03 + Math.sin(t + i) * 0.04})`;
+            c.lineWidth = 1.5; c.beginPath(); c.arc(cx, cy, 12 + i * 5, t + i, t + i + Math.PI * 1.5); c.stroke();
         }
-        const cg = c.createRadialGradient(cx, cy, 2, cx, cy, 18);
-        cg.addColorStop(0, 'rgba(0,240,255,0.3)'); cg.addColorStop(1, 'rgba(0,240,255,0)');
-        c.fillStyle = cg; c.beginPath(); c.arc(cx, cy, 18, 0, Math.PI * 2); c.fill();
-        c.shadowColor = N.cyan; c.shadowBlur = 6;
-        c.font = 'bold 8px Orbitron,monospace'; c.fillStyle = N.cyan; c.textAlign = 'center';
-        c.fillText('PORTAL', cx, cy + 22); c.restore();
+        const cg = c.createRadialGradient(cx, cy, 2, cx, cy, 20);
+        cg.addColorStop(0, 'rgba(200,150,50,0.25)'); cg.addColorStop(1, 'rgba(200,150,50,0)');
+        c.fillStyle = cg; c.beginPath(); c.arc(cx, cy, 20, 0, Math.PI * 2); c.fill();
+        c.shadowColor = '#c89632'; c.shadowBlur = 5;
+        c.font = 'bold 8px Orbitron,monospace'; c.fillStyle = '#c89632'; c.textAlign = 'center';
+        c.fillText('ENTRY', cx, cy + 22); c.restore();
+    }
+
+    // ── Thematic Obstacles ────────────────────────────────────
+    drawObstacles(obstacles, frame) {
+        const c = this.ctx;
+        if (!obstacles) return;
+        const t = frame * 0.03;
+        for (const [ox, oy, type] of obstacles) {
+            const [cx, cy] = this.cellToPixel(ox, oy);
+            c.save();
+            switch (type) {
+                case 'pebble':
+                    // Rounded stone
+n                    c.fillStyle = '#6a6a72';
+                    c.beginPath(); c.ellipse(cx, cy+2, 10, 7, 0.2, 0, Math.PI*2); c.fill();
+                    c.fillStyle = '#7a7a82';
+                    c.beginPath(); c.ellipse(cx-2, cy, 6, 4, -0.3, 0, Math.PI*2); c.fill();
+                    c.fillStyle = 'rgba(255,255,255,0.08)';
+                    c.beginPath(); c.ellipse(cx-3, cy-2, 3, 2, 0, 0, Math.PI*2); c.fill();
+                    break;
+                case 'leaf':
+                    // Fallen leaf
+                    c.fillStyle = '#5a4a20';
+                    c.save(); c.translate(cx, cy); c.rotate(0.3 + Math.sin(t+ox)*0.1);
+                    c.beginPath(); c.ellipse(0, 0, 11, 5, 0, 0, Math.PI*2); c.fill();
+                    c.strokeStyle = '#4a3a18'; c.lineWidth = 0.8;
+                    c.beginPath(); c.moveTo(-8, 0); c.lineTo(8, 0); c.stroke();
+                    c.restore();
+                    break;
+                case 'twig':
+                    // Small stick
+                    c.strokeStyle = '#5a4530'; c.lineWidth = 2.5; c.lineCap = 'round';
+                    c.beginPath();
+                    c.moveTo(cx-10, cy+3);
+                    c.lineTo(cx+6, cy-4);
+                    c.lineTo(cx+10, cy-2);
+                    c.stroke();
+                    c.lineWidth = 1.5;
+                    c.beginPath(); c.moveTo(cx+4, cy-3); c.lineTo(cx+8, cy+2); c.stroke();
+                    break;
+                case 'water':
+                    // Water droplet / puddle
+                    const wg = c.createRadialGradient(cx, cy, 1, cx, cy, 12);
+                    wg.addColorStop(0, 'rgba(40,100,180,0.4)');
+                    wg.addColorStop(0.7, 'rgba(30,80,150,0.2)');
+                    wg.addColorStop(1, 'rgba(20,60,120,0)');
+                    c.fillStyle = wg;
+                    c.beginPath(); c.ellipse(cx, cy+1, 12, 8, 0, 0, Math.PI*2); c.fill();
+                    // Glint
+                    c.fillStyle = 'rgba(150,200,255,0.3)';
+                    c.beginPath(); c.ellipse(cx-3, cy-2, 2, 1.2, 0, 0, Math.PI*2); c.fill();
+                    break;
+                case 'moss':
+                    // Mossy patch
+                    c.fillStyle = 'rgba(40,90,30,0.4)';
+                    c.beginPath(); c.ellipse(cx, cy, 13, 10, 0, 0, Math.PI*2); c.fill();
+                    c.fillStyle = 'rgba(60,120,40,0.3)';
+                    for (let i = 0; i < 5; i++) {
+                        const mx = cx + (Math.sin(i*2.3+ox)*8);
+                        const my = cy + (Math.cos(i*1.7+oy)*6);
+                        c.beginPath(); c.arc(mx, my, 2+i%2, 0, Math.PI*2); c.fill();
+                    }
+                    break;
+            }
+            c.restore();
+        }
+    }
+
+    // ── Build Slot Highlight ──────────────────────────────────
+    drawBuildSlotHighlight(slots, hoveredSlot, frame) {
+        if (!slots || !hoveredSlot) return;
+        const c = this.ctx;
+        const [hx, hy] = hoveredSlot;
+        const [cx, cy] = this.cellToPixel(hx, hy);
+        c.save();
+        c.strokeStyle = 'rgba(80,200,60,0.5)';
+        c.lineWidth = 2;
+        c.strokeRect(hx*CELL+1, hy*CELL+1, CELL-2, CELL-2);
+        c.restore();
     }
 
     drawPlacementPreview(terrain, towers, selTower, gx, gy) {
@@ -1343,9 +1526,19 @@ class Game {
             r.drawTerrain(this.gameState.terrain, this.camera, this.frame);
         }
 
-        r.drawPath(this.gameState.path, this.frame);
+        // Organic ant trail path
+        if (this.gameState.path_waypoints) {
+            r.drawOrganicPath(this.gameState.path_waypoints, this.gameState.path, this.frame);
+        } else {
+            r.drawPath(this.gameState.path, this.frame);
+        }
         r.drawBase(this.gameState.path, this.frame);
         r.drawEntry(this.gameState.path, this.frame);
+
+        // Draw obstacles
+        if (this.gameState.obstacles) {
+            r.drawObstacles(this.gameState.obstacles, this.frame);
+        }
 
         // Placement preview (grid coords)
         if (this.selectedTower && this.mouseGridX >= 0) {
@@ -1395,7 +1588,11 @@ class Game {
                 if (!this.gameState.terrain[y]) continue;
                 for (let x = 0; x < GW; x++) {
                     const t = this.gameState.terrain[y][x];
-                    c.fillStyle = t === 0 ? '#1a2040' : t === 1 ? '#162030' : '#0a0a18';
+                    // Organic minimap colors
+                    if (t === 0) c.fillStyle = '#3a2810';       // path (brown)
+                    else if (t === 1) c.fillStyle = '#1a3a15';  // build slot (green tint)
+                    else if (t === 2) c.fillStyle = '#2a2a20';  // obstacle
+                    else c.fillStyle = '#0e140e';               // ground
                     c.fillRect(offX + x * CELL * sc, offY + y * CELL * sc, Math.max(1, CELL * sc), Math.max(1, CELL * sc));
                 }
             }
@@ -1403,7 +1600,7 @@ class Game {
 
         // Path highlight on minimap
         if (this.gameState?.path) {
-            c.fillStyle = 'rgba(0,240,255,0.3)';
+            c.fillStyle = 'rgba(139,90,43,0.5)';
             for (const [x, y] of this.gameState.path) {
                 if (x >= 0 && x < GW && y >= 0 && y < GH)
                     c.fillRect(offX + x * CELL * sc, offY + y * CELL * sc, Math.max(1, CELL * sc), Math.max(1, CELL * sc));

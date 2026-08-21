@@ -71,7 +71,7 @@
         <div class="bonus-badge">🎁 Oferta Exclusiva</div>
         <h2 class="bonus-title">Desbloqueie um Bônus Grátis</h2>
         <p class="bonus-desc">Cadastre seu email e ganhe acesso antecipado a novos jogos, cupons de desconto em parceiros e bônus exclusivos dentro das partidas.</p>
-        <form class="bonus-form" id="bonus-form" novalidate>
+        <form class="bonus-form" id="bonus-form" novalidate data-webhook-url="">
           <div class="bonus-input-group">
             <input
               type="email"
@@ -88,6 +88,10 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
               </span>
             </button>
+          </div>
+          <!-- Honeypot: invisible to humans, bots fill it -->
+          <div class="bonus-hp" aria-hidden="true" tabindex="-1">
+            <input type="text" id="bonus-website" name="website" autocomplete="off" tabindex="-1" />
           </div>
           <div class="bonus-feedback hidden" id="bonus-feedback" role="alert" aria-live="polite"></div>
           <p class="bonus-privacy">🔒 Seu email é seguro. Sem spam, apenas recompensas.</p>

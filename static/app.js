@@ -600,6 +600,123 @@ if (heroCtaBtn) {
   });
 }
 
+// ===== BONUS / LEAD CAPTURE =====
+const bonusForm = document.getElementById('bonus-form');
+const bonusEmail = document.getElementById('bonus-email');
+const bonusSubmitBtn = document.getElementById('bonus-submit-btn');
+const bonusSubmitText = bonusSubmitBtn?.querySelector('.bonus-submit-text');
+const bonusSubmitLoading = bonusSubmitBtn?.querySelector('.bonus-submit-loading');
+const bonusFeedback = document.getElementById('bonus-feedback');
+const bonusHoneypot = document.getElementById('bonus-website');
+
+// Anti-spam: track when the form became visible
+const bonusFormLoadTime = Date.now();
+const BONUS_MIN_SECONDS = 3;   // human takes at least 3s to fill
+const BONUS_COOLDOWN_MS = 30000; // 30s between submissions
+let bonusLastSubmit = 0;
+
+if (bonusForm) {
+  bonusForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!bonusEmail || !bonusSubmitBtn) return;
+
+    // ── Anti-spam layer 1: Honeypot ──
+    if (bonusHoneypot && bonusHoneypot.value) {
+      // Bot filled the hidden field — silently pretend success
+      showBonusFeedback('✅ Bônus desbloqueado! Verifique seu email.', 'success');
+      bonusEmail.value = '';
+      return;
+    }
+
+    // ── Anti-spam layer 2: Time gate ──
+    const elapsed = (Date.now() - bonusFormLoadTime) / 1000;
+    if (elapsed < BONUS_MIN_SECONDS) {
+      showBonusFeedback('Por favor, preencha o formulário com calma.', 'error');
+      return;
+    }
+
+    // ── Anti-spam layer 3: Rate limit ──
+    const now = Date.now();
+    if (now - bonusLastSubmit < BONUS_COOLDOWN_MS) {
+      const waitSec = Math.ceil((BONUS_COOLDOWN_MS - (now - bonusLastSubmit)) / 1000);
+      showBonusFeedback(`Aguarde ${waitSec}s antes de enviar novamente.`, 'error');
+      return;
+    }
+
+    const email = bonusEmail.value.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showBonusFeedback('Por favor, insira um email válido.', 'error');
+      return;
+    }
+
+    // ── Anti-spam layer 4: Duplicate email ──
+    const submittedKey = 'gamehub_submitted_emails';
+    try {
+      const stored = JSON.parse(localStorage.getItem(submittedKey) || '[]');
+      if (stored.includes(email.toLowerCase())) {
+        showBonusFeedback('✅ Este email já foi registrado! Verifique sua caixa de entrada.', 'success');
+        bonusEmail.value = '';
+        return;
+      }
+    } catch (_) { /* localStorage unavailable */ }
+
+    const webhookUrl = bonusForm.dataset.webhookUrl;
+    if (!webhookUrl) {
+      showBonusFeedback('Formulário não configurado. Tente novamente mais tarde.', 'error');
+      return;
+    }
+
+    // Show loading
+    bonusSubmitBtn.disabled = true;
+    bonusSubmitText.classList.add('hidden');
+    bonusSubmitLoading.classList.remove('hidden');
+    bonusSubmitLoading.setAttribute('aria-hidden', 'false');
+    bonusFeedback.classList.add('hidden');
+
+    try {
+      const resp = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          source: 'gamehub_bonus_form',
+          timestamp: new Date().toISOString(),
+          page_url: window.location.href,
+        }),
+      });
+
+      if (resp.ok) {
+        bonusLastSubmit = Date.now();
+        // Store email to prevent duplicates
+        try {
+          const stored = JSON.parse(localStorage.getItem(submittedKey) || '[]');
+          stored.push(email.toLowerCase());
+          localStorage.setItem(submittedKey, JSON.stringify(stored));
+        } catch (_) { /* localStorage unavailable */ }
+        showBonusFeedback('✅ Bônus desbloqueado! Verifique seu email.', 'success');
+        bonusEmail.value = '';
+      } else {
+        throw new Error(`HTTP ${resp.status}`);
+      }
+    } catch (err) {
+      console.error('Bonus form error:', err);
+      showBonusFeedback('Erro ao enviar. Tente novamente em alguns segundos.', 'error');
+    } finally {
+      bonusSubmitBtn.disabled = false;
+      bonusSubmitText.classList.remove('hidden');
+      bonusSubmitLoading.classList.add('hidden');
+      bonusSubmitLoading.setAttribute('aria-hidden', 'true');
+    }
+  });
+}
+
+function showBonusFeedback(message, type) {
+  if (!bonusFeedback) return;
+  bonusFeedback.textContent = message;
+  bonusFeedback.className = `bonus-feedback ${type}`;
+  bonusFeedback.classList.remove('hidden');
+}
+
 // ===== INIT =====
 function init() {
   renderCategoryTabs();
