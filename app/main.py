@@ -16,6 +16,7 @@ from games.crossword.generator import generate_crossword
 from games.snake.routes import router as snake_router
 from games.tower_defense.routes import router as tower_defense_router, start_game_loop as start_tower_defense_loop
 from games.bomberman.routes import router as bomberman_router
+from app.boletos import router as boletos_router
 import os
 
 DIFFICULTY_MAP = {"easy": 1, "medium": 2, "hard": 3}
@@ -46,6 +47,9 @@ app.include_router(tower_defense_router)
 
 # Include Bomberman game routes
 app.include_router(bomberman_router)
+
+# Include Boletos test routes
+app.include_router(boletos_router)
 
 @app.middleware("http")
 async def add_no_cache_headers(request: Request, call_next):
@@ -92,6 +96,11 @@ async def play_wordsearch():
 @app.get("/play/crossword")
 async def play_crossword():
     return FileResponse("static/index.html")
+
+@app.get("/boletos")
+async def boletos_page():
+    return FileResponse("static/boletos.html")
+
 
 @app.get("/")
 async def root():

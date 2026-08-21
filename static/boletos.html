@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de Boletos - Teste</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0e27; color: #e0e0e0; min-height: 100vh; }
+
+    /* --- Login Screen --- */
+    .login-container {
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh; padding: 20px;
+    }
+    .login-box {
+      background: #111638; border: 1px solid #2a2f5a; border-radius: 16px;
+      padding: 48px 40px; width: 100%; max-width: 420px; box-shadow: 0 8px 40px rgba(0,0,0,.5);
+    }
+    .login-box h1 { text-align: center; font-size: 1.8rem; margin-bottom: 8px; color: #fff; }
+    .login-box .subtitle { text-align: center; color: #7a7faa; margin-bottom: 32px; font-size: .9rem; }
+    .login-box .logo { text-align: center; font-size: 3rem; margin-bottom: 16px; }
+    .form-group { margin-bottom: 20px; }
+    .form-group label { display: block; margin-bottom: 6px; font-size: .85rem; color: #9a9ec0; font-weight: 600; }
+    .form-group input {
+      width: 100%; padding: 12px 16px; border-radius: 8px; border: 1px solid #2a2f5a;
+      background: #0d1030; color: #fff; font-size: 1rem; outline: none; transition: border .2s;
+    }
+    .form-group input:focus { border-color: #4a7cff; }
+    .login-btn {
+      width: 100%; padding: 14px; border: none; border-radius: 8px; background: #4a7cff;
+      color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer; transition: background .2s;
+    }
+    .login-btn:hover { background: #3a6aee; }
+    .login-error { color: #ff4d6a; text-align: center; margin-top: 12px; font-size: .85rem; display: none; }
+
+    /* --- Dashboard --- */
+    .dashboard { display: none; min-height: 100vh; padding: 24px; }
+    .dash-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 32px; padding-bottom: 16px; border-bottom: 1px solid #1e2350;
+    }
+    .dash-header h2 { font-size: 1.4rem; color: #fff; }
+    .dash-header .user-badge {
+      background: #1a1f45; border: 1px solid #2a2f5a; border-radius: 20px;
+      padding: 8px 18px; font-size: .85rem; color: #9a9ec0;
+    }
+    .logout-btn {
+      background: #2a1a3a; border: 1px solid #4a2a5a; color: #d080ff; padding: 8px 18px;
+      border-radius: 8px; cursor: pointer; font-size: .85rem; transition: background .2s;
+    }
+    .logout-btn:hover { background: #3a2a4a; }
+
+    .actions-bar {
+      display: flex; gap: 12px; margin-bottom: 28px; flex-wrap: wrap;
+    }
+    .action-btn {
+      padding: 12px 24px; border-radius: 10px; border: none; font-size: .95rem;
+      font-weight: 600; cursor: pointer; transition: all .2s;
+    }
+    .btn-generate { background: #22c55e; color: #fff; }
+    .btn-generate:hover { background: #16a34a; }
+    .btn-logs { background: #4a7cff; color: #fff; }
+    .btn-logs:hover { background: #3a6aee; }
+
+    /* --- Boletos Table --- */
+    .table-wrapper {
+      background: #111638; border: 1px solid #2a2f5a; border-radius: 12px;
+      overflow-x: auto; margin-bottom: 28px;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      background: #0d1030; padding: 14px 16px; text-align: left; font-size: .8rem;
+      color: #7a7faa; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap;
+    }
+    td { padding: 12px 16px; border-top: 1px solid #1a1f45; font-size: .9rem; white-space: nowrap; }
+    tr:hover td { background: #151a42; }
+    .badge {
+      display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: .75rem;
+      font-weight: 700;
+    }
+    .badge-bank { background: #1a2a4a; color: #60a5fa; }
+    .badge-valor { background: #1a3a2a; color: #4ade80; }
+    .badge-venc { background: #3a2a1a; color: #fbbf24; }
+
+    .dl-btn {
+      background: #1a2a4a; border: 1px solid #3a4a6a; color: #60a5fa; padding: 6px 14px;
+      border-radius: 6px; cursor: pointer; font-size: .8rem; font-weight: 600; transition: all .2s;
+    }
+    .dl-btn:hover { background: #2a3a5a; }
+
+    /* --- Logs Panel --- */
+    .logs-panel {
+      display: none; background: #111638; border: 1px solid #2a2f5a;
+      border-radius: 12px; padding: 24px; margin-bottom: 28px;
+    }
+    .logs-panel h3 { margin-bottom: 16px; color: #9a9ec0; font-size: 1rem; }
+    .log-entry {
+      background: #0d1030; border-radius: 8px; padding: 10px 14px; margin-bottom: 8px;
+      font-size: .82rem; color: #7a7faa; border-left: 3px solid #4a7cff;
+    }
+    .log-entry .log-ip { color: #60a5fa; font-weight: 700; }
+    .log-entry .log-time { color: #4a5a7a; float: right; }
+    .log-entry .log-action { color: #4ade80; }
+
+    .empty-state { text-align: center; color: #4a4f7a; padding: 40px; font-size: .95rem; }
+
+    @media (max-width: 600px) {
+      .login-box { padding: 32px 24px; }
+      .actions-bar { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ========== LOGIN ========== -->
+  <div class="login-container" id="loginScreen">
+    <div class="login-box">
+      <div class="logo">📄</div>
+      <h1>Boletos Online</h1>
+      <p class="subtitle">Sistema de Gerenciamento de Boletos (Teste)</p>
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="username">Usuário</label>
+          <input type="text" id="username" placeholder="Digite seu usuário" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="password">Senha</label>
+          <input type="password" id="password" placeholder="Digite sua senha">
+        </div>
+        <button type="submit" class="login-btn">Entrar</button>
+        <p class="login-error" id="loginError">Usuário ou senha inválidos</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========== DASHBOARD ========== -->
+  <div class="dashboard" id="dashboard">
+    <div class="dash-header">
+      <h2>📄 Gerador de Boletos</h2>
+      <div style="display:flex;gap:12px;align-items:center">
+        <span class="user-badge" id="userBadge">👤 user-boleto</span>
+        <button class="logout-btn" onclick="logout()">Sair</button>
+      </div>
+    </div>
+
+    <div class="actions-bar">
+      <button class="action-btn btn-generate" onclick="generateBoletos()">⚡ Gerar Boletos</button>
+      <button class="action-btn btn-logs" onclick="toggleLogs()">📋 Ver Logs de Download</button>
+    </div>
+
+    <!-- Logs Panel -->
+    <div class="logs-panel" id="logsPanel">
+      <h3>📋 Log de Downloads</h3>
+      <div id="logsList"><p class="empty-state">Nenhum download registrado ainda.</p></div>
+    </div>
+
+    <!-- Boletos Table -->
+    <div class="table-wrapper" id="boletosWrapper" style="display:none;">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Código de Barras</th>
+            <th>Banco</th>
+            <th>Valor (R$)</th>
+            <th>Vencimento</th>
+            <th>Descrição</th>
+            <th>Download</th>
+          </tr>
+        </thead>
+        <tbody id="boletosBody"></tbody>
+      </table>
+    </div>
+    <div id="emptyState" class="empty-state" style="display:none;">
+      Clique em <strong>Gerar Boletos</strong> para criar boletos de teste.
+    </div>
+  </div>
+
+  <script>
+    const API = '/boletos/api';
+    let token = null;
+
+    // --- Auth ---
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const user = document.getElementById('username').value;
+      const pass = document.getElementById('password').value;
+      const errEl = document.getElementById('loginError');
+      try {
+        const res = await fetch(`${API}/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: user, password: pass })
+        });
+        if (!res.ok) { errEl.style.display = 'block'; return; }
+        const data = await res.json();
+        token = data.token;
+        document.getElementById('loginScreen').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        document.getElementById('userBadge').textContent = `👤 ${user}`;
+        errEl.style.display = 'none';
+        loadBoletos();
+        loadLogs();
+      } catch { errEl.style.display = 'block'; }
+    });
+
+    function logout() {
+      token = null;
+      document.getElementById('dashboard').style.display = 'none';
+      document.getElementById('loginScreen').style.display = 'flex';
+      document.getElementById('username').value = '';
+      document.getElementById('password').value = '';
+    }
+
+    // --- Boletos ---
+    async function generateBoletos() {
+      try {
+        const res = await fetch(`${API}/generate`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401) { alert('Sessão expirada. Faça login novamente.'); logout(); return; }
+        loadBoletos();
+      } catch (err) { alert('Erro ao gerar boletos: ' + err.message); }
+    }
+
+    async function loadBoletos() {
+      const res = await fetch(`${API}/boletos`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.status === 401) { logout(); return; }
+      const boletos = await res.json();
+      const body = document.getElementById('boletosBody');
+      const wrapper = document.getElementById('boletosWrapper');
+      const empty = document.getElementById('emptyState');
+      if (!boletos.length) {
+        wrapper.style.display = 'none';
+        empty.style.display = 'block';
+        return;
+      }
+      empty.style.display = 'none';
+      wrapper.style.display = 'block';
+      body.innerHTML = boletos.map((b, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td style="font-family:monospace;font-size:.8rem;color:#9a9ec0">${b.barcode}</td>
+          <td><span class="badge badge-bank">${b.bank}</span></td>
+          <td><span class="badge badge-valor">R$ ${b.amount.toFixed(2).replace('.', ',')}</span></td>
+          <td><span class="badge badge-venc">${b.due_date}</span></td>
+          <td style="color:#b0b4d0;font-size:.85rem">${b.description}</td>
+          <td><button class="dl-btn" onclick="downloadBoleto('${b.id}')">⬇ Download</button></td>
+        </tr>
+      `).join('');
+    }
+
+    async function downloadBoleto(id) {
+      try {
+        const res = await fetch(`${API}/download/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.status === 401) { logout(); return; }
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `boleto_${id}.txt`; a.click();
+        URL.revokeObjectURL(url);
+        loadLogs(); // refresh logs
+      } catch (err) { alert('Erro ao baixar: ' + err.message); }
+    }
+
+    // --- Logs ---
+    function toggleLogs() {
+      const panel = document.getElementById('logsPanel');
+      panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      if (panel.style.display === 'block') loadLogs();
+    }
+
+    async function loadLogs() {
+      const res = await fetch(`${API}/logs`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.status === 401) { logout(); return; }
+      const logs = await res.json();
+      const container = document.getElementById('logsList');
+      if (!logs.length) {
+        container.innerHTML = '<p class="empty-state">Nenhum download registrado ainda.</p>';
+        return;
+      }
+      container.innerHTML = logs.map(l => `
+        <div class="log-entry">
+          <span class="log-time">${l.timestamp}</span>
+          <span class="log-ip">${l.ip}</span> —
+          <span class="log-action">${l.action}</span> —
+          ${l.details}
+        </div>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
