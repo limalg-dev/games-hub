@@ -34,13 +34,31 @@ class ConnectionManager:
                     await websocket.close(code=4004, reason="Game not found")
                     return None
                 if game.game_type == "checkers":
-                    self.boards[game_id] = Board()
-                    self.turn[game_id] = "w"
+                    ws_state = self._ws_state(game) if game.status != "finished" else None
+                    board = Board()
+                    turn = None
+                    if ws_state and self._valid_board_grid(ws_state.get("board")):
+                        # Hydrate from SQLite snapshot (server restart / RAM eviction)
+                        board.board = [list(row) for row in ws_state["board"]]
+                        turn = ws_state.get("turn")
+                    self.boards[game_id] = board
+                    self.turn[game_id] = turn if turn in ("w", "b") else "w"
                 elif game.game_type == "crossword":
                     # Initialize crossword state from puzzle_data
                     if game.puzzle_data:
                         data = json.loads(game.puzzle_data)
                         self.crossword_state[game_id] = self._init_crossword_state(data)
+                        ws_state = data.get("ws_state") if isinstance(data, dict) else None
+                        filled = ws_state.get("filled") if isinstance(ws_state, dict) else None
+                        size = data["size"]
+                        if (
+                            game.status != "finished"
+                            and isinstance(filled, list)
+                            and len(filled) == size
+                            and all(isinstance(row, list) and len(row) == size for row in filled)
+                        ):
+                            # Hydrate solved cells from SQLite snapshot
+                            self.crossword_state[game_id]["filled"] = filled
                     else:
                         # Should not happen if game was created with puzzle data
                         await websocket.close(code=4000, reason="Puzzle data missing")
@@ -87,6 +105,61 @@ class ConnectionManager:
             "num_grid": num_grid,
             "size": size,
         }
+
+    # ── State persistence (SQLite snapshots) ────────────────────────
+
+    @staticmethod
+    def _ws_state(game: Game) -> Optional[dict]:
+        """Extract the live WS state snapshot ("ws_state") from a Game row."""
+        if not game.puzzle_data:
+            return None
+        try:
+            data = json.loads(game.puzzle_data)
+        except json.JSONDecodeError:
+            return None
+        if not isinstance(data, dict):
+            return None
+        state = data.get("ws_state")
+        return state if isinstance(state, dict) else None
+
+    @staticmethod
+    def _valid_board_grid(grid) -> bool:
+        """True if grid is an 8x8 list-of-lists of strings (Board.board format)."""
+        return (
+            isinstance(grid, list)
+            and len(grid) == 8
+            and all(
+                isinstance(row, list)
+                and len(row) == 8
+                and all(isinstance(cell, str) for cell in row)
+                for row in grid
+            )
+        )
+
+    def persist_state(self, game_id: str, state: dict) -> None:
+        """Persist a snapshot of the live game state into Game.puzzle_data (JSON).
+
+        Original crossword puzzle definition keys are preserved; live state is
+        stored under "ws_state". Best-effort: persistence failures must never
+        break gameplay.
+        """
+        try:
+            with Session(engine) as session:
+                game = session.exec(select(Game).where(Game.id == game_id)).first()
+                if not game:
+                    return
+                try:
+                    data = json.loads(game.puzzle_data) if game.puzzle_data else {}
+                except json.JSONDecodeError:
+                    data = {}
+                if not isinstance(data, dict):
+                    data = {}
+                data["ws_state"] = state
+                game.puzzle_data = json.dumps(data)
+                session.add(game)
+                session.commit()
+        except Exception:
+            pass
 
     def disconnect(self, game_id: str, websocket: WebSocket):
         ws_id = id(websocket)
@@ -332,6 +405,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                 board.apply_move(fr, to, captured=captured_list)
                 manager.turn[game_id] = "b" if color == "w" else "w"
                 await manager.broadcast(game_id, {"type": "board", "board": board.board})
+                manager.persist_state(game_id, {"board": board.board, "turn": manager.turn[game_id]})
                 # check win
                 for c in ("w", "b"):
                     if not board.legal_moves(c):
@@ -356,6 +430,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                                     ban.apply_move(ai_move["from"], ai_move["to"], ai_move.get("captured"))
                                     manager.turn[game_id] = color
                                     await manager.broadcast(game_id, {"type": "board", "board": ban.board})
+                                    manager.persist_state(game_id, {"board": ban.board, "turn": manager.turn[game_id]})
                                     for c in ("w", "b"):
                                         if not ban.legal_moves(c):
                                             winner = "b" if c == "w" else "w"
@@ -396,6 +471,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
                         "letter": letter.upper(),
                         "sender_color": color
                     }, exclude=websocket)
+                    manager.persist_state(game_id, {"filled": state["filled"]})
                     all_filled = True
                     for r in range(state["size"]):
                         for c in range(state["size"]):

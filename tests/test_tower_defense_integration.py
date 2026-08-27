@@ -43,7 +43,7 @@ class TestTowerUpgrade:
 
     def test_upgrade_increases_damage(self, game):
         """Tower upgrade increases damage"""
-        success, msg, tower = game.place_tower(1, 1, TowerType.ARCHER)
+        success, msg, tower = game.place_tower(6, 4, TowerType.ARCHER)
         assert success
 
         dmg_before = tower.damage
@@ -55,7 +55,7 @@ class TestTowerUpgrade:
 
     def test_upgrade_increases_range(self, game):
         """Tower upgrade increases range"""
-        success, msg, tower = game.place_tower(1, 1, TowerType.ARCHER)
+        success, msg, tower = game.place_tower(6, 4, TowerType.ARCHER)
         assert success
 
         range_before = tower.range
@@ -66,7 +66,7 @@ class TestTowerUpgrade:
 
     def test_upgrade_deducts_crystals(self, game):
         """Upgrade cost is deducted from crystals"""
-        game.place_tower(1, 1, TowerType.ARCHER)
+        game.place_tower(6, 4, TowerType.ARCHER)
         tower = game.towers[0]
 
         crystals_before = game.state.crystals
@@ -78,7 +78,7 @@ class TestTowerUpgrade:
 
     def test_upgrade_insufficient_leaves(self, game):
         """Cannot upgrade tower with insufficient leaves"""
-        game.place_tower(1, 1, TowerType.ARCHER)
+        game.place_tower(6, 4, TowerType.ARCHER)
         tower = game.towers[0]
 
         game.state.leaves = 0  # No leaves
@@ -100,7 +100,7 @@ class TestTowerSell:
 
     def test_sell_returns_correct_value(self, game):
         """Sell tower returns 50% of total invested"""
-        game.place_tower(1, 1, TowerType.ARCHER)
+        game.place_tower(6, 4, TowerType.ARCHER)
         tower = game.towers[0]
 
         expected_sell = tower.sell_value
@@ -110,7 +110,7 @@ class TestTowerSell:
 
     def test_sell_adds_leaves(self, game):
         """Selling a tower adds leaves back"""
-        game.place_tower(1, 1, TowerType.ARCHER)
+        game.place_tower(6, 4, TowerType.ARCHER)
         tower = game.towers[0]
 
         leaves_before = game.state.leaves
@@ -121,7 +121,7 @@ class TestTowerSell:
 
     def test_sell_removes_tower(self, game):
         """Selling removes the tower from the game"""
-        game.place_tower(1, 1, TowerType.ARCHER)
+        game.place_tower(6, 4, TowerType.ARCHER)
         assert len(game.towers) == 1
 
         game.sell_tower(game.towers[0].id)
@@ -266,7 +266,7 @@ class TestGameOver:
         game.state.score = 5000
         game.state.current_wave = 5
         game.state.game_over = True
-        game.place_tower(1, 1, TowerType.ARCHER)
+        game.place_tower(6, 4, TowerType.ARCHER)
 
         game.reset()
 
@@ -287,8 +287,8 @@ class TestTowerPlacement:
 
     def test_place_on_occupied_cell(self, game):
         """Cannot place tower where another tower exists"""
-        game.place_tower(1, 1, TowerType.ARCHER)
-        success, msg, _ = game.place_tower(1, 1, TowerType.BOMB)
+        game.place_tower(6, 4, TowerType.ARCHER)
+        success, msg, _ = game.place_tower(6, 4, TowerType.BOMB)
         assert not success
 
     def test_custom_path(self):
