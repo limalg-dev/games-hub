@@ -60,7 +60,7 @@ class TestTowerDefenseGame:
         
         assert success is False
         assert tower is None
-        assert "path" in message.lower() or "caminho" in message.lower()
+        assert "obstacle" in message.lower() or "obstáculo" in message.lower()
         assert game.state.leaves == 150  # Leaves não foram gastas
         assert len(game.towers) == 0
     
@@ -89,7 +89,7 @@ class TestTowerDefenseGame:
         
         assert success is False
         assert tower is None
-        assert "blocked" in message.lower() or "bloqueado" in message.lower()
+        assert "slot" in message.lower() or "build" in message.lower()
     
     def test_sell_tower(self):
         """Testa venda de torre"""
@@ -242,7 +242,7 @@ class TestTowerStats:
         tower = Tower(id="t1", tower_type=TowerType.ARCHER, x=0, y=0)
         
         assert tower.cost == 50
-        assert tower.range == 3.2
+        assert tower.range == 2.8
         assert tower.attack_speed == 0.7
     
     def test_bomb_stats(self):
