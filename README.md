@@ -1,10 +1,13 @@
 # GameHub
 
-A lightweight web game platform built with **FastAPI** and **WebSockets**. Play **Checkers**, **Word Search**, and **Crossword** online — free, no login required.
+A lightweight web game platform built with **FastAPI** and **WebSockets**. Play **6 games** online — free, no login required.
 
-- **Checkers** – classic 8×8 draughts. Play against a built-in minimax AI or a friend over WebSocket.
+- **Damas (Checkers)** – classic 8×8 draughts. Play against a built-in minimax AI or a friend over WebSocket.
 - **Caça-Palavras (Word Search)** – find hidden words across categories and difficulty levels, with a timer and local leaderboard.
 - **Palavras Cruzadas (Crossword)** – crosswords generated dynamically on the server (backtracking), solved solo or collaboratively online via WebSocket.
+- **Snake** – classic snake game with real-time WebSocket support.
+- **Tower Defense (Ant-themed)** – defend the anthill against waves of bugs. Place and upgrade towers across 15 progressive waves.
+- **Super Bomberman** – procedural map generation, power-ups, battle and arcade modes.
 
 ## Tech Stack
 
@@ -21,9 +24,10 @@ A lightweight web game platform built with **FastAPI** and **WebSockets**. Play 
 ```
 ├── app/
 │   ├── main.py         # FastAPI routes, static mounts, seeding & server init
-│   ├── models.py       # DB models (Game, Move, Word)
+│   ├── models.py       # DB models (Game, PlayerRating)
 │   ├── schemas.py      # Pydantic response schemas
 │   ├── database.py     # SQLAlchemy engine & init
+│   ├── elo.py          # ELO rating system for checkers AI
 │   └── websocket.py    # ConnectionManager & WS handler (checkers + crossword)
 ├── games/
 │   ├── checkers/
@@ -37,8 +41,21 @@ A lightweight web game platform built with **FastAPI** and **WebSockets**. Play 
 │   │   ├── generator.py# Backtracking crossword generator
 │   │   ├── static/     # Grid + clues UI
 │   │   └── tests/
-│   └── wordsearch/
-│       └── static/     # Client-side grid game + timer
+│   ├── wordsearch/
+│   │   └── static/     # Client-side grid game + timer
+│   ├── snake/
+│   │   ├── logic.py    # Snake game logic
+│   │   ├── routes.py   # REST + WebSocket routes
+│   │   └── static/     # Game UI
+│   ├── tower_defense/
+│   │   ├── logic.py    # Tower defense game engine
+│   │   ├── routes.py   # REST + WebSocket routes
+│   │   └── static/     # Game UI
+│   └── bomberman/
+│       ├── logic.py    # Map generation & high-score manager
+│       ├── routes.py   # REST routes
+│       ├── static/     # Game UI
+│       └── tests/
 ├── static/             # Shared SPA shell (index.html, app.js, styles.css)
 ├── docs/
 │   └── archify/        # Runtime architecture diagram (frontend/backend/security)
@@ -74,33 +91,96 @@ A lightweight web game platform built with **FastAPI** and **WebSockets**. Play 
 
 ## API Endpoints
 
+### Platform
+
 | Method | Path              | Description                                          |
 |--------|-------------------|------------------------------------------------------|
 | POST   | `/games`          | Create a game (`game_type`: `checkers`\|`crossword`, `difficulty`: `easy`\|`medium`\|`hard`, default `easy`) |
 | GET    | `/games/{id}`     | Get game status                                      |
 | POST   | `/api/words`      | Add a word to the dictionary (`difficulty`: int `1`–`3`) |
 | GET    | `/api/words`      | List words (filters: `category`, `difficulty`: int `1`–`3`) |
-| WS     | `/ws/{id}`        | WebSocket for real-time moves                        |
+| GET    | `/api/ratings/{player_id}` | Get ELO ratings for a player (query: `game_type`) |
+| WS     | `/ws/{id}`        | WebSocket for real-time moves (checkers + crossword) |
 | GET    | `/`               | Serves the client UI                                 |
+
+### Snake (`/api` prefix)
+
+| Method | Path              | Description                                          |
+|--------|-------------------|------------------------------------------------------|
+| GET    | `/api/snake`      | Snake game info                                      |
+| POST   | `/api/snake/new`  | Create a new snake game                              |
+| GET    | `/api/snake/{id}` | Get game state                                       |
+| POST   | `/api/snake/{id}/direction` | Set snake direction                          |
+| POST   | `/api/snake/{id}/update`   | Advance game state (move snake)             |
+| POST   | `/api/snake/{id}/pause`    | Toggle pause                             |
+| DELETE | `/api/snake/{id}` | Delete a game                                        |
+| WS     | `/api/ws/snake/{id}` | Real-time snake game updates                    |
+
+### Tower Defense
+
+| Method | Path              | Description                                          |
+|--------|-------------------|------------------------------------------------------|
+| GET    | `/tower-defense/` | Game info and difficulty config                      |
+| POST   | `/tower-defense/games/create` | Create a new game                        |
+| GET    | `/tower-defense/games/{id}`  | Get game state                         |
+| POST   | `/tower-defense/games/{id}/place-tower`  | Place a tower on the grid      |
+| POST   | `/tower-defense/games/{id}/sell-tower`   | Sell a tower                  |
+| POST   | `/tower-defense/games/{id}/upgrade-tower`| Upgrade a tower               |
+| POST   | `/tower-defense/games/{id}/start-wave`   | Start an enemy wave           |
+| GET    | `/tower-defense/play` | Serve the game HTML page                         |
+| WS     | `/tower-defense/ws/{id}` | Real-time tower defense updates              |
+
+### Super Bomberman
+
+| Method | Path              | Description                                          |
+|--------|-------------------|------------------------------------------------------|
+| GET    | `/api/bomberman/info`      | Game metadata and modes                   |
+| GET    | `/api/bomberman/stages`    | Arcade stage configurations               |
+| GET    | `/api/bomberman/map`       | Generate a procedural map (query: `mode`, `difficulty`, `stage`, `seed`) |
+| GET    | `/api/bomberman/highscores`| Top highscores                             |
+| POST   | `/api/bomberman/highscores`| Submit a highscore entry                   |
+| GET    | `/play/bomberman`          | Serve the game HTML page                   |
+
+### Play Pages
+
+| Path              | Game                                         |
+|-------------------|----------------------------------------------|
+| `/play/checkers`  | Checkers (shared SPA shell)                  |
+| `/play/wordsearch`| Word Search (shared SPA shell)               |
+| `/play/crossword` | Crossword (shared SPA shell)                 |
+| `/play/snake`     | Snake (dedicated page)                       |
+| `/play/tower_defense` | Tower Defense / Ant Defense (dedicated page) |
+| `/play/bomberman` | Super Bomberman (dedicated page)             |
 
 ## WebSocket Protocol
 
 Messages are JSON. The payload type depends on the game:
 
-**Checkers**
+**Checkers** (`/ws/{game_id}`)
 - **Client → Server**: `{"type": "move", "from": [r,c], "to": [r,c]}`
 - **Server → Client**: `{"type": "board", "board": [8][8]}` after every move
 - **Server → Client**: `{"type": "game_over", "winner": "w"|"b"}`
 
-**Crossword**
+**Crossword** (`/ws/{game_id}`)
 - **Server → Client** (on connect): `{"type": "crossword_init", "size", "num_grid", "across_clues", "down_clues", "filled"}`
-- **Client → Server**: `{"type": "move", "row", "col", "letter"}` (validated server-side against the solution)
-- **Server → Client**: `{"type": "crossword_update", "row", "col", "letter"}` broadcast to all players
-- **Server → Client**: `{"type": "game_over", "winner"}`
+- **Client → Server**: `{"type": "input", "row", "col", "letter"}` (validated server-side against the solution)
+- **Server → Client**: `{"type": "opponent_input", "row", "col", "letter", "sender_color"}` broadcast to other players
+- **Server → Client**: `{"type": "complete"}` when all cells are filled
+
+**Snake** (`/api/ws/snake/{game_id}`)
+- **Client → Server**: `{"action": "direction", "direction": "UP"|"DOWN"|"LEFT"|"RIGHT"}`
+- **Client → Server**: `{"action": "pause"}` / `{"action": "reset"}`
+- **Server → Client**: `{"type": "init", "state": {...}}` / `{"type": "direction_changed", ...}` / `{"type": "pause_toggled", ...}`
+
+**Tower Defense** (`/tower-defense/ws/{game_id}`)
+- **Client → Server**: `{"command": "place_tower", "x": int, "y": int, "tower_type": "archer"|"bomb"|"ice"}`
+- **Client → Server**: `{"command": "start_wave"}` / `{"command": "sell_tower", "tower_id": str}` / `{"command": "upgrade_tower", "tower_id": str}`
+- **Client → Server**: `{"command": "set_speed", "scale": 1|2|4}` / `{"command": "toggle_auto_wave"}`
+- **Server → Client**: `{"type": "state_update", "state": {...}}` / `{"type": "command_result", ...}`
 
 **Common**
 - **Server → Client**: `{"type": "error", "message": "..."}`
-- **Server → Client**: `{"type": "color", "color": "w"|"b"}` player assignment (max 2 per game)
+- **Server → Client** (checkers/crossword): `{"type": "color", "color": "w"|"b"}` player assignment (max 2 per game)
 
 ## Architecture
 
@@ -126,6 +206,20 @@ pytest -v
 ```
 
 Covers the API, WebSocket flow (checkers + crossword), crossword generator/word logic, and overall project structure.
+
+## Deployment
+
+Game/session state is held **entirely in memory** — the `ConnectionManager` (boards, turns, crossword state), per-game `active_games` dicts (snake, tower defense), and the bomberman high-score table are not persisted to disk or a shared store. This is an intentional design choice for a zero-config casual platform.
+
+**The server MUST run as a single worker.** Do not use `uvicorn --workers N` or multiple replicas. Multiple workers fragment state: a game created in one worker is invisible to others, and WebSocket sessions are lost across workers.
+
+```bash
+# ✅ Correct — single worker
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+# ❌ Wrong — fragments in-memory state
+uvicorn app.main:app --workers 4
+```
 
 ## License
 
