@@ -74,3 +74,21 @@ def test_stage_configs_valid():
         assert "enemies" in stage
         assert "time_seconds" in stage
         assert stage["time_seconds"] > 0
+
+
+def test_generate_map_is_deterministic_per_seed():
+    a = generate_map(seed=123)
+    b = generate_map(seed=123)
+    assert a["grid"] == b["grid"]
+    assert a["powerups"] == b["powerups"]
+
+
+def test_generate_map_does_not_mutate_global_rng():
+    import random
+    random.seed(999)
+    baseline = [random.random() for _ in range(3)]
+    random.seed(999)
+    generate_map(seed=42)  # must NOT consume/alter the global stream
+    after = [random.random() for _ in range(3)]
+    assert baseline == after
+

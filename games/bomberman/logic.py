@@ -87,8 +87,7 @@ def generate_map(
     Generates a classic Bomberman arena with indestructible pillars,
     procedurally placed destructible crates, and powerups.
     """
-    if seed is not None:
-        random.seed(seed)
+    rng = random.Random(seed)
 
     grid = [[CELL_EMPTY for _ in range(cols)] for _ in range(rows)]
     powerup_map = [[POWERUP_NONE for _ in range(cols)] for _ in range(rows)]
@@ -121,7 +120,7 @@ def generate_map(
     for r in range(1, rows - 1):
         for c in range(1, cols - 1):
             if grid[r][c] == CELL_EMPTY and (r, c) not in safe_tiles:
-                if random.random() < crate_density:
+                if rng.random() < crate_density:
                     grid[r][c] = CELL_CRATE
                     candidate_tiles.append((r, c))
 
@@ -138,7 +137,7 @@ def generate_map(
         POWERUP_REMOTE,
     ]
 
-    random.shuffle(candidate_tiles)
+    rng.shuffle(candidate_tiles)
     exit_tile = None
     if mode == "arcade" and candidate_tiles:
         exit_tile = candidate_tiles[0]  # Door hidden under first chosen crate
@@ -147,8 +146,8 @@ def generate_map(
         r, c = tile
         if mode == "arcade" and (r, c) == exit_tile:
             continue
-        if random.random() < 0.40:
-            powerup_map[r][c] = random.choice(powerup_pool)
+        if rng.random() < 0.40:
+            powerup_map[r][c] = rng.choice(powerup_pool)
 
     return {
         "cols": cols,
