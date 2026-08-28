@@ -12,7 +12,7 @@ Primary users are casual, Portuguese-speaking players who open a browser and pla
 
 ## Product Purpose
 
-GameHub is a free, no-login web game platform hosting a growing set of casual games: checkers (vs minimax AI or online), word search, crossword (solo or collaborative online), snake, tower defense and ant defense. Success means a visitor can see a game card, open it, and be playing without friction — and can bring a friend in via a shareable `/play/*` URL.
+GameHub is a free, no-login web game platform hosting a growing set of casual games: checkers (vs minimax AI or online), word search, crossword (solo or collaborative online), snake, tower defense (ant-themed) and Super Bomberman. Ant Defense and Tower Defense are the **same module** (`games/tower_defense/`); `/play/ant_defense` redirects to the unified tower defense page. Success means a visitor can see a game card, open it, and be playing without friction — and can bring a friend in via a shareable `/play/*` URL.
 
 ## Positioning
 
@@ -29,7 +29,7 @@ Confirmed capabilities:
 - Checkers: 8×8 English draughts, minimax AI with Easy/Medium/Hard, or two players over WebSocket (server-authoritative).
 - Word search (Caça-Palavras): client-side grid, easy/medium/hard, multiple categories, timer, local high scores.
 - Crossword (Palavras Cruzadas): server-generated via backtracking from a 150-word seeded dictionary (5 categories), solo or collaborative online over WebSocket, letter-by-letter server validation.
-- Snake, Tower Defense (ant-themed), Ant Defense, Super Bomberman: self-contained games with dedicated play pages and FastAPI routers.
+- Snake, Tower Defense / Ant Defense (same module, `games/tower_defense/`; `/play/ant_defense` redirects to `/play/tower_defense`), Super Bomberman: self-contained games with dedicated play pages and FastAPI routers.
 
 Constraints and technical facts:
 
@@ -44,7 +44,7 @@ Constraints and technical facts:
 
 - Name: **GameHub** — confirmed, binding.
 - Voice/personality: no explicit commitment beyond name; casual and free ("play classic board games online — free, no install").
-- Ant/invasor universe shared between Ant Defense and Tower Defense (design docs) — a durable theming thread to preserve.
+- Ant/invasor universe shared between Tower Defense and Ant Defense (same module, design docs) — a durable theming thread to preserve.
 
 ## Evidence on Hand
 
