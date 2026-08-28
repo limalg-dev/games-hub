@@ -16,7 +16,6 @@ from games.crossword.generator import generate_crossword
 from games.snake.routes import router as snake_router
 from games.tower_defense.routes import router as tower_defense_router, start_game_loop as start_tower_defense_loop
 from games.bomberman.routes import router as bomberman_router
-from app.boletos import router as boletos_router
 import os
 
 DIFFICULTY_MAP = {"easy": 1, "medium": 2, "hard": 3}
@@ -37,6 +36,21 @@ async def lifespan(app: FastAPI):
     start_tower_defense_loop()
     yield
 
+def _include_optional_boletos(app: FastAPI) -> bool:
+    """Register the optional boletos test router.
+
+    Boletos is an off-product PDF test feature whose only heavy dependency
+    (reportlab) is optional. A missing dependency must degrade gracefully:
+    the platform and its game test suite must still import and run.
+    Returns True when the router was registered, False otherwise.
+    """
+    try:
+        from app.boletos import router as boletos_router
+    except ModuleNotFoundError:
+        return False
+    app.include_router(boletos_router)
+    return True
+
 app = FastAPI(lifespan=lifespan)
 
 # Include Snake game routes
@@ -48,8 +62,8 @@ app.include_router(tower_defense_router)
 # Include Bomberman game routes
 app.include_router(bomberman_router)
 
-# Include Boletos test routes
-app.include_router(boletos_router)
+# Include Boletos test routes (optional: skipped if reportlab is absent)
+_include_optional_boletos(app)
 
 @app.middleware("http")
 async def add_no_cache_headers(request: Request, call_next):
