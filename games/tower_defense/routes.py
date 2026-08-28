@@ -410,12 +410,9 @@ async def play_tower_defense():
     """Serve a interface do jogo Tower Defense"""
     static_dir = os.path.join(os.path.dirname(__file__), "static")
     html_path = os.path.join(static_dir, "index.html")
-    
     if os.path.exists(html_path):
-        with open(html_path, "r", encoding="utf-8") as f:
-            return HTMLResponse(content=f.read())
-    else:
-        return HTMLResponse(
-            content="<h1>Tower Defense - Em Desenvolvimento</h1><p>Interface HTML ainda não disponível.</p>",
-            status_code=200
-        )
+        return FileResponse(html_path, media_type="text/html")
+    return HTMLResponse(
+        content="<h1>Tower Defense - Em Desenvolvimento</h1><p>Interface HTML ainda não disponível.</p>",
+        status_code=200,
+    )
