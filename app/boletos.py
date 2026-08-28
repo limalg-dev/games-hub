@@ -8,6 +8,7 @@ Gera PDFs no formato real de boletos brasileiros.
 from __future__ import annotations
 
 import io
+import os
 import random
 import string
 import time
@@ -26,8 +27,8 @@ router = APIRouter(prefix="/boletos", tags=["boletos"])
 security = HTTPBearer(auto_error=False)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-TEST_USER = "user-boleto"
-TEST_PASS = "123456secreta"
+TEST_USER = os.getenv("BOLETOS_USER", "user-boleto")
+TEST_PASS = os.getenv("BOLETOS_PASS", "change-me")
 
 # Tokens in-memory (simples para teste)
 _tokens: dict[str, float] = {}

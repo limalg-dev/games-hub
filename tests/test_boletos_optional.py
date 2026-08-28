@@ -31,3 +31,28 @@ def test_app_module_imports_without_boletos(monkeypatch):
     assert hasattr(reloaded, "app")
     # restore a clean module for later tests in the session
     importlib.reload(reloaded)
+
+
+def test_boletos_credentials_default_and_override(monkeypatch):
+    import importlib
+    import app.boletos as boletos
+
+    # Defaults when env unset.
+    monkeypatch.delenv("BOLETOS_USER", raising=False)
+    monkeypatch.delenv("BOLETOS_PASS", raising=False)
+    reloaded = importlib.reload(boletos)
+    assert reloaded.TEST_USER == "user-boleto"
+    assert reloaded.TEST_PASS == "change-me"
+
+    # Env override wins.
+    monkeypatch.setenv("BOLETOS_USER", "alice")
+    monkeypatch.setenv("BOLETOS_PASS", "s3cr3t")
+    reloaded = importlib.reload(boletos)
+    assert reloaded.TEST_USER == "alice"
+    assert reloaded.TEST_PASS == "s3cr3t"
+
+    # Restore module defaults for the rest of the session.
+    monkeypatch.delenv("BOLETOS_USER", raising=False)
+    monkeypatch.delenv("BOLETOS_PASS", raising=False)
+    importlib.reload(boletos)
+
