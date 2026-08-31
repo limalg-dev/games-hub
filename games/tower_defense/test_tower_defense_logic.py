@@ -644,5 +644,59 @@ class TestInsaneDifficulty:
         assert state["state"]["permadeath"] is True
 
 
+def test_target_modes_first_last_strongest_weakest():
+    game = TowerDefenseGame()
+    # Place an archer at (6, 4)
+    success, _, tower = game.place_tower(6, 4, TowerType.ARCHER)
+    assert success is True
+    
+    # Spawn 3 enemies with varying distance_traveled and hp
+    e_near_exit = Enemy(id="e1", enemy_type=EnemyType.FLY, x=6.0, y=4.5, hp=20, max_hp=20, speed=1.0, base_speed=1.0, reward=5, distance_traveled=100.0)
+    e_strong = Enemy(id="e2", enemy_type=EnemyType.TANK, x=6.0, y=4.2, hp=200, max_hp=200, speed=1.0, base_speed=1.0, reward=10, distance_traveled=50.0)
+    e_weak = Enemy(id="e3", enemy_type=EnemyType.SPRINTER, x=6.0, y=4.1, hp=5, max_hp=5, speed=1.0, base_speed=1.0, reward=2, distance_traveled=20.0)
+    game.enemies = [e_near_exit, e_strong, e_weak]
+
+    # Mode: FIRST (highest distance_traveled -> e1)
+    game.set_target_mode(tower.id, "first")
+    targets = game._find_targets(tower)
+    assert targets[0].id == "e1"
+
+    # Mode: LAST (lowest distance_traveled -> e3)
+    game.set_target_mode(tower.id, "last")
+    targets = game._find_targets(tower)
+    assert targets[0].id == "e3"
+
+    # Mode: STRONGEST (highest hp -> e2)
+    game.set_target_mode(tower.id, "strongest")
+    targets = game._find_targets(tower)
+    assert targets[0].id == "e2"
+
+    # Mode: WEAKEST (lowest hp -> e3)
+    game.set_target_mode(tower.id, "weakest")
+    targets = game._find_targets(tower)
+    assert targets[0].id == "e3"
+
+
+def test_pause_time_scale():
+    game = TowerDefenseGame()
+    ok, msg = game.set_time_scale(0)
+    assert ok is True
+    assert game.state.time_scale == 0
+    
+    # Update with dt should not advance enemies when paused
+    enemy = Enemy(id="e1", enemy_type=EnemyType.FLY, x=1.0, y=1.0, hp=20, max_hp=20, speed=2.0, base_speed=2.0, reward=5)
+    game.enemies = [enemy]
+    game.update(0.1)
+    assert enemy.x == 1.0  # did not move
+
+
+def test_wave_preview_in_state():
+    game = TowerDefenseGame()
+    state = game.get_state()
+    assert "next_wave_preview" in state["state"]
+    assert state["state"]["next_wave_preview"]["wave_number"] == 1
+    assert len(state["state"]["next_wave_preview"]["enemies"]) > 0
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

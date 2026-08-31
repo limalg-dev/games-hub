@@ -350,6 +350,7 @@ class Tower:
     y: int
     level: int = 1
     cooldown: float = 0.0
+    target_mode: str = "first"
 
     @property
     def stats(self) -> Dict[str, Any]:
@@ -420,6 +421,7 @@ class Tower:
             "max_level": MAX_TOWER_LEVEL,
             "aoe_radius": self.aoe_radius,
             "special": self.stats.get("special"),
+            "target_mode": self.target_mode,
         }
 
 
@@ -750,12 +752,24 @@ class TowerDefenseGame:
                 return True, f"Tower upgraded to level {t.level}!"
         return False, "Tower not found"
 
+    def set_target_mode(self, tower_id: str, mode: str) -> Tuple[bool, str]:
+        valid_modes = ("first", "last", "strongest", "weakest", "closest")
+        if mode not in valid_modes:
+            return False, f"Invalid target mode: {mode}"
+        for t in self.towers:
+            if t.id == tower_id:
+                t.target_mode = mode
+                return True, f"Target mode set to {mode}"
+        return False, "Tower not found"
+
     # ── Time control ────────────────────────────────────────────
 
     def set_time_scale(self, scale: int) -> Tuple[bool, str]:
-        if scale not in (1, 2, 4):
-            return False, "Speed must be 1, 2, or 4"
+        if scale not in (0, 1, 2, 4):
+            return False, "Speed must be 0, 1, 2, or 4"
         self.state.time_scale = scale
+        if scale == 0:
+            return True, "Game paused"
         return True, f"Speed set to {scale}x"
 
     def toggle_auto_wave(self) -> Tuple[bool, str]:
@@ -823,16 +837,33 @@ class TowerDefenseGame:
     # ── Combat ──────────────────────────────────────────────────
 
     def _find_targets(self, tower: Tower) -> List[Enemy]:
-        """Find enemies in range, sorted by distance (closest first)."""
-        targets = []
+        """Find enemies in range, sorted based on tower.target_mode."""
+        in_range = []
         tx, ty = tower.x, tower.y
         rng = tower.range
         for e in self.enemies:
             d = math.sqrt((tx - e.x) ** 2 + (ty - e.y) ** 2)
             if d <= rng:
-                targets.append((d, e))
-        targets.sort(key=lambda t: t[0])
-        return [e for _, e in targets]
+                in_range.append(e)
+
+        if not in_range:
+            return []
+
+        mode = getattr(tower, "target_mode", "first")
+        if mode == "first":
+            in_range.sort(key=lambda e: -e.distance_traveled)
+        elif mode == "last":
+            in_range.sort(key=lambda e: e.distance_traveled)
+        elif mode == "strongest":
+            in_range.sort(key=lambda e: -e.hp)
+        elif mode == "weakest":
+            in_range.sort(key=lambda e: e.hp)
+        elif mode == "closest":
+            in_range.sort(key=lambda e: math.sqrt((tx - e.x) ** 2 + (ty - e.y) ** 2))
+        else:
+            in_range.sort(key=lambda e: -e.distance_traveled)
+
+        return in_range
 
     def _apply_damage(self, enemy: Enemy, raw_damage: int,
                       tower: Tower) -> Dict[str, Any]:
@@ -1074,6 +1105,17 @@ class TowerDefenseGame:
         state_dict["difficulty_label"] = self.diff_config["label"]
         state_dict["tower_cost_mult"] = self.diff_config["tower_cost_mult"]
         state_dict["permadeath"] = self.state.permadeath
+
+        next_wave_preview = None
+        if self.state.current_wave < self.state.total_waves:
+            cfg = self.wave_config[self.state.current_wave]
+            next_wave_preview = {
+                "wave_number": cfg.wave_number,
+                "bonus": cfg.bonus,
+                "enemies": [{"type": etype.value, "count": count} for etype, count in cfg.enemies],
+            }
+        state_dict["next_wave_preview"] = next_wave_preview
+
         return {
             "state": state_dict,
             "towers": [t.to_dict() for t in self.towers],
