@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Colônia Hex - GameHub</title>
+<style>
+:root {
+  --bg: #0e1117; --surface: #161b22; --card: #1c2128; --border: #30363d;
+  --text: #e6edf3; --dim: #8b949e; --gold: #ffd700; --green: #3fb950;
+  --red: #f85149; --blue: #58a6ff; --yellow: #d29922; --purple: #bc8cff;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system, 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; overflow-x: hidden; }
+.game-wrap { width: 100%; max-width: 1100px; padding: 8px; display: flex; flex-direction: column; align-items: center; }
+canvas { background: #0a0e14; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; max-width: 100%; touch-action: none; }
+.hud { width: 100%; max-width: 900px; display: flex; gap: 8px; padding: 8px 0; flex-wrap: wrap; justify-content: center; }
+.hud-item { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 6px 14px; font-size: 14px; display: flex; align-items: center; gap: 6px; }
+.hud-item .val { font-weight: 700; font-family: monospace; }
+.hud-item.gold .val { color: var(--gold); }
+.hud-item.income .val { color: var(--green); }
+.hud-item.turn .val { color: var(--blue); }
+.actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; padding: 6px 0; }
+.act-btn { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; padding: 8px 14px; color: var(--text); font-size: 13px; cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 5px; }
+.act-btn:hover { border-color: var(--blue); background: rgba(88,166,255,.1); }
+.act-btn:disabled { opacity: .35; cursor: not-allowed; }
+.act-btn .cost { color: var(--gold); font-family: monospace; font-size: 12px; }
+.mute-btn { position: fixed; top: 10px; right: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 6px 10px; color: var(--text); cursor: pointer; font-size: 18px; z-index: 50; }
+/* Modals */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.8); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.modal-overlay.hidden { display: none; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 28px; max-width: 440px; width: 92%; text-align: center; box-shadow: 0 16px 48px rgba(0,0,0,.5); }
+.modal h2 { font-size: 1.5rem; margin-bottom: 12px; }
+.modal p { color: var(--dim); margin-bottom: 16px; font-size: .9rem; }
+.modal label { display: block; margin: 10px 0 4px; color: var(--dim); font-size: .8rem; text-transform: uppercase; letter-spacing: 1px; }
+.btn-row { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.opt-btn { background: var(--card); border: 1px solid var(--border); border-radius: 6px; padding: 6px 14px; color: var(--text); font-size: .85rem; cursor: pointer; transition: all .15s; }
+.opt-btn.active { border-color: var(--gold); color: var(--gold); background: rgba(255,215,0,.1); }
+.opt-btn:hover { border-color: var(--blue); }
+.go-btn { background: linear-gradient(135deg, #238636, #2ea043); color: #fff; border: none; padding: 12px 32px; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; margin-top: 16px; }
+.go-btn:hover { filter: brightness(1.15); }
+.province-info { position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px; font-size: 13px; z-index: 40; display: none; max-width: 400px; text-align: center; }
+.province-info.visible { display: block; }
+.hs-list { text-align: left; margin: 12px 0; max-height: 140px; overflow-y: auto; font-family: monospace; font-size: .8rem; }
+.hs-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<button class="mute-btn" id="btnMute" title="Mute/Unmute">🔊</button>
+
+<div class="game-wrap">
+  <div class="hud">
+    <div class="hud-item turn"><span>🔄</span> Turno: <span class="val" id="hudTurn">-</span></div>
+    <div class="hud-item gold"><span>🍃</span> Tesouro: <span class="val" id="hudGold">0</span></div>
+    <div class="hud-item income"><span>📈</span> Renda: <span class="val" id="hudIncome">+0</span></div>
+    <div class="hud-item"><span>🏠</span> Províncias: <span class="val" id="hudProvs">0</span></div>
+    <div class="hud-item" id="hudBot" style="display:none"><span>🤖</span> Bot pensando...</div>
+  </div>
+  <canvas id="hexCanvas" width="880" height="640"></canvas>
+  <div class="actions">
+    <button class="act-btn" id="btnRecruit">👷 Recrutar <span class="cost">[10🍃]</span></button>
+    <button class="act-btn" id="btnFarm">🌾 Fazenda <span class="cost">[12🍃]</span></button>
+    <button class="act-btn" id="btnTower">🗼 Torre <span class="cost">[15🍃]</span></button>
+    <button class="act-btn" id="btnEndTurn">⏭️ Passar <span class="cost">[Espaço]</span></button>
+  </div>
+</div>
+
+<div class="province-info" id="provInfo"></div>
+
+<!-- Start Modal -->
+<div class="modal-overlay" id="startModal">
+  <div class="modal">
+    <h2>🌿 Colônia Hex</h2>
+    <p>Conquiste territórios, una províncias e destrua seus inimigos!</p>
+    <label>Dificuldade da IA</label>
+    <div class="btn-row" id="diffRow">
+      <button class="opt-btn active" data-val="easy">Fácil</button>
+      <button class="opt-btn" data-val="medium">Médio</button>
+      <button class="opt-btn" data-val="hard">Difícil</button>
+    </div>
+    <label>Tamanho do Mapa</label>
+    <div class="btn-row" id="sizeRow">
+      <button class="opt-btn" data-val="small">Pequeno</button>
+      <button class="opt-btn active" data-val="medium">Médio</button>
+      <button class="opt-btn" data-val="large">Grande</button>
+    </div>
+    <label>Jogadores</label>
+    <div class="btn-row" id="playersRow">
+      <button class="opt-btn" data-val="2">2</button>
+      <button class="opt-btn active" data-val="3">3</button>
+      <button class="opt-btn" data-val="4">4</button>
+    </div>
+    <button class="go-btn" id="btnStart">▶ JOGAR</button>
+  </div>
+</div>
+
+<!-- Victory Modal -->
+<div class="modal-overlay hidden" id="victoryModal">
+  <div class="modal">
+    <h2 id="victoryTitle">🏆 Vitória!</h2>
+    <p id="victoryMsg">Você conquistou o mapa!</p>
+    <p>Pontuação: <strong id="victoryScore" style="color:var(--gold)">0</strong></p>
+    <div class="hs-list" id="hsList"></div>
+    <input type="text" id="hsName" placeholder="Seu nome" maxlength="12" style="background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px;color:var(--text);width:160px;margin:8px 0;">
+    <button class="go-btn" id="btnSaveHS" style="font-size:.85rem;padding:8px 20px;">Salvar Score</button>
+    <button class="go-btn" id="btnRestart" style="font-size:.85rem;padding:8px 20px;background:var(--surface);border:1px solid var(--border);margin-top:8px;">Jogar Novamente</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+// ═══════════════════════════════════════════════════════════════
+//  SOUND SYSTEM — WebAudio Procedural Synthesizer
+// ═══════════════════════════════════════════════════════════════
+const Sound = {
+  ctx: null, master: null, muted: localStorage.getItem('ch_muted') === 'true',
+  init() {
+    if (this.ctx) return;
+    try {
+      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = this.muted ? 0 : 0.25;
+      this.master.connect(this.ctx.destination);
+    } catch(e) {}
+  },
+  _osc(type, freq, dur, vol = 0.2) {
+    if (!this.ctx || this.muted) return;
+    const t = this.ctx.currentTime;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur);
+  },
+  _sweep(f1, f2, dur, type = 'sine', vol = 0.15) {
+    if (!this.ctx || this.muted) return;
+    const t = this.ctx.currentTime;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type;
+    o.frequency.setValueAtTime(f1, t); o.frequency.exponentialRampToValueAtTime(Math.max(f2,20), t+dur);
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t+dur);
+    o.connect(g); g.connect(this.master); o.start(t); o.stop(t+dur);
+  },
+  click() { this._osc('sine', 800, 0.06, 0.12); },
+  move() { this._sweep(400, 600, 0.1, 'triangle', 0.1); },
+  recruit() { this._osc('sine', 523, 0.1); setTimeout(() => this._osc('sine', 659, 0.1), 80); setTimeout(() => this._osc('sine', 784, 0.15), 160); },
+  merge() { this._sweep(300, 900, 0.2, 'sine', 0.15); this._osc('triangle', 1200, 0.15, 0.08); },
+  conquer() { this._sweep(200, 800, 0.3, 'sawtooth', 0.12); this._osc('sine', 400, 0.4, 0.1); },
+  build() { this._osc('triangle', 300, 0.15, 0.1); this._osc('sine', 500, 0.1, 0.08); },
+  starve() { this._sweep(500, 100, 0.5, 'sawtooth', 0.15); },
+  turnBell() { this._osc('sine', 880, 0.12, 0.15); setTimeout(() => this._osc('sine', 1100, 0.15, 0.15), 100); },
+  victory() { [523,659,784,1047].forEach((f,i) => setTimeout(() => this._osc('sine', f, 0.3, 0.15), i*120)); },
+  defeat() { this._sweep(400, 80, 0.6, 'sawtooth', 0.15); setTimeout(() => this._sweep(300, 60, 0.5, 'sawtooth', 0.12), 300); },
+  toggleMute() {
+    this.muted = !this.muted; localStorage.setItem('ch_muted', this.muted);
+    if (this.master) this.master.gain.value = this.muted ? 0 : 0.25;
+    document.getElementById('btnMute').textContent = this.muted ? '🔇' : '🔊';
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════════════════════════
+const HEX_SIZE = 38;
+const SQRT3 = Math.sqrt(3);
+const PLAYER_COLORS = ['#3fb950', '#f85149', '#58a6ff', '#d29922'];
+const PLAYER_NAMES = ['Colônia', 'Invasor', 'Azul', 'Amarelo'];
+const UNIT_NAMES = ['', 'Operária', 'Soldado', 'Guardião', 'Elite'];
+const UNIT_ICONS = ['', '⛏️', '⚔️', '🛡️', '👑'];
+const BUILD_ICONS = { castle: '🏰', farm: '🌾', tower: '🗼', strong_tower: '🏰' };
+const NEUTRAL_COLOR = '#2d333b';
+const TREE_COLOR = '#1a4a2a';
+
+// ═══════════════════════════════════════════════════════════════
+//  OFFLINE GAME ENGINE (fallback when no backend)
+// ═══════════════════════════════════════════════════════════════
+class HexEngine {
+  constructor(opts) {
+    this.mapSize = opts.mapSize || 'medium';
+    this.numPlayers = opts.numPlayers || 2;
+    this.difficulty = opts.difficulty || 'easy';
+    this.seed = opts.seed || Math.floor(Math.random() * 99999);
+    this.currentPlayer = 0;
+    this.turnNumber = 0;
+    this.winner = null;
+    this.grid = new Map();
+    this.provinces = [];
+    this.selectedCell = null;
+    this.actionMode = null; // 'recruit','farm','tower'
+    this._generate();
+  }
+
+  _hash(q, r) { return `${q},${r}`; }
+  _unhash(h) { const [q,r] = h.split(',').map(Number); return {q,r}; }
+
+  neighbors(q, r) {
+    return [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]].map(([dq,dr])=>[q+dq,r+dr]);
+  }
+
+  hexToPixel(q, r) {
+    const x = HEX_SIZE * (SQRT3 * q + SQRT3/2 * r);
+    const y = HEX_SIZE * (3/2 * r);
+    return {x: x + this._offsetX, y: y + this._offsetY};
+  }
+
+  pixelToHex(px, py) {
+    const x = px - this._offsetX, y = py - this._offsetY;
+    const q = (SQRT3/3 * x - 1/3 * y) / HEX_SIZE;
+    const r = (2/3 * y) / HEX_SIZE;
+    return this._cubeRound(q, -q-r, r);
+  }
+
+  _cubeRound(x, y, z) {
+    let rx = Math.round(x), ry = Math.round(y), rz = Math.round(z);
+    const dx = Math.abs(rx-x), dy = Math.abs(ry-y), dz = Math.abs(rz-z);
+    if (dx > dy && dx > dz) rx = -ry-rz;
+    else if (dy > dz) ry = -rx-rz;
+    else rz = -rx-ry;
+    return {q: rx, r: rz};
+  }
+
+  _generate() {
+    const sizes = { small: 6, medium: 8, large: 10 };
+    const radius = sizes[this.mapSize] || 8;
+    this._offsetX = 440; this._offsetY = 340;
+
+    // Create hex disk
+    for (let q = -radius; q <= radius; q++) {
+      for (let r = Math.max(-radius, -q-radius); r <= Math.min(radius, -q+radius); r++) {
+        const h = this._hash(q, r);
+        this.grid.set(h, { q, r, owner: null, unit: 0, moved: false, building: null, tree: Math.random() < 0.15 });
+      }
+    }
+
+    // Place players
+    const spacing = Math.floor(radius * 1.4);
+    const starts = [[-spacing, 0], [spacing, 0], [0, -spacing], [0, spacing]];
+    for (let i = 0; i < this.numPlayers; i++) {
+      const [sq, sr] = starts[i];
+      // Clamp to grid
+      const cq = Math.max(-radius, Math.min(radius, sq));
+      const cr = Math.max(-radius, Math.min(radius, sr));
+      const h = this._hash(cq, cr);
+      if (this.grid.has(h)) {
+        this.grid.get(h).owner = i;
+        this.grid.get(h).building = 'castle';
+        this.grid.get(h).tree = false;
+        // Give starting territory
+        for (const [nq, nr] of this.neighbors(cq, cr)) {
+          const nh = this._hash(nq, nr);
+          if (this.grid.has(nh) && Math.random() < 0.6) {
+            this.grid.get(nh).owner = i;
+            this.grid.get(nh).tree = false;
+          }
+        }
+      }
+    }
+
+    this._recalcProvinces();
+    // Give starting gold
+    for (const p of this.provinces) {
+      p.gold = 15 + p.cells.length * 2;
+    }
+  }
+
+  _recalcProvinces() {
+    this.provinces = [];
+    const visited = new Set();
+    for (const [h, cell] of this.grid) {
+      if (cell.owner === null || visited.has(h)) continue;
+      const prov = { id: `p${this.provinces.length}`, owner: cell.owner, cells: [], gold: 10, castlePos: null };
+      const stack = [h];
+      while (stack.length) {
+        const ch = stack.pop();
+        if (visited.has(ch)) continue;
+        const cc = this.grid.get(ch);
+        if (!cc || cc.owner !== cell.owner) continue;
+        visited.add(ch);
+        prov.cells.push(ch);
+        if (cc.building === 'castle') prov.castlePos = ch;
+        for (const [nq, nr] of this.neighbors(cc.q, cc.r)) {
+          const nh = this._hash(nq, nr);
+          if (!visited.has(nh)) stack.push(nh);
+        }
+      }
+      if (!prov.castlePos && prov.cells.length > 0) prov.castlePos = prov.cells[0];
+      this.provinces.push(prov);
+    }
+    // Calc income
+    for (const p of this.provinces) {
+      let income = p.cells.length;
+      let upkeep = 0;
+      for (const ch of p.cells) {
+        const c = this.grid.get(ch);
+        if (c.unit > 0) upkeep += [0, 2, 6, 18, 54][c.unit];
+        if (c.building === 'farm') income += 3;
+        if (c.building === 'tower') upkeep += 1;
+        if (c.building === 'strong_tower') upkeep += 2;
+      }
+      p.income = income - upkeep;
+    }
+  }
+
+  getProvinceFor(q, r) {
+    const h = this._hash(q, r);
+    return this.provinces.find(p => p.cells.includes(h));
+  }
+
+  recruit(q, r) {
+    if (this.currentPlayer !== 0) return false;
+    const h = this._hash(q, r);
+    const cell = this.grid.get(h);
+    if (!cell || cell.owner !== 0 || cell.unit > 0) return false;
+    const prov = this.getProvinceFor(q, r);
+    if (!prov || prov.gold < 10) return false;
+    prov.gold -= 10;
+    cell.unit = 1;
+    cell.tree = false;
+    this._recalcProvinces();
+    return true;
+  }
+
+  build(q, r, type) {
+    if (this.currentPlayer !== 0) return false;
+    const h = this._hash(q, r);
+    const cell = this.grid.get(h);
+    if (!cell || cell.owner !== 0 || cell.building) return false;
+    const cost = type === 'farm' ? 12 : 15;
+    const prov = this.getProvinceFor(q, r);
+    if (!prov || prov.gold < cost) return false;
+    prov.gold -= cost;
+    cell.building = type;
+    cell.tree = false;
+    this._recalcProvinces();
+    return true;
+  }
+
+  moveUnit(fq, fr, tq, tr) {
+    if (this.currentPlayer !== 0) return false;
+    const fh = this._hash(fq, fr), th = this._hash(tq, tr);
+    const from = this.grid.get(fh), to = this.grid.get(th);
+    if (!from || !to) return false;
+    if (from.owner !== 0 || from.unit === 0 || from.moved) return false;
+
+    const dist = Math.max(Math.abs(fq-tq), Math.abs(fr-tr), Math.abs((fq+fr)-(tq+tr)));
+    if (dist > 1) return false;
+
+    // Same owner -> fuse or move
+    if (to.owner === 0) {
+      if (to.unit > 0 && from.unit > 0) {
+        const fused = this._fusion(from.unit, to.unit);
+        if (fused !== null) {
+          to.unit = fused; from.unit = 0; from.moved = true;
+          this._recalcProvinces(); return 'merge';
+        }
+        return false;
+      }
+      to.unit = from.unit; from.unit = 0; from.moved = true;
+      this._recalcProvinces(); return 'move';
+    }
+
+    // Enemy or neutral
+    const defense = this._getDefense(tq, tr, to.owner);
+    if (from.unit > defense || (to.owner === null && from.unit >= 1)) {
+      const prevOwner = to.owner;
+      to.owner = 0; to.unit = from.unit; from.unit = 0; from.moved = true;
+      to.building = null;
+      if (to.tree) { to.tree = false; const prov = this.getProvinceFor(tq, tr); if (prov) prov.gold += 3; }
+      this._recalcProvinces();
+      return prevOwner !== null ? 'conquer' : 'move';
+    }
+    return false;
+  }
+
+  _fusion(a, b) {
+    if (a === 4 || b === 4) return null;
+    if (a === 3 && b >= 2) return null;
+    if (b === 3 && a >= 2) return null;
+    return Math.min(4, a + b);
+  }
+
+  _getDefense(q, r, owner) {
+    let def = 0;
+    const cell = this.grid.get(this._hash(q, r));
+    if (cell && cell.building === 'tower') def = Math.max(def, 2);
+    if (cell && cell.building === 'strong_tower') def = Math.max(def, 3);
+    for (const [nq, nr] of this.neighbors(q, r)) {
+      const nc = this.grid.get(this._hash(nq, nr));
+      if (nc && nc.owner === owner && nc.building === 'tower') def = Math.max(def, 2);
+      if (nc && nc.owner === owner && nc.building === 'strong_tower') def = Math.max(def, 3);
+    }
+    return def;
+  }
+
+  endTurn() {
+    // Apply income
+    for (const p of this.provinces) {
+      if (p.owner === this.currentPlayer) {
+        p.gold = Math.max(0, p.gold + p.income);
+        // Starvation
+        if (p.gold === 0 && p.income < 0) {
+          for (const ch of p.cells) {
+            const c = this.grid.get(ch);
+            if (c.unit > 0 && Math.random() < 0.5) {
+              c.unit = 0; c.tree = true;
+            }
+          }
+        }
+      }
+    }
+    // Reset moved flags
+    for (const [, cell] of this.grid) { cell.moved = false; }
+
+    this._recalcProvinces();
+    this.turnNumber++;
+
+    // Check win
+    const alive = new Set();
+    for (const [, cell] of this.grid) { if (cell.owner !== null) alive.add(cell.owner); }
+    if (alive.size === 1) { this.winner = [...alive][0]; return; }
+
+    // Next player
+    this.currentPlayer = (this.currentPlayer + 1) % this.numPlayers;
+
+    // Bot turn
+    if (this.currentPlayer !== 0) {
+      setTimeout(() => this._botTurn(), 600);
+    }
+  }
+
+  _botTurn() {
+    if (this.currentPlayer === 0 || this.winner !== null) return;
+    const pi = this.currentPlayer;
+    const provs = this.provinces.filter(p => p.owner === pi);
+    for (const prov of provs) {
+      // Try to recruit
+      const emptyCells = prov.cells.filter(h => {
+        const c = this.grid.get(h);
+        return c.unit === 0 && !c.building;
+      });
+      if (emptyCells.length > 0 && prov.gold >= 10) {
+        const h = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+        const c = this.grid.get(h);
+        prov.gold -= 10; c.unit = 1; c.tree = false;
+      }
+      // Try to build farm
+      const buildable = prov.cells.filter(h => {
+        const c = this.grid.get(h);
+        return !c.building && c.unit === 0;
+      });
+      if (buildable.length > 0 && prov.gold >= 12 && Math.random() < 0.4) {
+        const h = buildable[Math.floor(Math.random() * buildable.length)];
+        prov.gold -= 12; this.grid.get(h).building = 'farm';
+      }
+    }
+    this._recalcProvinces();
+    // Try to move/attack
+    for (const prov of provs) {
+      for (const ch of [...prov.cells]) {
+        const c = this.grid.get(ch);
+        if (c.unit > 0 && !c.moved) {
+          for (const [nq, nr] of this.neighbors(c.q, c.r)) {
+            const nh = this._hash(nq, nr);
+            const nc = this.grid.get(nh);
+            if (!nc) continue;
+            if (nc.owner === pi && nc.unit > 0 && !nc.moved) {
+              const fused = this._fusion(c.unit, nc.unit);
+              if (fused !== null) { nc.unit = fused; c.unit = 0; c.moved = true; break; }
+            }
+            if (nc.owner !== pi && c.unit > this._getDefense(nq, nr, nc.owner)) {
+              nc.owner = pi; nc.unit = c.unit; c.unit = 0; c.moved = true;
+              nc.building = null; nc.tree = false;
+              break;
+            }
+          }
+        }
+      }
+    }
+    this._recalcProvinces();
+    this.endTurn();
+  }
+
+  getScore(pIdx) {
+    let score = 0;
+    for (const [, cell] of this.grid) {
+      if (cell.owner === pIdx) {
+        score += 10;
+        if (cell.unit > 0) score += cell.unit * 5;
+        if (cell.building) score += 15;
+      }
+    }
+    return score;
+  }
+
+  serialize() {
+    const g = {};
+    for (const [h, c] of this.grid) g[h] = { ...c };
+    return { grid: g, provinces: this.provinces, currentPlayer: this.currentPlayer, turnNumber: this.turnNumber, winner: this.winner };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RENDERER
+// ═══════════════════════════════════════════════════════════════
+function drawHex(ctx, cx, cy, size, fill, stroke, lineWidth = 1) {
+  ctx.beginPath();
+  for (let i = 0; i < 6; i++) {
+    const angle = Math.PI / 180 * (60 * i - 30);
+    const x = cx + size * Math.cos(angle);
+    const y = cy + size * Math.sin(angle);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = lineWidth; ctx.stroke(); }
+}
+
+function render(engine, canvas, ctx) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw province borders (thick lines for unified provinces)
+  const drawnBorders = new Set();
+  for (const prov of engine.provinces) {
+    const color = PLAYER_COLORS[prov.owner] || NEUTRAL_COLOR;
+    for (const ch of prov.cells) {
+      const c = engine.grid.get(ch);
+      for (const [nq, nr] of engine.neighbors(c.q, c.r)) {
+        const nh = engine._hash(nq, nr);
+        const nc = engine.grid.get(nh);
+        const borderKey = [ch, nh].sort().join('|');
+        if (!nc || nc.owner !== prov.owner) {
+          if (!drawnBorders.has(borderKey)) {
+            drawnBorders.add(borderKey);
+            const p1 = engine.hexToPixel(c.q, c.r);
+            const p2 = engine.hexToPixel(nq, nr);
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.globalAlpha = 0.5;
+            // Draw shared edge
+            const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+            const dx = p2.x - p1.x, dy = p2.y - p1.y;
+            const len = Math.sqrt(dx*dx + dy*dy);
+            const nx = -dy/len * HEX_SIZE * 0.5, ny = dx/len * HEX_SIZE * 0.5;
+            ctx.moveTo(mx - nx, my - ny); ctx.lineTo(mx + nx, my + ny);
+            ctx.stroke();
+            ctx.globalAlpha = 1;
+          }
+        }
+      }
+    }
+  }
+
+  // Draw cells
+  for (const [h, cell] of engine.grid) {
+    const {x: cx, y: cy} = engine.hexToPixel(cell.q, cell.r);
+    let fill;
+    if (cell.owner !== null) {
+      fill = PLAYER_COLORS[cell.owner];
+      // Selected cell highlight
+      if (engine.selectedCell === h) {
+        drawHex(ctx, cx, cy, HEX_SIZE - 2, fill, '#fff', 3);
+        drawHex(ctx, cx, cy, HEX_SIZE + 2, null, '#ffd700', 2);
+      } else {
+        drawHex(ctx, cx, cy, HEX_SIZE - 2, fill, PLAYER_COLORS[cell.owner], 1);
+      }
+    } else {
+      fill = cell.tree ? TREE_COLOR : NEUTRAL_COLOR;
+      drawHex(ctx, cx, cy, HEX_SIZE - 2, fill, '#3d444d', 1);
+    }
+
+    // Tree
+    if (cell.tree && cell.owner === null) {
+      ctx.font = '16px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('🌲', cx, cy);
+    }
+
+    // Building
+    if (cell.building) {
+      ctx.font = '18px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(BUILD_ICONS[cell.building] || '🏠', cx, cy - 8);
+    }
+
+    // Unit
+    if (cell.unit > 0) {
+      const bounce = Math.sin(Date.now() / 400 + cell.q * 3 + cell.r * 7) * 2;
+      ctx.font = 'bold 14px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#fff';
+      ctx.fillText(UNIT_ICONS[cell.unit], cx, cy + 8 + bounce);
+      // Level badge
+      ctx.fillStyle = 'rgba(0,0,0,0.6)';
+      ctx.beginPath(); ctx.arc(cx + 12, cy - 10, 7, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 9px monospace';
+      ctx.fillText(`N${cell.unit}`, cx + 12, cy - 10);
+      // Moved indicator
+      if (cell.moved) {
+        ctx.globalAlpha = 0.4;
+        drawHex(ctx, cx, cy, HEX_SIZE - 2, 'rgba(0,0,0,0.3)', null);
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  // Action mode cursor
+  if (engine.actionMode) {
+    document.getElementById('hexCanvas').style.cursor = 'crosshair';
+  } else {
+    document.getElementById('hexCanvas').style.cursor = 'pointer';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  API COMMUNICATION (with offline fallback)
+// ═══════════════════════════════════════════════════════════════
+const API = {
+  base: '/colonia-hex/api',
+  async post(path, body) {
+    try {
+      const r = await fetch(this.base + path, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+      if (r.ok) return await r.json();
+    } catch(e) {}
+    return null;
+  },
+  async get(path) {
+    try {
+      const r = await fetch(this.base + path);
+      if (r.ok) return await r.json();
+    } catch(e) {}
+    return null;
+  },
+  async newGame(opts) { return await this.post('/new', opts) || { offline: true }; },
+  async getState(id) { return id ? await this.get(`/state/${id}`) : null; },
+  async action(id, act) { return id ? await this.post('/action', { game_id: id, ...act }) : null; },
+  async getHS(diff) { return await this.get(`/highscores?difficulty=${diff}`) || []; },
+  async postHS(data) { return await this.post('/highscores', data); },
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  MAIN APP
+// ═══════════════════════════════════════════════════════════════
+const canvas = document.getElementById('hexCanvas');
+const ctx = canvas.getContext('2d');
+let engine = null;
+let gameId = null;
+let settings = { difficulty: 'easy', mapSize: 'medium', numPlayers: 3 };
+
+// Modal bindings
+document.querySelectorAll('.btn-row').forEach(row => {
+  row.querySelectorAll('.opt-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      row.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const key = row.id === 'diffRow' ? 'difficulty' : row.id === 'sizeRow' ? 'mapSize' : 'numPlayers';
+      settings[key] = row.id === 'playersRow' ? parseInt(btn.dataset.val) : btn.dataset.val;
+    });
+  });
+});
+
+document.getElementById('btnMute').addEventListener('click', () => { Sound.init(); Sound.toggleMute(); });
+
+document.getElementById('btnStart').addEventListener('click', startGame);
+document.getElementById('btnRestart').addEventListener('click', () => { document.getElementById('victoryModal').classList.add('hidden'); document.getElementById('startModal').classList.remove('hidden'); });
+document.getElementById('btnSaveHS').addEventListener('click', saveHighscore);
+
+// Action buttons
+document.getElementById('btnRecruit').addEventListener('click', () => { Sound.init(); if (engine) { engine.actionMode = engine.actionMode === 'recruit' ? null : 'recruit'; updateActions(); }});
+document.getElementById('btnFarm').addEventListener('click', () => { Sound.init(); if (engine) { engine.actionMode = engine.actionMode === 'farm' ? null : 'farm'; updateActions(); }});
+document.getElementById('btnTower').addEventListener('click', () => { Sound.init(); if (engine) { engine.actionMode = engine.actionMode === 'tower' ? null : 'tower'; updateActions(); }});
+document.getElementById('btnEndTurn').addEventListener('click', () => { Sound.init(); if (engine && engine.currentPlayer === 0 && !engine.winner) { engine.endTurn(); Sound.turnBell(); updateHUD(); }});
+
+// Keyboard
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  Sound.init();
+  if (e.code === 'Space') { e.preventDefault(); document.getElementById('btnEndTurn').click(); }
+  if (e.code === 'KeyR') document.getElementById('btnRecruit').click();
+  if (e.code === 'KeyF') document.getElementById('btnFarm').click();
+  if (e.code === 'KeyT') document.getElementById('btnTower').click();
+  if (e.code === 'Escape') { if (engine) engine.actionMode = null; updateActions(); }
+});
+
+// Canvas click
+canvas.addEventListener('click', e => {
+  Sound.init();
+  if (!engine || engine.winner) return;
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width, scaleY = canvas.height / rect.height;
+  const px = (e.clientX - rect.left) * scaleX;
+  const py = (e.clientY - rect.top) * scaleY;
+  const hex = engine.pixelToHex(px, py);
+  const h = engine._hash(hex.q, hex.r);
+  if (!engine.grid.has(h)) return;
+
+  if (engine.actionMode === 'recruit') {
+    if (engine.recruit(hex.q, hex.r)) { Sound.recruit(); engine.actionMode = null; }
+  } else if (engine.actionMode === 'farm') {
+    if (engine.build(hex.q, hex.r, 'farm')) { Sound.build(); engine.actionMode = null; }
+  } else if (engine.actionMode === 'tower') {
+    if (engine.build(hex.q, hex.r, 'tower')) { Sound.build(); engine.actionMode = null; }
+  } else {
+    // Selection / move
+    const cell = engine.grid.get(h);
+    if (engine.selectedCell) {
+      const sc = engine._unhash(engine.selectedCell);
+      if (sc.q === hex.q && sc.r === hex.r) { engine.selectedCell = null; }
+      else {
+        const result = engine.moveUnit(sc.q, sc.r, hex.q, hex.r);
+        if (result === 'merge') Sound.merge();
+        else if (result === 'conquer') Sound.conquer();
+        else if (result === 'move') Sound.move();
+        else Sound.click();
+        engine.selectedCell = null;
+      }
+    } else if (cell.owner === 0 && cell.unit > 0 && !cell.moved) {
+      engine.selectedCell = h; Sound.click();
+    } else {
+      engine.selectedCell = h; Sound.click();
+    }
+  }
+  updateHUD(); updateProvInfo(hex.q, hex.r);
+});
+
+// Touch support
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  const touch = e.touches[0];
+  const mouseEvent = new MouseEvent('click', { clientX: touch.clientX, clientY: touch.clientY });
+  canvas.dispatchEvent(mouseEvent);
+}, { passive: false });
+
+async function startGame() {
+  Sound.init();
+  document.getElementById('startModal').classList.add('hidden');
+  engine = new HexEngine(settings);
+
+  // Try to create game on server
+  const resp = await API.newGame(settings);
+  if (resp && resp.game_id) {
+    gameId = resp.game_id;
+    // Try to get server state
+    const state = await API.getState(gameId);
+    if (state && state.grid) {
+      // Sync with server state (simplified)
+    }
+  }
+
+  render(engine, canvas, ctx);
+  updateHUD();
+  gameLoop();
+}
+
+function gameLoop() {
+  if (!engine) return;
+  render(engine, canvas, ctx);
+  if (engine.winner !== null && !document.getElementById('victoryModal').classList.contains('visible')) {
+    showVictory();
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+function updateHUD() {
+  if (!engine) return;
+  const p = engine.provinces.find(p => p.owner === engine.currentPlayer);
+  document.getElementById('hudTurn').textContent = `${engine.turnNumber + 1} (P${engine.currentPlayer + 1})`;
+  document.getElementById('hudGold').textContent = p ? p.gold : 0;
+  document.getElementById('hudIncome').textContent = (p ? p.income : 0) >= 0 ? `+${p.income}` : p.income;
+  document.getElementById('hudIncome').style.color = (p && p.income >= 0) ? 'var(--green)' : 'var(--red)';
+  const myProvs = engine.provinces.filter(p => p.owner === 0).length;
+  document.getElementById('hudProvs').textContent = myProvs;
+  document.getElementById('hudBot').style.display = engine.currentPlayer !== 0 ? 'flex' : 'none';
+  updateActions();
+}
+
+function updateActions() {
+  if (!engine) return;
+  const isMyTurn = engine.currentPlayer === 0 && !engine.winner;
+  const p = engine.provinces.find(p => p.owner === 0);
+  const gold = p ? p.gold : 0;
+  document.getElementById('btnRecruit').disabled = !isMyTurn || gold < 10;
+  document.getElementById('btnFarm').disabled = !isMyTurn || gold < 12;
+  document.getElementById('btnTower').disabled = !isMyTurn || gold < 15;
+  document.getElementById('btnEndTurn').disabled = !isMyTurn;
+  // Highlight active mode
+  ['btnRecruit', 'btnFarm', 'btnTower'].forEach(id => {
+    document.getElementById(id).style.borderColor = '';
+    document.getElementById(id).style.background = '';
+  });
+  if (engine.actionMode === 'recruit') { document.getElementById('btnRecruit').style.borderColor = 'var(--gold)'; document.getElementById('btnRecruit').style.background = 'rgba(255,215,0,.1)'; }
+  if (engine.actionMode === 'farm') { document.getElementById('btnFarm').style.borderColor = 'var(--gold)'; document.getElementById('btnFarm').style.background = 'rgba(255,215,0,.1)'; }
+  if (engine.actionMode === 'tower') { document.getElementById('btnTower').style.borderColor = 'var(--gold)'; document.getElementById('btnTower').style.background = 'rgba(255,215,0,.1)'; }
+}
+
+function updateProvInfo(q, r) {
+  if (!engine) return;
+  const h = engine._hash(q, r);
+  const cell = engine.grid.get(h);
+  const el = document.getElementById('provInfo');
+  if (!cell) { el.classList.remove('visible'); return; }
+  const prov = engine.getProvinceFor(q, r);
+  let html = '';
+  if (cell.owner !== null) {
+    html = `<span style="color:${PLAYER_COLORS[cell.owner]}">${PLAYER_NAMES[cell.owner]}</span>`;
+    if (prov) html += ` | 🍃${prov.gold} | 📈${prov.income >= 0 ? '+' : ''}${prov.income}`;
+  } else {
+    html = cell.tree ? '🌲 Neutro (árvore +3🍃)' : 'Neutro';
+  }
+  if (cell.unit > 0) html += ` | ${UNIT_ICONS[cell.unit]} ${UNIT_NAMES[cell.unit]}`;
+  if (cell.building) html += ` | ${BUILD_ICONS[cell.building]} ${cell.building}`;
+  el.innerHTML = html;
+  el.classList.add('visible');
+  setTimeout(() => el.classList.remove('visible'), 3000);
+}
+
+function showVictory() {
+  const w = engine.winner;
+  const isWin = w === 0;
+  document.getElementById('victoryTitle').textContent = isWin ? '🏆 Vitória!' : '💀 Derrota';
+  document.getElementById('victoryMsg').textContent = isWin ? 'Você conquistou o mapa!' : `${PLAYER_NAMES[w]} venceu!`;
+  document.getElementById('victoryScore').textContent = engine.getScore(0);
+  if (isWin) Sound.victory(); else Sound.defeat();
+  document.getElementById('victoryModal').classList.remove('hidden');
+  document.getElementById('victoryModal').classList.add('visible');
+  loadHighscores();
+}
+
+async function loadHighscores() {
+  const list = await API.getHS(settings.difficulty);
+  const el = document.getElementById('hsList');
+  if (!list || list.length === 0) { el.innerHTML = '<div style="color:var(--dim)">Nenhum highscore ainda</div>'; return; }
+  el.innerHTML = list.slice(0, 10).map((s, i) => `<div class="hs-row"><span>#${i+1} ${s.name}</span><span style="color:var(--gold)">${s.score} pts</span></div>`).join('');
+}
+
+async function saveHighscore() {
+  const name = document.getElementById('hsName').value.trim() || 'JOGADOR';
+  await API.postHS({ name, score: engine.getScore(0), difficulty: settings.difficulty, turns: engine.turnNumber });
+  loadHighscores();
+  document.getElementById('btnSaveHS').textContent = '✓ Salvo!';
+  setTimeout(() => { document.getElementById('btnSaveHS').textContent = 'Salvar Score'; }, 2000);
+}
+
+// Resize canvas
+function resizeCanvas() {
+  const w = Math.min(880, window.innerWidth - 20);
+  canvas.width = w; canvas.height = Math.round(w * 0.73);
+  if (engine) { engine._offsetX = w / 2; engine._offsetY = canvas.height / 2; }
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+</script>
+</body>
+</html>
