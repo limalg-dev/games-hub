@@ -641,23 +641,27 @@ class TowerDefenseGame:
         """Generate organic ant trail path. Returns (dense_path, sparse_waypoints)."""
         # Sparse waypoints defining the trail shape
         waypoints = [
-            (-1.0, 5.0),   # Entry (off-screen left)
-            (3.0, 5.0),
-            (8.0, 2.5),    # Curve upward
-            (14.0, 5.5),   # Dip down
-            (20.0, 3.0),   # Rise
-            (26.0, 6.0),   # Turn
-            (28.0, 10.0),  # Drop
-            (22.0, 13.0),  # Curve left
-            (14.0, 10.5),  # Wiggle up
-            (8.0, 14.0),   # Drop
-            (4.0, 11.5),   # Turn left
-            (2.0, 16.0),   # Drop
-            (7.0, 20.0),   # Curve right
-            (15.0, 17.5),  # Wiggle
-            (22.0, 21.0),  # Rise
-            (28.0, 19.0),  # Final turn
-            (31.0, 21.0),  # Exit (off-screen right)
+            (-1.0, 4.0),   # Entry
+            (4.0, 4.0),
+            (9.0, 2.5),    # High Ridge
+            (16.0, 3.0),
+            (23.0, 4.5),   # Top Turn
+            (27.0, 7.5),   # Drop
+            (22.0, 9.5),   # Loop Alpha (Chokepoint)
+            (13.0, 8.5),   # Westbound
+            (6.0, 10.5),   # Drop
+            (3.0, 14.0),   # Turn East
+            (11.0, 14.0),  # Central Gauntlet
+            (20.0, 13.5),
+            (27.0, 15.5),  # East Turn
+            (25.0, 19.0),  # Drop & Loop Back
+            (17.0, 18.5),  # Westbound
+            (8.0, 19.5),   # Lower Pocket
+            (3.0, 22.0),   # Final Hairpin
+            (12.0, 22.5),  # Base Approach
+            (22.0, 22.0),  # Final Straight
+            (28.0, 21.0),
+            (31.0, 21.0),  # Anthill Colony Exit
         ]
         dense = TowerDefenseGame._catmull_rom_interpolate(waypoints, num_intermediate=6)
         return dense, waypoints
@@ -665,35 +669,31 @@ class TowerDefenseGame:
     # ── Strategic Build Slots ──────────────────────────────────
     # Each slot is (x, y). Placed along path margins for tactical variety.
     BUILD_SLOT_LAYOUTS = [
-        # Row 4-6 area (near first segment)
-        (3, 4), (4, 4), (6, 4), (8, 4), (10, 4), (12, 4),
-        (3, 6), (6, 6), (10, 6), (14, 6),
-        # Near first turn (col 26-28)
-        (25, 5), (26, 8), (27, 8),
-        # Mid section
-        (20, 12), (18, 12), (16, 12),
-        (12, 11), (10, 11), (10, 13),
-        (6, 12), (4, 13),
-        # Left side
-        (1, 14), (3, 15), (1, 17), (3, 17),
-        # Lower section
-        (5, 19), (8, 19), (10, 19),
-        (13, 18), (17, 18), (19, 20),
-        (21, 20), (24, 20), (26, 20),
-        (24, 22), (20, 22),
+        # ── Zone 1: Entry & High Ridge (North) ──
+        (2, 3), (4, 2), (6, 2), (9, 4), (11, 4), (14, 4), (16, 1), (18, 2),
+        (21, 3), (24, 3), (25, 6), (28, 6),
+        # ── Zone 2: Loop Alpha & Chokepoint (Mid-North) ──
+        (25, 9), (21, 8), (17, 7), (13, 7), (10, 6), (8, 9), (5, 9),
+        # ── Zone 3: Central Gauntlet (Dual-Coverage Corridor) ──
+        (2, 12), (5, 12), (8, 12), (12, 12), (16, 12), (20, 11), (22, 12),
+        (26, 13), (28, 14), (28, 17),
+        # ── Zone 4: Lower Loop & Chokepoint Beta (Mid-South) ──
+        (24, 17), (20, 17), (16, 16), (12, 17), (8, 17), (5, 18), (2, 20),
+        # ── Zone 5: Last Stand & Anthill Base Perimeter (South) ──
+        (5, 23), (8, 23), (12, 21), (15, 21), (18, 21), (21, 20), (25, 22), (27, 23),
     ]
 
     # ── Thematic Obstacles ─────────────────────────────────────
     # Each obstacle is (x, y, type).
     # Types: 'pebble', 'leaf', 'twig', 'water', 'moss'
     OBSTACLE_LAYOUTS = [
-        (5, 3, 'pebble'), (11, 3, 'leaf'), (16, 2, 'twig'),
-        (23, 5, 'pebble'), (27, 7, 'water'),
-        (19, 11, 'moss'), (13, 13, 'leaf'),
-        (7, 13, 'pebble'), (3, 12, 'twig'),
-        (1, 15, 'water'), (5, 17, 'leaf'),
-        (9, 18, 'moss'), (16, 20, 'pebble'),
-        (25, 19, 'twig'), (23, 22, 'water'),
+        (1, 1, 'pebble'), (12, 1, 'leaf'), (20, 1, 'twig'),
+        (28, 3, 'moss'), (29, 9, 'water'),
+        (16, 9, 'pebble'), (1, 8, 'twig'),
+        (7, 14, 'leaf'), (15, 14, 'moss'),
+        (1, 16, 'water'), (29, 18, 'pebble'),
+        (12, 19, 'leaf'), (1, 23, 'twig'),
+        (29, 23, 'water'), (18, 23, 'moss'),
     ]
 
     @staticmethod

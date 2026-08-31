@@ -41,11 +41,11 @@ class TestTowerDefenseGame:
         game = TowerDefenseGame()
         
         # Coloca torre em posição válida (não no caminho)
-        success, message, tower = game.place_tower(6, 4, TowerType.ARCHER)
+        success, message, tower = game.place_tower(9, 4, TowerType.ARCHER)
         
         assert success is True
         assert tower is not None
-        assert tower.x == 6
+        assert tower.x == 9
         assert tower.y == 4
         assert tower.tower_type == TowerType.ARCHER
         assert game.state.leaves == 100  # 150 - 50 (custo da torre)
@@ -55,12 +55,12 @@ class TestTowerDefenseGame:
         """Testa que não pode colocar torre no caminho"""
         game = TowerDefenseGame()
         
-        # Tenta colocar torre no caminho (5, 3 está no path da serpente)
-        success, message, tower = game.place_tower(5, 3, TowerType.ARCHER)
+        # Tenta colocar torre no caminho (4, 4 está no path da trilha)
+        success, message, tower = game.place_tower(4, 4, TowerType.ARCHER)
         
         assert success is False
         assert tower is None
-        assert "obstacle" in message.lower() or "obstáculo" in message.lower()
+        assert "path" in message.lower() or "caminho" in message.lower() or "trail" in message.lower()
         assert game.state.leaves == 150  # Leaves não foram gastas
         assert len(game.towers) == 0
     
@@ -68,14 +68,9 @@ class TestTowerDefenseGame:
         """Testa colocação de torre sem folhas suficientes"""
         game = TowerDefenseGame()
         
-        # Gasta quase todas as leaves
-        game.place_tower(6, 4, TowerType.ARCHER)  # -50
-        game.place_tower(7, 4, TowerType.ICE)     # -80
-        
-        # Na verdade a segunda falha, então vamos gastar manualmente
         game.state.leaves = 30  # Simula situação com poucas leaves
         
-        success, message, tower = game.place_tower(8, 4, TowerType.BOMB)
+        success, message, tower = game.place_tower(9, 4, TowerType.BOMB)
         
         assert success is False
         assert "enough" in message.lower() or "insuficientes" in message.lower()
@@ -96,7 +91,7 @@ class TestTowerDefenseGame:
         game = TowerDefenseGame()
         
         # Coloca e vende torre
-        game.place_tower(6, 4, TowerType.ARCHER)
+        game.place_tower(9, 4, TowerType.ARCHER)
         tower_id = game.towers[0].id
         
         success, message, sell_value = game.sell_tower(tower_id)
@@ -111,7 +106,7 @@ class TestTowerDefenseGame:
         game = TowerDefenseGame()
         
         # Coloca torre
-        game.place_tower(6, 4, TowerType.ARCHER)
+        game.place_tower(9, 4, TowerType.ARCHER)
         tower_id = game.towers[0].id
         initial_level = game.towers[0].level
         
@@ -202,7 +197,7 @@ class TestTowerDefenseGame:
     def test_get_state(self):
         """Testa obtenção do estado completo do jogo"""
         game = TowerDefenseGame()
-        game.place_tower(6, 4, TowerType.ARCHER)
+        game.place_tower(9, 4, TowerType.ARCHER)
         game.start_wave()
         
         state = game.get_state()
@@ -218,7 +213,7 @@ class TestTowerDefenseGame:
     def test_reset_game(self):
         """Testa reset do jogo"""
         game = TowerDefenseGame()
-        game.place_tower(6, 4, TowerType.ARCHER)
+        game.place_tower(9, 4, TowerType.ARCHER)
         game.start_wave()
         
         # Avança um pouco
@@ -523,14 +518,14 @@ class TestDifficultySystem:
 
     def test_easy_towers_are_cheaper(self):
         game_easy = TowerDefenseGame(difficulty=Difficulty.EASY)
-        ok, msg, tower = game_easy.place_tower(6, 4, TowerType.ARCHER)
+        ok, msg, tower = game_easy.place_tower(9, 4, TowerType.ARCHER)
         assert ok is True
         # 50 * 0.80 = 40
         assert game_easy.state.crystals == 200 - 40
 
     def test_hard_towers_are_more_expensive(self):
         game_hard = TowerDefenseGame(difficulty=Difficulty.HARD)
-        ok, msg, tower = game_hard.place_tower(6, 4, TowerType.ARCHER)
+        ok, msg, tower = game_hard.place_tower(9, 4, TowerType.ARCHER)
         assert ok is True
         # 50 * 1.15 = 57
         assert game_hard.state.crystals == 120 - 57
@@ -610,7 +605,7 @@ class TestInsaneDifficulty:
 
     def test_insane_towers_are_expensive(self):
         game = TowerDefenseGame(difficulty=Difficulty.INSANE)
-        ok, msg, tower = game.place_tower(6, 4, TowerType.ARCHER)
+        ok, msg, tower = game.place_tower(9, 4, TowerType.ARCHER)
         assert ok is True
         # 50 * 1.30 = 65
         assert game.state.crystals == 100 - 65
@@ -646,14 +641,14 @@ class TestInsaneDifficulty:
 
 def test_target_modes_first_last_strongest_weakest():
     game = TowerDefenseGame()
-    # Place an archer at (6, 4)
-    success, _, tower = game.place_tower(6, 4, TowerType.ARCHER)
+    # Place an archer at (9, 4)
+    success, _, tower = game.place_tower(9, 4, TowerType.ARCHER)
     assert success is True
     
     # Spawn 3 enemies with varying distance_traveled and hp
-    e_near_exit = Enemy(id="e1", enemy_type=EnemyType.FLY, x=6.0, y=4.5, hp=20, max_hp=20, speed=1.0, base_speed=1.0, reward=5, distance_traveled=100.0)
-    e_strong = Enemy(id="e2", enemy_type=EnemyType.TANK, x=6.0, y=4.2, hp=200, max_hp=200, speed=1.0, base_speed=1.0, reward=10, distance_traveled=50.0)
-    e_weak = Enemy(id="e3", enemy_type=EnemyType.SPRINTER, x=6.0, y=4.1, hp=5, max_hp=5, speed=1.0, base_speed=1.0, reward=2, distance_traveled=20.0)
+    e_near_exit = Enemy(id="e1", enemy_type=EnemyType.FLY, x=9.0, y=4.5, hp=20, max_hp=20, speed=1.0, base_speed=1.0, reward=5, distance_traveled=100.0)
+    e_strong = Enemy(id="e2", enemy_type=EnemyType.TANK, x=9.0, y=4.2, hp=200, max_hp=200, speed=1.0, base_speed=1.0, reward=10, distance_traveled=50.0)
+    e_weak = Enemy(id="e3", enemy_type=EnemyType.SPRINTER, x=9.0, y=4.1, hp=5, max_hp=5, speed=1.0, base_speed=1.0, reward=2, distance_traveled=20.0)
     game.enemies = [e_near_exit, e_strong, e_weak]
 
     # Mode: FIRST (highest distance_traveled -> e1)
@@ -725,7 +720,7 @@ def test_active_spells_acid_strike_and_frost_nova():
 def test_tower_l4_branching_upgrades():
     game = TowerDefenseGame()
     game.state.crystals = 1000
-    ok, _, tower = game.place_tower(6, 4, TowerType.ARCHER)
+    ok, _, tower = game.place_tower(9, 4, TowerType.ARCHER)
     assert ok is True
     
     # Upgrade to L2, L3
@@ -744,6 +739,20 @@ def test_tower_l4_branching_upgrades():
     assert tower.level == 4
     assert tower.branch == "sniper"
     assert tower.range >= 4.0  # Sniper has huge range
+
+
+def test_map_path_continuity_and_build_slots():
+    game = TowerDefenseGame()
+    assert len(game.path) > 30
+    assert len(game.build_slots) >= 35
+
+    # Check that every build slot is strictly on terrain type 1 and not on path (0) or obstacle (2)
+    for bx, by in game.build_slots:
+        assert game.terrain[by][bx] == 1
+        assert (bx, by) not in game.path
+        # Verify placement succeeds on build slot
+        can_place, msg = game.can_place_tower(bx, by, TowerType.ARCHER)
+        assert can_place is True or "crystals" in msg
 
 
 if __name__ == "__main__":
