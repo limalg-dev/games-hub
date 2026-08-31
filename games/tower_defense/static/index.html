@@ -952,8 +952,8 @@ class WorldCamera {
         this.x = 0;           // pan X in world pixels
         this.y = 0;           // pan Y in world pixels
         this.zoom = 0.75;     // zoom level (0.3 – 2.0)
-        this.minZoom = 0.3;
-        this.maxZoom = 2.0;
+        this.minZoom = 0.35;
+        this.maxZoom = 3.0;
         // Screen shake
         this.shakeIntensity = 0;
         this._shakeX = 0;
@@ -982,7 +982,7 @@ class WorldCamera {
     // ── Zoom (towards mouse cursor) ──────────────────────────────
     zoomAt(mouseScreenX, mouseScreenY, delta) {
         const oldZoom = this.zoom;
-        this.zoom *= delta > 0 ? 0.92 : 1.08;
+        this.zoom *= delta > 0 ? 1/1.10 : 1.10;
         this.zoom = Math.max(this.minZoom, Math.min(this.maxZoom, this.zoom));
         // Adjust pan so the world point under the mouse stays put
         const wx = this.x + mouseScreenX / oldZoom;
