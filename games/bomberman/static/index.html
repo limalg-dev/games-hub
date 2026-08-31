@@ -18,12 +18,19 @@
       <span class="game-badge" id="modeBadge">Modo Batalha</span>
     </div>
     <div class="header-right">
+      <button class="btn-icon" id="btnBGM" title="Música ON/OFF">🎵 Música: OFF</button>
       <button class="btn-icon" id="btnMute" title="Ativar/Desativar Som">🔊</button>
     </div>
   </header>
 
   <!-- Top HUD Bar -->
   <section class="hud-bar">
+    <div class="hud-group">
+      <div class="hud-item"><span> Format:</span> <span class="val" id="hudFormat">Best of 3</span></div>
+      <div class="hud-item"><span>🏆 Vit:</span> <span class="val" id="hudWins">0/2</span></div>
+      <div class="hud-item" id="hudRevenge" style="display: none;"><span>🛒</span> <span class="val">REVANCHE!</span></div>
+    </div>
+
     <div class="hud-group">
       <div class="hud-item score-item">
         <span>🏆 PONTOS:</span>
@@ -54,6 +61,9 @@
       <div class="powerup-chip" id="badgeKick" style="display: none;">🥊 CHUTE</div>
       <div class="powerup-chip" id="badgeShield" style="display: none;">🛡️ ESCUDO</div>
       <div class="powerup-chip" id="badgeRemote" style="display: none;">⏱️ DETONADOR</div>
+      <div class="powerup-chip" id="badgePierce" style="display: none;">🎯 PERFURA</div>
+      <div class="powerup-chip" id="badgePunch" style="display: none;">🥊 SOCO</div>
+      <div class="powerup-chip" id="badgeCurse" style="display: none;">💀 MALDIÇÃO</div>
     </div>
   </section>
 
@@ -71,6 +81,14 @@
           <div class="mode-selector">
             <button class="mode-tab active" data-mode="battle">🏆 Modo Batalha</button>
             <button class="mode-tab" data-mode="arcade">👾 Modo Arcade</button>
+          </div>
+
+          <div class="format-row">
+            <span class="format-label">Formato:</span>
+            <button class="format-btn" data-format="1">Best of 1</button>
+            <button class="format-btn active" data-format="3">Best of 3</button>
+            <button class="format-btn" data-format="5">Best of 5</button>
+            <span class="wins-text">Vence: <strong id="winsNeeded">2</strong></span>
           </div>
 
           <div class="difficulty-row">
@@ -149,6 +167,7 @@
       <div class="key-hint"><span class="kbd">WASD</span> ou <span class="kbd">Setas</span> Mover</div>
       <div class="key-hint"><span class="kbd">Espaço</span> ou <span class="kbd">J</span> Soltar Bomba</div>
       <div class="key-hint"><span class="kbd">E</span> ou <span class="kbd">K</span> Detonar Remoto</div>
+      <div class="key-hint"><span class="kbd">F</span> Soco (com power-up)</div>
       <div class="key-hint"><span class="kbd">P</span> ou <span class="kbd">Esc</span> Pausar</div>
     </div>
 
@@ -163,6 +182,7 @@
       <div class="action-buttons">
         <button class="touch-btn" id="btnBomb">💣<span>BOMBA</span></button>
         <button class="touch-btn secondary" id="btnRemote">💥<span>DETONAR</span></button>
+        <button class="touch-btn punch-btn" id="btnPunch">🥊<span>SOCO [F]</span></button>
       </div>
     </div>
   </main>

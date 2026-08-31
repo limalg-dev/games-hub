@@ -488,6 +488,83 @@ body {
 .score-row:nth-child(2) .rank { color: #silver; }
 .score-row:nth-child(3) .rank { color: #cd7f32; }
 
+
+/* Format Selector */
+.format-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.format-label {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.format-btn {
+  background: var(--night-card);
+  border: 1px solid var(--hairline);
+  color: var(--text-dim);
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.format-btn.active {
+  color: var(--marquee-gold);
+  border-color: var(--marquee-gold);
+  background: rgba(255, 215, 0, 0.1);
+}
+
+.wins-text {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.wins-text strong {
+  color: var(--marquee-gold);
+}
+
+/* BGM Button */
+#btnBGM {
+  font-size: 0.75rem;
+  width: auto;
+  padding: 0 12px;
+  gap: 4px;
+}
+
+#btnBGM.active {
+  border-color: var(--leaf-green);
+  color: var(--leaf-green);
+}
+
+/* Punch Button */
+.punch-btn {
+  width: 58px !important;
+  height: 58px !important;
+  background: #e67e22 !important;
+  border: none !important;
+}
+
+.punch-btn:active {
+  background: #f39c12 !important;
+  transform: scale(0.92);
+}
+
+/* Powerup chip colors */
+#badgePierce { border-color: #e74c3c; color: #e74c3c; }
+#badgePunch { border-color: #e67e22; color: #e67e22; }
+#badgeCurse { border-color: #9b59b6; color: #9b59b6; }
+
 /* Responsive adjustments */
 @media (max-width: 640px) {
   .hud-bar {
