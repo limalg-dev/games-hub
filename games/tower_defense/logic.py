@@ -46,6 +46,24 @@ TOWER_STATS = {
         "speed_mult":  [1.0, 0.90, 0.80],     # faster = lower cooldown
         "range_mult":  [1.0, 1.15, 1.35],
         "special": None,
+        "branches": {
+            "sniper": {
+                "name": "Sniper",
+                "damage": (75, 110),
+                "attack_speed": 1.8,
+                "range": 4.5,
+                "cost": 160,
+                "description": "Long range, high single-target burst",
+            },
+            "gatling": {
+                "name": "Gatling",
+                "damage": (8, 12),
+                "attack_speed": 0.18,
+                "range": 2.8,
+                "cost": 160,
+                "description": "Rapid fire bullet storm",
+            },
+        },
     },
     TowerType.BOMB: {
         "cost": 120,
@@ -58,6 +76,26 @@ TOWER_STATS = {
         "speed_mult":  [1.0, 0.92, 0.85],
         "range_mult":  [1.0, 1.12, 1.28],
         "special": "aoe",
+        "branches": {
+            "toxic_mortar": {
+                "name": "Toxic Mortar",
+                "damage": (50, 75),
+                "attack_speed": 2.2,
+                "range": 3.0,
+                "aoe_radius": 2.0,
+                "cost": 180,
+                "description": "Wide area toxic mortar",
+            },
+            "plasma_cannon": {
+                "name": "Plasma Cannon",
+                "damage": (90, 140),
+                "attack_speed": 2.8,
+                "range": 2.6,
+                "aoe_radius": 2.6,
+                "cost": 180,
+                "description": "Devastating heavy plasma blasts",
+            },
+        },
     },
     TowerType.ICE: {
         "cost": 80,
@@ -73,12 +111,41 @@ TOWER_STATS = {
         "special": "slow",
         # L3 bonus: stronger slow
         "slow_factor_l3": 0.40,    # 60% slow at L3
+        "branches": {
+            "blizzard": {
+                "name": "Blizzard",
+                "damage": (10, 10),
+                "attack_speed": 0.5,
+                "range": 3.0,
+                "slow_factor": 0.40,
+                "slow_duration": 3.0,
+                "aura": True,
+                "cost": 150,
+                "description": "Continuous blizzard storm",
+            },
+            "permafrost": {
+                "name": "Permafrost",
+                "damage": (25, 40),
+                "attack_speed": 1.5,
+                "range": 3.0,
+                "slow_factor": 0.15,
+                "slow_duration": 3.5,
+                "cost": 150,
+                "description": "Extreme 85% slow freezing blast",
+            },
+        },
     },
+}
+
+VALID_BRANCHES = {
+    TowerType.ARCHER: ["sniper", "gatling"],
+    TowerType.BOMB: ["toxic_mortar", "plasma_cannon"],
+    TowerType.ICE: ["blizzard", "permafrost"],
 }
 
 UPGRADE_COST_FACTOR = 0.70   # 70% of base cost per upgrade
 SELL_FACTOR = 0.50           # 50% of total invested
-MAX_TOWER_LEVEL = 3
+MAX_TOWER_LEVEL = 4
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -351,24 +418,43 @@ class Tower:
     level: int = 1
     cooldown: float = 0.0
     target_mode: str = "first"
+    branch: Optional[str] = None
 
     @property
     def stats(self) -> Dict[str, Any]:
         return TOWER_STATS[self.tower_type]
 
     @property
+    def branch_stats(self) -> Optional[Dict[str, Any]]:
+        if self.level == 4 and self.branch:
+            branches = self.stats.get("branches", {})
+            return branches.get(self.branch)
+        return None
+
+    @property
     def damage(self) -> Tuple[int, int]:
+        b = self.branch_stats
+        if b and "damage" in b:
+            return b["damage"]
         base = self.stats["damage"]
-        mult = self.stats["damage_mult"][self.level - 1]
+        mult = self.stats["damage_mult"][min(self.level - 1, len(self.stats["damage_mult"]) - 1)]
         return (int(base[0] * mult), int(base[1] * mult))
 
     @property
     def attack_speed(self) -> float:
-        return self.stats["attack_speed"] * self.stats["speed_mult"][self.level - 1]
+        b = self.branch_stats
+        if b and "attack_speed" in b:
+            return b["attack_speed"]
+        mult = self.stats["speed_mult"][min(self.level - 1, len(self.stats["speed_mult"]) - 1)]
+        return self.stats["attack_speed"] * mult
 
     @property
     def range(self) -> float:
-        return self.stats["range"] * self.stats["range_mult"][self.level - 1]
+        b = self.branch_stats
+        if b and "range" in b:
+            return b["range"]
+        mult = self.stats["range_mult"][min(self.level - 1, len(self.stats["range_mult"]) - 1)]
+        return self.stats["range"] * mult
 
     @property
     def cost(self) -> int:
@@ -389,16 +475,25 @@ class Tower:
 
     @property
     def aoe_radius(self) -> Optional[float]:
+        b = self.branch_stats
+        if b and "aoe_radius" in b:
+            return b["aoe_radius"]
         return self.stats.get("aoe_radius")
 
     @property
     def slow_factor(self) -> float:
+        b = self.branch_stats
+        if b and "slow_factor" in b:
+            return b["slow_factor"]
         if self.level >= 3 and "slow_factor_l3" in self.stats:
             return self.stats["slow_factor_l3"]
         return self.stats.get("slow_factor", 0.55)
 
     @property
     def slow_duration(self) -> float:
+        b = self.branch_stats
+        if b and "slow_duration" in b:
+            return b["slow_duration"]
         base = self.stats.get("slow_duration", 2.0)
         # L3 gets longer slow
         if self.level >= 3:
@@ -422,6 +517,7 @@ class Tower:
             "aoe_radius": self.aoe_radius,
             "special": self.stats.get("special"),
             "target_mode": self.target_mode,
+            "branch": self.branch,
         }
 
 
@@ -675,6 +771,10 @@ class TowerDefenseGame:
         self._group_spawn_timers: Dict[EnemyType, float] = {}
         self._group_spawn_counts: Dict[EnemyType, int] = {}
         self.auto_wave_timer: float = 0.0  # countdown for auto-wave
+        self.spell_cooldowns: Dict[str, float] = {
+            "acid_strike": 0.0,
+            "frost_nova": 0.0,
+        }
 
         self.occupied_grid = [
             [False for _ in range(grid_height)]
@@ -739,11 +839,24 @@ class TowerDefenseGame:
                 return True, f"Sold for {val} crystals", val
         return False, "Tower not found", 0
 
-    def upgrade_tower(self, tower_id: str) -> Tuple[bool, str]:
+    def upgrade_tower(self, tower_id: str, branch: Optional[str] = None) -> Tuple[bool, str]:
         for t in self.towers:
             if t.id == tower_id:
                 if t.level >= MAX_TOWER_LEVEL:
                     return False, "Tower already at max level"
+
+                if t.level == 3:
+                    valid = VALID_BRANCHES.get(t.tower_type, [])
+                    if not branch or branch not in valid:
+                        return False, f"Branch required for Level 4 upgrade. Valid choices: {', '.join(valid)}"
+                    cost = t.upgrade_cost
+                    if self.state.crystals < cost:
+                        return False, f"Not enough crystals (need {cost})"
+                    self.state.crystals -= cost
+                    t.level = 4
+                    t.branch = branch
+                    return True, f"Tower upgraded to Level 4 ({branch})!"
+
                 cost = t.upgrade_cost
                 if self.state.crystals < cost:
                     return False, f"Not enough crystals (need {cost})"
@@ -751,6 +864,46 @@ class TowerDefenseGame:
                 t.level += 1
                 return True, f"Tower upgraded to level {t.level}!"
         return False, "Tower not found"
+
+    def cast_spell(self, spell: str, x: float = 0.0, y: float = 0.0) -> Tuple[bool, str, Dict[str, Any]]:
+        if spell not in self.spell_cooldowns:
+            return False, f"Unknown spell: {spell}", {}
+        if self.spell_cooldowns[spell] > 0:
+            return False, f"Spell {spell} on cooldown ({round(self.spell_cooldowns[spell], 1)}s)", {}
+
+        if spell == "acid_strike":
+            radius = 2.5
+            damage = 120
+            affected = 0
+            for enemy in self.enemies:
+                d = math.sqrt((enemy.x - x) ** 2 + (enemy.y - y) ** 2)
+                if d <= radius:
+                    effective_dmg = max(1, damage - enemy.armor)
+                    enemy.hp -= effective_dmg
+                    affected += 1
+            self.spell_cooldowns["acid_strike"] = 40.0
+            return True, "Acid Strike cast!", {
+                "spell": "acid_strike",
+                "x": x,
+                "y": y,
+                "radius": radius,
+                "affected": affected,
+            }
+
+        elif spell == "frost_nova":
+            duration = 5.0
+            for enemy in self.enemies:
+                enemy.slowed = True
+                enemy.slow_timer = max(enemy.slow_timer, duration)
+                enemy.speed = enemy.base_speed * 0.30  # 70% slow
+            self.spell_cooldowns["frost_nova"] = 60.0
+            return True, "Frost Nova cast!", {
+                "spell": "frost_nova",
+                "duration": duration,
+                "affected": len(self.enemies),
+            }
+
+        return False, "Spell failed", {}
 
     def set_target_mode(self, tower_id: str, mode: str) -> Tuple[bool, str]:
         valid_modes = ("first", "last", "strongest", "weakest", "closest")
@@ -1088,6 +1241,11 @@ class TowerDefenseGame:
         else:
             self.auto_wave_timer = 0.0
 
+        # ── Decrement spell cooldowns ──
+        for s in self.spell_cooldowns:
+            if self.spell_cooldowns[s] > 0:
+                self.spell_cooldowns[s] = max(0.0, self.spell_cooldowns[s] - scaled_dt)
+
         # ── Projectile cleanup ──
         for p in self.projectiles[:]:
             p["lifetime"] -= scaled_dt
@@ -1115,6 +1273,8 @@ class TowerDefenseGame:
                 "enemies": [{"type": etype.value, "count": count} for etype, count in cfg.enemies],
             }
         state_dict["next_wave_preview"] = next_wave_preview
+        spells_dict = {k: round(v, 2) for k, v in self.spell_cooldowns.items()}
+        state_dict["spells"] = spells_dict
 
         return {
             "state": state_dict,
@@ -1134,6 +1294,7 @@ class TowerDefenseGame:
             ],
             "wave_active": self.wave_active,
             "wave_enemies_remaining": len(self.wave_enemies_remaining),
+            "spells": spells_dict,
         }
 
     def reset(self):

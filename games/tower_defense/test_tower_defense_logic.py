@@ -698,5 +698,53 @@ def test_wave_preview_in_state():
     assert len(state["state"]["next_wave_preview"]["enemies"]) > 0
 
 
+def test_active_spells_acid_strike_and_frost_nova():
+    game = TowerDefenseGame()
+    # Spawn enemies
+    e1 = Enemy(id="e1", enemy_type=EnemyType.FLY, x=5.0, y=5.0, hp=100, max_hp=100, speed=2.0, base_speed=2.0, reward=5)
+    e2 = Enemy(id="e2", enemy_type=EnemyType.FLY, x=20.0, y=20.0, hp=100, max_hp=100, speed=2.0, base_speed=2.0, reward=5)
+    game.enemies = [e1, e2]
+
+    # Cast Acid Strike at (5, 5)
+    ok, msg, data = game.cast_spell("acid_strike", 5.0, 5.0)
+    assert ok is True
+    assert e1.hp == 0 or e1.hp < 100  # Took damage
+    assert e2.hp == 100  # Out of range
+
+    # Cooldown is active; casting again must fail
+    ok2, _, _ = game.cast_spell("acid_strike", 5.0, 5.0)
+    assert ok2 is False
+
+    # Cast Frost Nova
+    ok_frost, _, _ = game.cast_spell("frost_nova")
+    assert ok_frost is True
+    assert e2.slowed is True
+    assert e2.speed < e2.base_speed
+
+
+def test_tower_l4_branching_upgrades():
+    game = TowerDefenseGame()
+    game.state.crystals = 1000
+    ok, _, tower = game.place_tower(6, 4, TowerType.ARCHER)
+    assert ok is True
+    
+    # Upgrade to L2, L3
+    game.upgrade_tower(tower.id)
+    assert tower.level == 2
+    game.upgrade_tower(tower.id)
+    assert tower.level == 3
+
+    # Upgrade to L4 without specifying branch should fail
+    ok_no_branch, _ = game.upgrade_tower(tower.id)
+    assert ok_no_branch is False
+
+    # Branch A: sniper
+    ok, msg = game.upgrade_tower(tower.id, branch="sniper")
+    assert ok is True
+    assert tower.level == 4
+    assert tower.branch == "sniper"
+    assert tower.range >= 4.0  # Sniper has huge range
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
