@@ -12,7 +12,7 @@ Primary users are casual, Portuguese-speaking players who open a browser and pla
 
 ## Product Purpose
 
-GameHub is a free, no-login web game platform hosting a growing set of casual games: checkers (vs minimax AI or online), word search, crossword (solo or collaborative online), snake, tower defense (ant-themed) and Super Bomberman. Ant Defense and Tower Defense are the **same module** (`games/tower_defense/`); `/play/ant_defense` redirects to the unified tower defense page. Success means a visitor can see a game card, open it, and be playing without friction — and can bring a friend in via a shareable `/play/*` URL.
+GameHub is a free, no-login web game platform hosting a growing set of casual games: checkers (vs minimax AI or online), word search, crossword (solo or collaborative online), snake, tower defense (ant-themed), Super Bomberman, and Colônia Hex (turn-based hex territory strategy). Ant Defense and Tower Defense are the **same module** (`games/tower_defense/`); `/play/ant_defense` redirects to the unified tower defense page. Success means a visitor can see a game card, open it, and be playing without friction — and can bring a friend in via a shareable `/play/*` URL.
 
 ## Positioning
 
@@ -20,7 +20,7 @@ Free, no-login hub of classic casual games with a server-authoritative multiplay
 
 ## Operating Context
 
-Used entirely in a browser. Visitors land on a single-page hub with game cards and category tabs, open a game details modal, choose difficulty (and word-search category), and play; checkers and crossword optionally run over a WebSocket opened by the server. Shareable deep links: `/play/checkers`, `/play/wordsearch`, `/play/crossword`, `/play/snake`, `/play/ant_defense`, `/play/tower_defense` (legacy games use the shared SPA shell; snake/ant_defense/tower_defense use dedicated pages). Word search runs a client-side timer with a local leaderboard. Deployable via Docker (`docker-compose.yml`, `docker-compose.prod.yml`) and runnable locally with uvicorn.
+Used entirely in a browser. Visitors land on a single-page hub with game cards and category tabs, open a game details modal, choose difficulty (and word-search category), and play; checkers and crossword optionally run over a WebSocket opened by the server. Shareable deep links: `/play/checkers`, `/play/wordsearch`, `/play/crossword`, `/play/snake`, `/play/ant_defense`, `/play/tower_defense`, `/play/bomberman`, `/play/colonia_hex` (legacy games use the shared SPA shell; snake/ant_defense/tower_defense/bomberman/colonia_hex use dedicated pages). Word search runs a client-side timer with a local leaderboard. Deployable via Docker (`docker-compose.yml`, `docker-compose.prod.yml`) and runnable locally with uvicorn.
 
 ## Capabilities and Constraints
 
@@ -29,8 +29,7 @@ Confirmed capabilities:
 - Checkers: 8×8 English draughts, minimax AI with Easy/Medium/Hard, or two players over WebSocket (server-authoritative).
 - Word search (Caça-Palavras): client-side grid, easy/medium/hard, multiple categories, timer, local high scores.
 - Crossword (Palavras Cruzadas): server-generated via backtracking from a 150-word seeded dictionary (5 categories), solo or collaborative online over WebSocket, letter-by-letter server validation.
-- Snake, Tower Defense / Ant Defense (same module, `games/tower_defense/`; `/play/ant_defense` redirects to `/play/tower_defense`), Super Bomberman: self-contained games with dedicated play pages and FastAPI routers.
-
+- Snake, Tower Defense / Ant Defense (same module, `games/tower_defense/`; `/play/ant_defense` redirects to `/play/tower_defense`), Super Bomberman, Colônia Hex: self-contained games with dedicated play pages and FastAPI routers.
 Constraints and technical facts:
 
 - Stack: Python 3.11+, FastAPI (REST + WebSocket), SQLModel, SQLite persistence (`games.db`), Uvicorn, pytest + httpx; vanilla frontend (shared SPA shell `static/` plus per-game static modules); Docker / docker-compose.

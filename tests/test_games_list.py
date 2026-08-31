@@ -73,17 +73,16 @@ def result(tmp_path_factory):
     return json.loads(proc.stdout.strip().splitlines()[-1])
 
 
-def test_exports_exactly_the_six_games(result):
+def test_exports_exactly_the_expected_games(result):
     assert set(result["ids"]) == {
-        "checkers", "wordsearch", "crossword", "snake", "tower_defense", "bomberman"
+        "checkers", "wordsearch", "crossword", "snake", "tower_defense", "bomberman", "colonia_hex"
     }
 
 
 def test_all_games_has_each_id_exactly_once(result):
     ids = [g["id"] for g in result["games"]]
-    assert len(ids) == 6
-    assert len(set(ids)) == 6
-
+    assert len(ids) == 7
+    assert len(set(ids)) == 7
 
 def test_all_games_sorted_by_rating_descending(result):
     ratings = [g["rating"] for g in result["games"]]
@@ -96,9 +95,8 @@ def test_categories_cover_every_game_category(result):
 
 
 def test_by_all_returns_every_game(result):
-    assert len(result["byAll"]) == 6
+    assert len(result["byAll"]) == 7
     assert set(g["id"] for g in result["byAll"]) == set(result["ids"])
-
 
 def test_by_unknown_category_is_empty(result):
     assert result["byUnknown"] == []

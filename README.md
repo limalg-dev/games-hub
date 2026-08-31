@@ -1,6 +1,6 @@
 # GameHub
 
-A lightweight web game platform built with **FastAPI** and **WebSockets**. Play **6 games** online — free, no login required.
+A lightweight web game platform built with **FastAPI** and **WebSockets**. Play **7 games** online — free, no login required.
 
 - **Damas (Checkers)** – classic 8×8 draughts. Play against a built-in minimax AI or a friend over WebSocket.
 - **Caça-Palavras (Word Search)** – find hidden words across categories and difficulty levels, with a timer and local leaderboard.
@@ -8,7 +8,7 @@ A lightweight web game platform built with **FastAPI** and **WebSockets**. Play 
 - **Snake** – classic snake game with real-time WebSocket support.
 - **Tower Defense (Ant-themed)** – defend the anthill against waves of bugs. Place and upgrade towers across 15 progressive waves.
 - **Super Bomberman** – procedural map generation, power-ups, battle and arcade modes.
-
+- **Colônia Hex** – turn-based hex territory strategy game inspired by Antiyoy/Slay with unit fusion, economy/upkeep, AI bots, and procedural maps.
 ## Tech Stack
 
 - **Python 3.11+** – language
@@ -51,11 +51,16 @@ A lightweight web game platform built with **FastAPI** and **WebSockets**. Play 
 │   │   ├── logic.py    # Tower defense game engine
 │   │   ├── routes.py   # REST + WebSocket routes
 │   │   └── static/     # Game UI
-│   └── bomberman/
-│       ├── logic.py    # Map generation & high-score manager
-│       ├── routes.py   # REST routes
-│       ├── static/     # Game UI
-│       └── tests/
+│   ├── bomberman/
+│   │   ├── logic.py    # Map generation & high-score manager
+│   │   ├── routes.py   # REST routes
+│   │   ├── static/     # Game UI
+│   │   └── tests/
+│   └── colonia_hex/
+│       ├── logic.py    # Hex grid, fusion, provinces (BFS), economy, bots
+│       ├── routes.py   # REST API routes & highscores
+│       ├── static/     # Canvas 2D UI & WebAudio SFX
+│       └── test_colonia_hex_logic.py
 ├── static/             # Shared SPA shell (index.html, app.js, styles.css)
 ├── docs/
 │   └── archify/        # Runtime architecture diagram (frontend/backend/security)
@@ -141,6 +146,17 @@ A lightweight web game platform built with **FastAPI** and **WebSockets**. Play 
 | POST   | `/api/bomberman/highscores`| Submit a highscore entry                   |
 | GET    | `/play/bomberman`          | Serve the game HTML page                   |
 
+### Colônia Hex (`/colonia-hex` prefix)
+
+| Method | Path              | Description                                          |
+|--------|-------------------|------------------------------------------------------|
+| POST   | `/colonia-hex/api/new`       | Create a new game (`map_size`, `num_players`, `difficulty`, `seed`) |
+| GET    | `/colonia-hex/api/state/{id}`| Get current board grid, provinces, and turn state    |
+| POST   | `/colonia-hex/api/action`    | Execute game action (`recruit`, `move`, `build`, `end_turn`) |
+| GET    | `/colonia-hex/api/highscores`| Top highscores                                       |
+| POST   | `/colonia-hex/api/highscores`| Submit a highscore entry                             |
+| GET    | `/colonia-hex/play`          | Serve the game HTML page                             |
+
 ### Play Pages
 
 | Path              | Game                                         |
@@ -151,7 +167,7 @@ A lightweight web game platform built with **FastAPI** and **WebSockets**. Play 
 | `/play/snake`     | Snake (dedicated page)                       |
 | `/play/tower_defense` | Tower Defense / Ant Defense (dedicated page) |
 | `/play/bomberman` | Super Bomberman (dedicated page)             |
-
+| `/play/colonia_hex`| Colônia Hex (dedicated page)                |
 ## WebSocket Protocol
 
 Messages are JSON. The payload type depends on the game:

@@ -146,6 +146,31 @@ export const GAMES = {
       'Não seja atingido pelas explosões nem encoste nos monstros',
       'No Modo Batalha, sobreviva e seja o último Bomberman de pé'
     ]
+  },
+  colonia_hex: {
+    id: 'colonia_hex',
+    title: '👑 Colônia Hex',
+    desc: 'Jogo tático de conquista territorial em grade hexagonal inspirado em Antiyoy e Slay. Fusione tropas, gerencie a economia de folhas e expanda suas províncias!',
+    shortDesc: 'Conquista territorial hexagonal por turnos com fusão de tropas e economia!',
+    players: '1–4',
+    modes: ['Solo vs IA', 'Fácil / Médio / Difícil'],
+    category: ['estrategia', 'tabuleiro'],
+    collections: ['treine-sua-mente', 'classicos-atemporais'],
+    duration: '5–15 min',
+    difficulty: ['Fácil', 'Médio', 'Difícil'],
+    rating: 4.9,
+    plays: 95000,
+    featured: true,
+    badge: 'novo',
+    thumbnail: '👑',
+    icon: '👑',
+    rules: [
+      'Controle províncias em grade hexagonal e gerencie a renda de folhas por turno',
+      'Fusione tropas para aumentar o poder de combate: 1+1=2 (Soldado), 1+2=3 (Guardião), 2+2=4 (Elite)',
+      'Construa Fazendas (+4 folhas) e Torres de Vigia para proteger seu território',
+      'Cuidado com a fome: se o ouro ficar negativo, as tropas perecem de falência!',
+      'Elimine todas as colônias rivais para vencer a partida'
+    ]
   }
 };
 

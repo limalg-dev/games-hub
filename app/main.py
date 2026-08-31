@@ -16,6 +16,7 @@ from games.crossword.generator import generate_crossword
 from games.snake.routes import router as snake_router
 from games.tower_defense.routes import router as tower_defense_router, start_game_loop as start_tower_defense_loop
 from games.bomberman.routes import router as bomberman_router
+from games.colonia_hex.routes import router as colonia_hex_router
 import os
 
 DIFFICULTY_MAP = {"easy": 1, "medium": 2, "hard": 3}
@@ -61,6 +62,9 @@ app.include_router(tower_defense_router)
 
 # Include Bomberman game routes
 app.include_router(bomberman_router)
+
+# Include Colonia Hex game routes
+app.include_router(colonia_hex_router)
 
 # Include Boletos test routes (optional: skipped if reportlab is absent)
 _include_optional_boletos(app)
@@ -110,18 +114,24 @@ async def play_wordsearch():
 @app.get("/play/crossword")
 async def play_crossword():
     return FileResponse("static/index.html")
-
 @app.get("/boletos")
 async def boletos_page():
     return FileResponse("static/boletos.html")
+
+@app.get("/play/colonia_hex")
+@app.get("/play/colonia-hex")
+async def play_colonia_hex():
+    static_html = os.path.join(games_dir, "colonia_hex", "static", "index.html")
+    if os.path.exists(static_html):
+        return FileResponse(static_html)
+    return FileResponse("static/index.html")
 
 
 @app.get("/")
 async def root():
     return FileResponse("static/index.html")
 
-PLAYABLE_GAMES = ("checkers", "wordsearch", "crossword", "snake", "tower_defense", "bomberman")
-
+PLAYABLE_GAMES = ("checkers", "wordsearch", "crossword", "snake", "tower_defense", "bomberman", "colonia_hex")
 # Rota genérica removida para evitar conflitos com rotas específicas acima
 # As rotas específicas estão definidas acima para cada jogo
 
