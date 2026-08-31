@@ -22,6 +22,9 @@ POWERUP_SPEED = 3    # Speed boost (+1)
 POWERUP_KICK = 4     # Bomb kick
 POWERUP_SHIELD = 5   # One-hit shield
 POWERUP_REMOTE = 6   # Remote detonator
+POWERUP_PIERCE = 7   # Pierce Bomb (destroys whole line of crates)
+POWERUP_PUNCH = 8    # Boxing Glove (punches bombs over walls)
+POWERUP_SKULL = 9    # Curse (10s chaos status effect)
 
 # Spawn Locations for 4-Player Battle Arena (Row, Col)
 SPAWN_CORNERS = [
@@ -135,6 +138,9 @@ def generate_map(
         POWERUP_KICK,
         POWERUP_SHIELD,
         POWERUP_REMOTE,
+        POWERUP_PIERCE,
+        POWERUP_PUNCH,
+        POWERUP_SKULL,
     ]
 
     rng.shuffle(candidate_tiles)

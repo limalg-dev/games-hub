@@ -92,3 +92,21 @@ def test_generate_map_does_not_mutate_global_rng():
     after = [random.random() for _ in range(3)]
     assert baseline == after
 
+
+def test_all_powerup_types_defined_and_generated():
+    from games.bomberman.logic import (
+        POWERUP_NONE, POWERUP_BOMB, POWERUP_FIRE, POWERUP_SPEED,
+        POWERUP_KICK, POWERUP_SHIELD, POWERUP_REMOTE,
+        POWERUP_PIERCE, POWERUP_PUNCH, POWERUP_SKULL,
+        generate_map
+    )
+    assert POWERUP_PIERCE == 7
+    assert POWERUP_PUNCH == 8
+    assert POWERUP_SKULL == 9
+
+    # Generate maps and verify powerup pool works
+    m = generate_map(seed=42)
+    assert "powerups" in m
+    assert len(m["powerups"]) == 13
+
+
