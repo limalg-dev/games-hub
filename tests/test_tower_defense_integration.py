@@ -509,3 +509,55 @@ class TestPerGroupSpawnTimers:
         game.update(2.1)
         assert len(game.enemies) >= 1
         assert game.enemies[0].enemy_type == EnemyType.FLY
+
+
+@pytest.mark.asyncio
+async def test_tower_defense_highscores_api():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        # Get default highscores
+        resp = await ac.get("/tower-defense/highscores?difficulty=normal")
+        assert resp.status_code == 200
+        scores = resp.json()
+        assert isinstance(scores, list)
+        
+        # Post new score
+        payload = {"name": "HERO_ANT", "score": 25000, "difficulty": "normal", "waves_cleared": 15, "victory": True}
+        post_resp = await ac.post("/tower-defense/highscores", json=payload)
+        assert post_resp.status_code == 200
+        assert post_resp.json()["status"] == "success"
+
+
+@pytest.mark.asyncio
+async def test_tower_defense_upgrade_with_branch_api():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        create = await ac.post("/tower-defense/games/create")
+        game_id = create.json()["game_id"]
+
+        # Place tower
+        place = await ac.post(f"/tower-defense/games/{game_id}/place-tower", json={"x": 6, "y": 4, "tower_type": "archer"})
+        assert place.status_code == 200
+        tower_id = place.json()["tower"]["id"]
+
+        # Add crystals for upgrades
+        from games.tower_defense.routes import active_games
+        active_games[game_id].state.crystals = 1000
+
+        # L2 upgrade
+        up2 = await ac.post(f"/tower-defense/games/{game_id}/upgrade-tower", json={"tower_id": tower_id})
+        assert up2.status_code == 200
+
+        # L3 upgrade
+        up3 = await ac.post(f"/tower-defense/games/{game_id}/upgrade-tower", json={"tower_id": tower_id})
+        assert up3.status_code == 200
+
+        # L4 upgrade without branch fails
+        up4_fail = await ac.post(f"/tower-defense/games/{game_id}/upgrade-tower", json={"tower_id": tower_id})
+        assert up4_fail.status_code == 400
+
+        # L4 upgrade with branch succeeds
+        up4 = await ac.post(f"/tower-defense/games/{game_id}/upgrade-tower", json={"tower_id": tower_id, "branch": "sniper"})
+        assert up4.status_code == 200
+
+

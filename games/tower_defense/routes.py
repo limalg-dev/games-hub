@@ -50,6 +50,7 @@ class PlaceTowerRequest(BaseModel):
 
 class UpgradeTowerRequest(BaseModel):
     tower_id: str
+    branch: Optional[str] = None
 
 
 class SellTowerRequest(BaseModel):
@@ -62,6 +63,49 @@ class StartWaveRequest(BaseModel):
 
 class CreateGameRequest(BaseModel):
     difficulty: str = "normal"  # "easy", "normal", "hard"
+
+
+class TowerDefenseHighScoreRequest(BaseModel):
+    name: str
+    score: int
+    difficulty: str = "normal"
+    waves_cleared: int = 0
+    victory: bool = False
+
+
+class TowerDefenseHighScoreManager:
+    """In-memory highscore keeper with initial classic arcade scores for Tower Defense."""
+    def __init__(self):
+        self._scores: List[Dict[str, Any]] = [
+            {"name": "COMMANDER_ANT", "score": 30000, "difficulty": "normal", "waves_cleared": 15, "victory": True, "date": "2026-08-28"},
+            {"name": "SCOUT_ANT", "score": 20000, "difficulty": "normal", "waves_cleared": 12, "victory": False, "date": "2026-08-28"},
+            {"name": "COLONY_GUARD", "score": 15000, "difficulty": "easy", "waves_cleared": 15, "victory": True, "date": "2026-08-28"},
+            {"name": "QUEEN_DEFENDER", "score": 45000, "difficulty": "hard", "waves_cleared": 15, "victory": True, "date": "2026-08-28"},
+            {"name": "INSANE_SURVIVOR", "score": 60000, "difficulty": "insane", "waves_cleared": 15, "victory": True, "date": "2026-08-28"},
+        ]
+
+    def get_scores(self, difficulty: Optional[str] = None, limit: int = 10) -> List[Dict[str, Any]]:
+        filtered = self._scores
+        if difficulty:
+            filtered = [s for s in filtered if s.get("difficulty") == difficulty]
+        filtered = sorted(filtered, key=lambda s: s.get("score", 0), reverse=True)
+        return filtered[:limit]
+
+    def add_score(self, name: str, score: int, difficulty: str = "normal", waves_cleared: int = 0, victory: bool = False) -> Dict[str, Any]:
+        entry = {
+            "name": name.strip().upper()[:16] or "ANON_ANT",
+            "score": int(score),
+            "difficulty": difficulty,
+            "waves_cleared": int(waves_cleared),
+            "victory": bool(victory),
+            "date": datetime.now().strftime("%Y-%m-%d"),
+        }
+        self._scores.append(entry)
+        self._scores.sort(key=lambda s: s["score"], reverse=True)
+        return entry
+
+
+td_high_score_manager = TowerDefenseHighScoreManager()
 
 
 @router.get("/")
@@ -86,6 +130,25 @@ async def get_tower_defense_info():
             for d, cfg in DIFFICULTY_CONFIGS.items()
         }
     }
+
+
+@router.get("/highscores")
+async def get_tower_defense_highscores(difficulty: Optional[str] = None, limit: int = 10):
+    """Retorna a lista de recordes do Tower Defense"""
+    return td_high_score_manager.get_scores(difficulty=difficulty, limit=limit)
+
+
+@router.post("/highscores")
+async def post_tower_defense_highscores(request: TowerDefenseHighScoreRequest):
+    """Registra uma nova pontuação no Tower Defense"""
+    entry = td_high_score_manager.add_score(
+        name=request.name,
+        score=request.score,
+        difficulty=request.difficulty,
+        waves_cleared=request.waves_cleared,
+        victory=request.victory,
+    )
+    return {"status": "success", "entry": entry}
 
 
 @router.post("/games/create")
@@ -187,7 +250,7 @@ async def upgrade_tower(game_id: str, request: UpgradeTowerRequest):
         raise HTTPException(status_code=404, detail="Jogo não encontrado")
     
     game = active_games[game_id]
-    success, message = game.upgrade_tower(request.tower_id)
+    success, message = game.upgrade_tower(request.tower_id, branch=request.branch)
     
     if not success:
         raise HTTPException(status_code=400, detail=message)
@@ -299,13 +362,42 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str):
             
             elif command == "upgrade_tower":
                 tower_id = message.get("tower_id")
+                branch = message.get("branch")
                 if tower_id:
-                    success, msg = game.upgrade_tower(tower_id)
+                    success, msg = game.upgrade_tower(tower_id, branch=branch)
                     await websocket.send_json({
                         "type": "command_result",
                         "command": "upgrade_tower",
                         "success": success,
                         "message": msg
+                    })
+                    await broadcast_game_state(game_id)
+
+            elif command == "set_target_mode":
+                tower_id = message.get("tower_id")
+                target_mode = message.get("target_mode")
+                if tower_id and target_mode:
+                    success, msg = game.set_target_mode(tower_id, target_mode)
+                    await websocket.send_json({
+                        "type": "command_result",
+                        "command": "set_target_mode",
+                        "success": success,
+                        "message": msg
+                    })
+                    await broadcast_game_state(game_id)
+
+            elif command == "cast_spell":
+                spell = message.get("spell")
+                x = float(message.get("x", 0.0))
+                y = float(message.get("y", 0.0))
+                if spell:
+                    success, msg, data = game.cast_spell(spell, x, y)
+                    await websocket.send_json({
+                        "type": "command_result",
+                        "command": "cast_spell",
+                        "success": success,
+                        "message": msg,
+                        "data": data
                     })
                     await broadcast_game_state(game_id)
 
