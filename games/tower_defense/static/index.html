@@ -224,7 +224,206 @@
         .tp-btn.sell { background: rgba(255,51,85,0.1); color: var(--neon-red); border: 1px solid rgba(255,51,85,0.3); }
         .tp-btn.sell:hover { background: rgba(255,51,85,0.2); }
         .tp-maxed { text-align: center; font-family: 'Orbitron', monospace; font-size: 11px; color: var(--neon-gold); letter-spacing: 2px; padding: 4px; }
-        #fps-counter { position: fixed; top: 16px; right: 16px; font-family: 'Orbitron', monospace; font-size: 11px; color: var(--neon-lime); opacity: 0.5; z-index: 100; }
+        #fps-counter { position: fixed; top: 44px; right: 16px; font-family: 'Orbitron', monospace; font-size: 11px; color: var(--neon-lime); opacity: 0.5; z-index: 100; }
+
+        /* ── Mute Button ─────────────────────────────────────── */
+        .mute-btn {
+            position: fixed; top: 16px; right: 16px; width: 42px; height: 42px;
+            border-radius: 8px; background: var(--bg-card);
+            border: 1px solid rgba(0,240,255,0.3); color: var(--neon-cyan);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 20px; cursor: pointer; transition: all 0.2s; z-index: 100;
+        }
+        .mute-btn:hover { background: rgba(0,240,255,0.15); box-shadow: 0 0 15px rgba(0,240,255,0.3); }
+        .mute-btn.muted { color: var(--neon-red); border-color: rgba(255,51,85,0.3); }
+
+        /* ── Pause Button ─────────────────────────────────────── */
+        .pause-btn {
+            background: var(--bg-surface); border: 1.5px solid rgba(255,255,255,0.1);
+            padding: 6px 12px; border-radius: 6px; color: var(--text-dim);
+            font-size: 18px; cursor: pointer; transition: all 0.2s; line-height: 1;
+        }
+        .pause-btn:hover { border-color: var(--neon-gold); color: var(--neon-gold); }
+        .pause-btn.active { background: rgba(255,215,0,0.12); border-color: var(--neon-gold); color: var(--neon-gold); box-shadow: 0 0 12px rgba(255,215,0,0.15); }
+
+        /* ── Wave Preview Banner ──────────────────────────────── */
+        .wave-preview {
+            margin-top: 10px; padding: 10px 16px; background: var(--bg-surface);
+            border: 1px solid rgba(0,240,255,0.15); border-radius: 10px;
+            display: none; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
+        }
+        .wave-preview.visible { display: flex; }
+        .wave-preview-title {
+            font-family: 'Orbitron', monospace; font-size: 12px; font-weight: 700;
+            color: var(--neon-cyan); letter-spacing: 2px; text-transform: uppercase;
+        }
+        .wave-preview-enemy {
+            display: flex; align-items: center; gap: 4px;
+            background: rgba(255,255,255,0.04); padding: 4px 10px; border-radius: 6px;
+            font-size: 13px;
+        }
+        .wave-preview-enemy .count {
+            font-family: 'Orbitron', monospace; font-size: 13px; font-weight: 700; color: #fff;
+        }
+        .wave-preview-enemy .type { color: var(--text-dim); font-size: 12px; }
+        .wave-preview-bonus {
+            font-family: 'Orbitron', monospace; font-size: 11px;
+            color: var(--neon-lime); letter-spacing: 1px;
+        }
+
+        /* ── Spell Buttons ────────────────────────────────────── */
+        .spell-btns { display: flex; gap: 8px; align-items: center; }
+        .spell-btn {
+            position: relative; background: var(--bg-surface);
+            border: 2px solid rgba(255,255,255,0.1); padding: 10px 16px;
+            border-radius: 10px; color: var(--text); font-family: 'Rajdhani', sans-serif;
+            font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.25s;
+            display: flex; flex-direction: column; align-items: center; min-width: 90px;
+            overflow: hidden;
+        }
+        .spell-btn::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--btn-color, var(--neon-cyan)); opacity: 0.6; }
+        .spell-btn:hover { transform: translateY(-2px); border-color: var(--btn-color, var(--neon-cyan)); box-shadow: 0 4px 20px rgba(0,240,255,0.15); }
+        .spell-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+        .spell-btn.cooldown { pointer-events: none; }
+        .spell-btn .spell-icon { font-size: 22px; margin-bottom: 2px; }
+        .spell-btn .spell-name { font-size: 12px; font-weight: 600; }
+        .spell-btn .spell-key { font-size: 10px; color: var(--text-dim); font-family: 'Orbitron', monospace; }
+        .spell-btn .spell-cd { font-size: 10px; color: var(--neon-red); font-family: 'Orbitron', monospace; }
+        .spell-btn.acid { --btn-color: var(--neon-lime); }
+        .spell-btn.frost { --btn-color: var(--neon-cyan); }
+
+        /* Cooldown radial overlay */
+        .cooldown-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            display: none; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.6); border-radius: 8px;
+        }
+        .spell-btn.cooldown .cooldown-overlay { display: flex; }
+        .cooldown-ring {
+            width: 50px; height: 50px; position: relative;
+        }
+        .cooldown-ring svg { transform: rotate(-90deg); }
+        .cooldown-ring .cd-text {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-family: 'Orbitron', monospace; font-size: 12px; font-weight: 700; color: #fff;
+        }
+
+        /* ── Highscores Button ────────────────────────────────── */
+        .hs-btn {
+            position: fixed; top: 16px; right: 68px; height: 42px;
+            border-radius: 8px; background: var(--bg-card);
+            border: 1px solid rgba(255,215,0,0.3); color: var(--neon-gold);
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 0 14px; font-family: 'Rajdhani', sans-serif; font-weight: 600;
+            font-size: 13px; cursor: pointer; transition: all 0.2s; z-index: 100;
+        }
+        .hs-btn:hover { background: rgba(255,215,0,0.15); box-shadow: 0 0 15px rgba(255,215,0,0.3); }
+
+        /* ── Highscores Modal ─────────────────────────────────── */
+        .hs-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5,5,20,0.92); backdrop-filter: blur(8px);
+            display: none; justify-content: center; align-items: center;
+            flex-direction: column; z-index: 2000;
+        }
+        .hs-overlay.visible { display: flex; }
+        .hs-card {
+            background: var(--bg-card); border: 1px solid rgba(255,215,0,0.25);
+            border-radius: 16px; padding: 32px; text-align: center;
+            max-width: 480px; width: 90%;
+            box-shadow: 0 0 60px rgba(255,215,0,0.08);
+            animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .hs-title {
+            font-family: 'Orbitron', monospace; font-size: 24px; font-weight: 900;
+            letter-spacing: 3px; margin-bottom: 16px;
+            color: var(--neon-gold); text-shadow: 0 0 15px rgba(255,215,0,0.4);
+        }
+        .hs-list { list-style: none; padding: 0; margin: 0 0 16px 0; }
+        .hs-list li {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 12px; border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 14px;
+        }
+        .hs-list li:nth-child(1) { color: var(--neon-gold); }
+        .hs-list li:nth-child(2) { color: #c0c0c0; }
+        .hs-list li:nth-child(3) { color: #cd7f32; }
+        .hs-rank { font-family: 'Orbitron', monospace; font-weight: 700; width: 30px; text-align: left; }
+        .hs-name { flex: 1; text-align: left; margin-left: 8px; color: var(--text); }
+        .hs-score { font-family: 'Orbitron', monospace; font-weight: 700; color: var(--neon-lime); }
+        .hs-wave { font-size: 11px; color: var(--text-dim); margin-left: 8px; }
+        .hs-submit { margin-top: 12px; display: none; }
+        .hs-submit input {
+            background: var(--bg-surface); border: 1px solid rgba(255,215,0,0.3);
+            border-radius: 6px; padding: 8px 12px; color: var(--text);
+            font-family: 'Rajdhani', sans-serif; font-size: 14px; width: 140px;
+            margin-right: 8px;
+        }
+        .hs-submit button {
+            background: rgba(255,215,0,0.15); border: 1px solid rgba(255,215,0,0.4);
+            border-radius: 6px; padding: 8px 16px; color: var(--neon-gold);
+            font-family: 'Orbitron', monospace; font-weight: 700; font-size: 12px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .hs-submit button:hover { background: rgba(255,215,0,0.25); }
+        .hs-close {
+            background: none; border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px; padding: 8px 24px; color: var(--text-dim);
+            font-family: 'Rajdhani', sans-serif; font-weight: 600; font-size: 14px;
+            cursor: pointer; transition: all 0.2s; margin-top: 8px;
+        }
+        .hs-close:hover { border-color: var(--neon-cyan); color: var(--neon-cyan); }
+
+        /* ── Targeting Priority Pills ─────────────────────────── */
+        .tp-targeting { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+        .tp-target-label {
+            font-family: 'Orbitron', monospace; font-size: 10px; color: var(--text-dim);
+            letter-spacing: 1px; text-transform: uppercase; width: 100%; margin-bottom: 2px;
+        }
+        .target-pill {
+            background: var(--bg-surface); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px; padding: 3px 8px; font-size: 10px;
+            font-family: 'Rajdhani', sans-serif; font-weight: 600;
+            color: var(--text-dim); cursor: pointer; transition: all 0.2s;
+        }
+        .target-pill:hover { border-color: var(--neon-purple); color: var(--neon-purple); }
+        .target-pill.active { background: rgba(170,68,255,0.15); border-color: var(--neon-purple); color: var(--neon-purple); }
+
+        /* ── L4 Branch Upgrade ────────────────────────────────── */
+        .tp-l4-branches { display: flex; gap: 6px; margin-top: 8px; }
+        .branch-btn {
+            flex: 1; background: var(--bg-surface); border: 1.5px solid rgba(255,215,0,0.25);
+            border-radius: 8px; padding: 8px; cursor: pointer; transition: all 0.25s;
+            text-align: center;
+        }
+        .branch-btn:hover { border-color: var(--neon-gold); transform: translateY(-1px); box-shadow: 0 4px 15px rgba(255,215,0,0.1); }
+        .branch-btn .branch-name {
+            font-family: 'Orbitron', monospace; font-size: 11px; font-weight: 700;
+            color: var(--neon-gold); margin-bottom: 4px;
+        }
+        .branch-btn .branch-desc { font-size: 10px; color: var(--text-dim); line-height: 1.3; }
+        .branch-btn .branch-cost { font-size: 10px; color: var(--neon-lime); font-family: 'Orbitron', monospace; margin-top: 4px; }
+
+        /* ── AoE Targeting Reticle ────────────────────────────── */
+        .aoe-cursor { cursor: none !important; }
+
+        /* ── Game Over Highscore Prompt ───────────────────────── */
+        .go-hs-prompt { margin-top: 16px; display: none; }
+        .go-hs-prompt.visible { display: block; }
+        .go-hs-prompt input {
+            background: var(--bg-surface); border: 1px solid rgba(255,215,0,0.3);
+            border-radius: 6px; padding: 8px 12px; color: var(--text);
+            font-family: 'Rajdhani', sans-serif; font-size: 14px; width: 140px;
+            margin-right: 8px;
+        }
+        .go-hs-prompt button {
+            background: rgba(255,215,0,0.15); border: 1px solid rgba(255,215,0,0.4);
+            border-radius: 6px; padding: 8px 16px; color: var(--neon-gold);
+            font-family: 'Orbitron', monospace; font-weight: 700; font-size: 12px;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .go-hs-prompt button:hover { background: rgba(255,215,0,0.25); }
+
         @media (max-width: 768px) {
             body { padding: 8px; }
             .game-container { padding: 10px; }
@@ -241,6 +440,9 @@
     <a href="/" class="btn-back" aria-label="Voltar">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
     </a>
+    <button class="mute-btn" id="btn-mute" onclick="Game.instance.toggleMute()" title="Mute/Unmute">🔊</button>
+    <button class="hs-btn" onclick="Game.instance.showHighscores()" title="Highscores">🏆 Rankings</button>
+
     <h1>Neon Tower Defense</h1>
     <p class="subtitle">Defenda a colônia dos invasores</p>
     <div id="fps-counter">-- FPS</div>
@@ -269,6 +471,7 @@
                 <span class="tower-cost" id="cost-ice">80 💎</span><span class="tower-desc">Slow • Utility</span>
             </button>
             <button class="action-btn" onclick="Game.instance.startWave()" id="btn-start-wave">⚡ Iniciar Onda</button>
+            <button class="pause-btn" id="btn-pause" onclick="Game.instance.togglePause()" title="Pausar (Espaço)">⏸️</button>
             <div class="time-controls">
                 <button class="speed-btn active" data-speed="1" onclick="Game.instance.setSpeed(1)">1×</button>
                 <button class="speed-btn" data-speed="2" onclick="Game.instance.setSpeed(2)">2×</button>
@@ -278,7 +481,32 @@
                 <span class="auto-wave-indicator"></span>
                 Auto-Wave
             </button>
+            <div class="spell-btns">
+                <button class="spell-btn acid" id="btn-acid" onclick="Game.instance.prepareSpell('acid')" title="Chuva de Ácido [Q]">
+                    <span class="spell-icon">🧪</span>
+                    <span class="spell-name">Ácido</span>
+                    <span class="spell-key">[Q]</span>
+                    <div class="cooldown-overlay" id="cd-acid">
+                        <div class="cooldown-ring">
+                            <svg width="50" height="50" viewBox="0 0 50 50"><circle cx="25" cy="25" r="22" fill="none" stroke="rgba(0,255,136,0.15)" stroke-width="4"/><circle cx="25" cy="25" r="22" fill="none" stroke="#00ff88" stroke-width="4" stroke-dasharray="138.2" stroke-dashoffset="0" class="cd-arc" id="cd-arc-acid"/></svg>
+                            <span class="cd-text" id="cd-text-acid">0</span>
+                        </div>
+                    </div>
+                </button>
+                <button class="spell-btn frost" id="btn-frost" onclick="Game.instance.prepareSpell('frost')" title="Névoa Congelante [E]">
+                    <span class="spell-icon">❄️</span>
+                    <span class="spell-name">Névoa</span>
+                    <span class="spell-key">[E]</span>
+                    <div class="cooldown-overlay" id="cd-frost">
+                        <div class="cooldown-ring">
+                            <svg width="50" height="50" viewBox="0 0 50 50"><circle cx="25" cy="25" r="22" fill="none" stroke="rgba(0,240,255,0.15)" stroke-width="4"/><circle cx="25" cy="25" r="22" fill="none" stroke="#00f0ff" stroke-width="4" stroke-dasharray="138.2" stroke-dashoffset="0" class="cd-arc" id="cd-arc-frost"/></svg>
+                            <span class="cd-text" id="cd-text-frost">0</span>
+                        </div>
+                    </div>
+                </button>
+            </div>
         </div>
+        <div class="wave-preview" id="wave-preview"></div>
         <div class="message-area" id="message-area">Selecione uma torre e clique no grid!</div>
     </div>
 
@@ -290,7 +518,10 @@
             <li><strong>Navegação:</strong> 🖱️ Scroll = Zoom • Botão do meio/direito + arrastar = Mover câmera • Minimap = Clique para navegar</li>
             <li><strong>Inimigos:</strong> 🪰Fly (rápido) • 🏃Sprinter (muito rápido) • 🪲Beetle (blindado) • 🦟Sky Bug (balanceado) • 🛡️Tank (tanque) • 💀Boss (chefão!)</li>
             <li><strong>Economia:</strong> +5% juros por onda sobre suas economias</li>
-            <li><strong>Mapa:</strong> Slots verdes = construível • Trilha marrom = caminho das formigas • Obstáculos = bloqueado • Tecla <strong>Esc</strong> = Desselecionar • <strong>Espaço</strong> = Iniciar onda</li>
+            <li><strong>Mapa:</strong> Slots verdes = construível • Trilha marrom = caminho das formigas • Obstáculos = bloqueado</li>
+            <li><strong>Atalhos:</strong> <strong>Espaço</strong> = Pausar/Retomar • <strong>Q</strong> = Chuva de Ácido • <strong>E</strong> = Névoa Congelante • <strong>Esc</strong> = Desselecionar</li>
+            <li><strong>Poderes:</strong> 🧪 Chuva de Ácido [Q] = AoE click-to-target • ❄️ Névoa Congelante [E] = Congela todos</li>
+            <li><strong>Torres:</strong> Clique numa torre para ver Prioridade de Alvo e Especializações L4 (Nível 3+)</li>
         </ul>
         <p style="margin-top:8px">
             <span class="tower-tag archer">🏹 Arqueira</span>
@@ -351,7 +582,25 @@
             <div class="game-over-title" id="go-title">GAME OVER</div>
             <p class="game-over-message" id="go-message">A colônia foi invadida!</p>
             <p class="final-score">SCORE: <span id="go-score">0</span></p>
+            <div class="go-hs-prompt" id="go-hs-prompt">
+                <input type="text" id="go-hs-name" placeholder="Seu nome" maxlength="12">
+                <button onclick="Game.instance.submitHighscore()">Enviar Score</button>
+            </div>
             <button class="restart-btn" onclick="location.reload()">⚡ JOGAR NOVAMENTE</button>
+        </div>
+    </div>
+
+
+    <div class="hs-overlay" id="hs-overlay" onclick="if(event.target===this)Game.instance.hideHighscores()">
+        <div class="hs-card">
+            <div class="hs-title">🏆 HIGHSCORES</div>
+            <div id="hs-difficulty-tabs" style="display:flex;gap:6px;justify-content:center;margin-bottom:12px;"></div>
+            <ul class="hs-list" id="hs-list"></ul>
+            <div class="hs-submit" id="hs-submit-section">
+                <input type="text" id="hs-name-input" placeholder="Seu nome" maxlength="12">
+                <button onclick="Game.instance.submitHighscoreFromModal()">Enviar</button>
+            </div>
+            <button class="hs-close" onclick="Game.instance.hideHighscores()">Fechar</button>
         </div>
     </div>
 
@@ -367,6 +616,142 @@
 // ═══════════════════════════════════════════════════════════════════
 
 "use strict";
+
+// ═══════════════════════════════════════════════════════════════════
+//  SOUND SYSTEM — WebAudio Procedural Synthesizer
+// ═══════════════════════════════════════════════════════════════════
+class SoundSystem {
+    constructor() {
+        this.ctx = null;
+        this.muted = localStorage.getItem('td_muted') === 'true';
+        this.masterGain = null;
+        this._init();
+    }
+
+    _init() {
+        // Lazy-init AudioContext on first user interaction
+        const init = () => {
+            if (this.ctx) return;
+            try {
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.gain.value = this.muted ? 0 : 0.3;
+                this.masterGain.connect(this.ctx.destination);
+            } catch (e) { console.warn('WebAudio not available:', e); }
+            document.removeEventListener('click', init);
+            document.removeEventListener('keydown', init);
+        };
+        document.addEventListener('click', init, { once: false });
+        document.addEventListener('keydown', init, { once: false });
+    }
+
+    toggleMute() {
+        this.muted = !this.muted;
+        localStorage.setItem('td_muted', this.muted);
+        if (this.masterGain) this.masterGain.gain.value = this.muted ? 0 : 0.3;
+        const btn = document.getElementById('btn-mute');
+        if (btn) { btn.textContent = this.muted ? '🔇' : '🔊'; btn.classList.toggle('muted', this.muted); }
+    }
+
+    _osc(type, freq, dur, gainVal = 0.3, detune = 0) {
+        if (!this.ctx || this.muted) return;
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type; osc.frequency.value = freq; osc.detune.value = detune;
+        gain.gain.setValueAtTime(gainVal, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        osc.connect(gain); gain.connect(this.masterGain);
+        osc.start(t); osc.stop(t + dur);
+    }
+
+    _noise(dur, gainVal = 0.15) {
+        if (!this.ctx || this.muted) return;
+        const t = this.ctx.currentTime;
+        const bufferSize = this.ctx.sampleRate * dur;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1);
+        const src = this.ctx.createBufferSource();
+        src.buffer = buffer;
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(gainVal, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        src.connect(gain); gain.connect(this.masterGain);
+        src.start(t); src.stop(t + dur);
+    }
+
+    _sweep(freqStart, freqEnd, dur, type = 'sawtooth', gainVal = 0.2) {
+        if (!this.ctx || this.muted) return;
+        const t = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freqStart, t);
+        osc.frequency.exponentialRampToValueAtTime(Math.max(freqEnd, 20), t + dur);
+        gain.gain.setValueAtTime(gainVal, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+        osc.connect(gain); gain.connect(this.masterGain);
+        osc.start(t); osc.stop(t + dur);
+    }
+
+    // ── Tower Shots ──────────────────────────────────────────────
+    playShootArcher() {
+        this._sweep(1200, 400, 0.12, 'square', 0.15);
+        this._noise(0.04, 0.08);
+    }
+    playShootBomb() {
+        this._sweep(200, 60, 0.3, 'sawtooth', 0.25);
+        this._noise(0.15, 0.2);
+        this._osc('sine', 80, 0.4, 0.2);
+    }
+    playShootIce() {
+        this._sweep(2000, 800, 0.15, 'sine', 0.12);
+        this._osc('triangle', 3000, 0.08, 0.08);
+    }
+
+    // ── Spells ───────────────────────────────────────────────────
+    playSpellAcid() {
+        this._sweep(300, 80, 0.5, 'sawtooth', 0.25);
+        this._noise(0.3, 0.2);
+        this._osc('sine', 150, 0.6, 0.15);
+        setTimeout(() => this._noise(0.2, 0.15), 100);
+    }
+    playSpellFrost() {
+        this._sweep(1800, 200, 0.4, 'sine', 0.2);
+        this._osc('triangle', 2500, 0.3, 0.1);
+        this._noise(0.15, 0.1);
+        setTimeout(() => this._sweep(800, 200, 0.3, 'sine', 0.12), 150);
+    }
+
+    // ── Game Events ──────────────────────────────────────────────
+    playWaveStart() {
+        this._osc('sine', 440, 0.15, 0.2);
+        setTimeout(() => this._osc('sine', 660, 0.15, 0.2), 100);
+        setTimeout(() => this._osc('sine', 880, 0.2, 0.25), 200);
+    }
+    playWaveClear() {
+        this._osc('sine', 880, 0.15, 0.2);
+        setTimeout(() => this._osc('sine', 1100, 0.15, 0.2), 100);
+        setTimeout(() => this._osc('sine', 1320, 0.25, 0.25), 200);
+    }
+    playGameOver() {
+        this._sweep(400, 100, 0.6, 'sawtooth', 0.3);
+        this._osc('sine', 200, 0.8, 0.2);
+        setTimeout(() => this._sweep(300, 80, 0.5, 'sawtooth', 0.2), 300);
+    }
+    playVictory() {
+        const notes = [523, 659, 784, 1047];
+        notes.forEach((f, i) => setTimeout(() => this._osc('sine', f, 0.3, 0.2), i * 120));
+    }
+    playTowerPlace() {
+        this._osc('sine', 600, 0.1, 0.15);
+        this._osc('triangle', 800, 0.08, 0.1);
+    }
+}
+
+const sound = new SoundSystem();
+
 
 // ── CONSTANTS ────────────────────────────────────────────────────
 const CELL = 50, GW = 30, GH = 25;
@@ -1258,6 +1643,9 @@ class NetworkManager {
     startWave() { this.send({ command: 'start_wave' }); }
     setSpeed(scale) { this.send({ command: 'set_speed', scale }); }
     toggleAutoWave() { this.send({ command: 'toggle_auto_wave' }); }
+    setTargetMode(towerId, mode) { this.send({ command: 'set_target_mode', tower_id: towerId, target_mode: mode }); }
+    castSpell(spell, x, y) { this.send({ command: 'cast_spell', spell, x, y }); }
+    upgradeTowerBranch(towerId, branch) { this.send({ command: 'upgrade_tower', tower_id: towerId, branch }); }
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -1304,6 +1692,7 @@ class UIManager {
     showGameOver(victory, score) {
         const o = document.getElementById('game-over-overlay');
         const restartBtn = o.querySelector('.restart-btn');
+        const hsPrompt = document.getElementById('go-hs-prompt');
         const isPermadeath = this.gameState?.state?.permadeath;
 
         document.getElementById('go-title').textContent = victory ? '⚡ VITÓRIA ⚡' : '💀 GAME OVER';
@@ -1313,15 +1702,18 @@ class UIManager {
         if (victory) {
             document.getElementById('go-message').textContent = 'A colônia foi defendida!';
             if (restartBtn) restartBtn.style.display = '';
+            if (hsPrompt) hsPrompt.classList.add('visible');
         } else if (isPermadeath) {
             document.getElementById('go-message').innerHTML =
                 '<span style="color:#ff0055;font-weight:700">PERMADEATH</span><br>' +
                 'Não há segunda chance no modo Insano.<br>' +
                 'Sua pontuação final: <b>' + score + '</b> PTS';
             if (restartBtn) restartBtn.style.display = 'none';
+            if (hsPrompt) hsPrompt.classList.add('visible');
         } else {
             document.getElementById('go-message').textContent = 'A colônia foi invadida!';
             if (restartBtn) restartBtn.style.display = '';
+            if (hsPrompt) hsPrompt.classList.add('visible');
         }
 
         o.style.display = 'flex';
@@ -1335,12 +1727,78 @@ class UIManager {
         if (tower.special==='aoe') stats += `<div class="tp-stat">AoE: <b>💥</b></div>`;
         if (tower.special==='slow') stats += `<div class="tp-stat">Slow: <b>❄️</b></div>`;
         document.getElementById('tp-stats').innerHTML = stats;
+
+        // Targeting priority selector
+        const modes = [
+            {key:'first', label:'Primeiro'}, {key:'last', label:'Último'},
+            {key:'strongest', label:'Mais Forte'}, {key:'weakest', label:'Mais Fraco'},
+            {key:'closest', label:'Mais Próximo'}
+        ];
+        const currentMode = tower.target_mode || 'first';
+        let targeting = `<div class="tp-targeting"><div class="tp-target-label">Alvo:</div>`;
+        for (const m of modes) {
+            targeting += `<button class="target-pill ${m.key===currentMode?'active':''}" onclick="Game.instance.setTargetMode('${tower.id}','${m.key}')">${m.label}</button>`;
+        }
+        targeting += `</div>`;
+
+        // L4 Branch upgrade preview (when tower is level 3 and max_level >= 4)
+        let l4html = '';
+        if (tower.level === 3 && tower.max_level >= 4 && !tower.branch) {
+            const branches = this._getBranches(tower.type);
+            if (branches) {
+                l4html = `<div class="tp-l4-branches">`;
+                for (const [bkey, b] of Object.entries(branches)) {
+                    l4html += `<button class="branch-btn" onclick="Game.instance.upgradeTowerBranch('${tower.id}','${bkey}')">
+                        <div class="branch-name">${b.name}</div>
+                        <div class="branch-desc">${b.desc}</div>
+                        <div class="branch-cost">${b.cost} 💎</div>
+                    </button>`;
+                }
+                l4html += `</div>`;
+            }
+        }
+
         let actions = '';
-        if (tower.level < tower.max_level) actions += `<button class="tp-btn upgrade" onclick="Game.instance.upgradeTower('${tower.id}')">⬆ Upgrade (${tower.upgrade_cost}💎)</button>`;
-        else actions += `<div class="tp-maxed">MAX LEVEL</div>`;
+        if (tower.level < tower.max_level && !(tower.level === 3 && tower.max_level >= 4 && !tower.branch)) {
+            actions += `<button class="tp-btn upgrade" onclick="Game.instance.upgradeTower('${tower.id}')">⬆ Upgrade (${tower.upgrade_cost}💎)</button>`;
+        } else if (tower.level >= tower.max_level || (tower.branch)) {
+            actions += `<div class="tp-maxed">MAX LEVEL</div>`;
+        }
         actions += `<button class="tp-btn sell" onclick="Game.instance.sellTower('${tower.id}')">💰 Sell (${tower.sell_value}💎)</button>`;
-        document.getElementById('tp-actions').innerHTML = actions;
+        document.getElementById('tp-actions').innerHTML = targeting + actions + l4html;
         this.panelEl.style.display = 'block';
+    }
+
+    _getBranches(type) {
+        const BRANCHES = {
+            archer: {
+                sniper: { name: '🎯 Sniper', desc: 'DMG 75-110 • RNG 4.5 • SPD 1.8s', cost: 160 },
+                gatling: { name: '🔫 Metralhadora', desc: 'DMG 8-12 • RNG 2.8 • SPD 0.18s', cost: 160 }
+            },
+            bomb: {
+                toxic_mortar: { name: '☠️ Morteiro Tóxico', desc: 'DMG 50-75 • AoE 2.0 • SPD 2.2s', cost: 180 },
+                plasma_cannon: { name: '⚡ Canhão Plasma', desc: 'DMG 90-140 • AoE 2.6 • SPD 2.8s', cost: 180 }
+            },
+            ice: {
+                blizzard: { name: '🌨️ Blizzard', desc: 'Aura • DMG 10 • RNG 3.0 • SPD 0.5s', cost: 150 },
+                permafrost: { name: '🧊 Permafrost', desc: 'DMG 25-40 • Slow 85% • SPD 1.5s', cost: 150 }
+            }
+        };
+        return BRANCHES[type] || null;
+    }
+
+    updateWavePreview(preview) {
+        const el = document.getElementById('wave-preview');
+        if (!el || !preview) { if (el) el.classList.remove('visible'); return; }
+        const ENEMY_ICONS = { fly:'🪰', beetle:'🪲', sky_bug:'🦟', sprinter:'🏃', tank:'🛡️', boss:'💀' };
+        const ENEMY_NAMES = { fly:'Fly', beetle:'Beetle', sky_bug:'Sky Bug', sprinter:'Sprinter', tank:'Tank', boss:'Boss' };
+        let html = `<span class="wave-preview-title">Onda ${preview.wave_number}:</span>`;
+        for (const e of preview.enemies) {
+            html += `<span class="wave-preview-enemy">${ENEMY_ICONS[e.type]||'?'} <span class="count">${e.count}</span> <span class="type">${ENEMY_NAMES[e.type]||e.type}</span></span>`;
+        }
+        if (preview.bonus > 0) html += `<span class="wave-preview-bonus">+${preview.bonus} 💎</span>`;
+        el.innerHTML = html;
+        el.classList.add('visible');
     }
     hideTowerPanel() { this.panelEl.style.display = 'none'; }
 }
@@ -1377,6 +1835,11 @@ class Game {
         this.gameId = null;
         this.selectedDifficulty = 'normal';
 
+        // Spell state
+        this._pendingSpell = null;  // 'acid' or 'frost' when targeting
+        this._spellCooldowns = { acid: 0, frost: 0 };
+        this._lastWaveNum = 0;
+
         // Panning state
         this._isPanning = false;
         this._panStartX = 0; this._panStartY = 0;
@@ -1411,15 +1874,27 @@ class Game {
 
         // Keyboard shortcuts
         window.addEventListener('keydown', (e) => {
+            // Don't handle if typing in an input
+            if (e.target.tagName === 'INPUT') return;
             if (e.key === 'Escape') {
                 this.selectedTower = null;
                 this.selectedPlacedTower = null;
+                this._pendingSpell = null;
+                this.canvas.classList.remove('aoe-cursor');
                 this.ui.hideTowerPanel();
                 document.querySelectorAll('.tower-btn').forEach(b => b.classList.remove('selected'));
             }
             if (e.key === ' ' || e.key === 'Enter') {
                 e.preventDefault();
-                this.startWave();
+                this.togglePause();
+            }
+            if (e.key === 'q' || e.key === 'Q') {
+                e.preventDefault();
+                this.prepareSpell('acid');
+            }
+            if (e.key === 'e' || e.key === 'E') {
+                e.preventDefault();
+                this.prepareSpell('frost');
             }
         });
 
@@ -1501,6 +1976,9 @@ class Game {
             // (kill detection happens on state update, not here)
         }
 
+        // Update spell cooldown UI
+        this._updateSpellCooldowns();
+
         // Render
         this._render();
         this.ui.updateFPS(this._fpsDisplay);
@@ -1551,6 +2029,51 @@ class Game {
         // Projectiles return shake intensity
         const shake = r.drawProjectiles(this.gameState.projectiles, this.trails, this.particles);
         if (shake > 0) this.camera.shake(shake);
+
+        // Sound: tower shots on new projectiles
+        if (this.gameState.projectiles && this.gameState.projectiles.length > 0) {
+            for (const p of this.gameState.projectiles) {
+                if (!this._seenProjectiles) this._seenProjectiles = new Set();
+                const pid = p.from_x + ',' + p.from_y + ',' + p.to_x + ',' + p.to_y;
+                if (!this._seenProjectiles.has(pid)) {
+                    this._seenProjectiles.add(pid);
+                    if (p.type === 'archer') sound.playShootArcher();
+                    else if (p.type === 'bomb') sound.playShootBomb();
+                    else if (p.type === 'ice') sound.playShootIce();
+                }
+            }
+            // Cleanup old projectiles from tracking set
+            if (this._seenProjectiles && this._seenProjectiles.size > 200) {
+                this._seenProjectiles.clear();
+            }
+        }
+
+        // AoE spell targeting reticle
+        if (this._pendingSpell && this.mouseGridX >= 0) {
+            const c = this.ctx;
+            const gx = this.mouseGridX, gy = this.mouseGridY;
+            const cx = gx * CELL + CELL / 2, cy = gy * CELL + CELL / 2;
+            const radius = this._pendingSpell === 'acid' ? 125 : 999; // acid: 2.5 cells, frost: all
+            c.save();
+            if (this._pendingSpell === 'acid') {
+                c.strokeStyle = '#00ff88'; c.lineWidth = 2; c.globalAlpha = 0.5;
+                c.setLineDash([6, 4]);
+                c.beginPath(); c.arc(cx, cy, radius, 0, Math.PI * 2); c.stroke();
+                c.fillStyle = '#00ff88'; c.globalAlpha = 0.08; c.fill();
+                // Crosshair
+                c.globalAlpha = 0.6; c.lineWidth = 1.5; c.setLineDash([]);
+                c.beginPath(); c.moveTo(cx - 12, cy); c.lineTo(cx + 12, cy); c.stroke();
+                c.beginPath(); c.moveTo(cx, cy - 12); c.lineTo(cx, cy + 12); c.stroke();
+            } else {
+                // Frost nova: full-screen overlay
+                c.fillStyle = 'rgba(0,240,255,0.06)';
+                c.fillRect(this.camera.x, this.camera.y, this.W / this.camera.zoom, this.H / this.camera.zoom);
+                c.strokeStyle = '#00f0ff'; c.lineWidth = 2; c.globalAlpha = 0.4;
+                c.setLineDash([8, 4]);
+                c.beginPath(); c.arc(cx, cy, 30, 0, Math.PI * 2); c.stroke();
+            }
+            c.restore();
+        }
 
         this.trails.draw(c);
         this.particles.draw(c);
@@ -1659,6 +2182,8 @@ class Game {
     _onStateUpdate(state) {
         const oldKills = this.gameState?.state?.enemies_killed ?? 0;
         const oldCrystals = this.gameState?.state?.crystals ?? 0;
+        const oldWave = this.gameState?.state?.current_wave ?? 0;
+        const oldWaveActive = this.gameState?.wave_active ?? false;
         this.gameState = state;
         this.ui.updateStats(state);
 
@@ -1672,8 +2197,38 @@ class Game {
             const diff = state.state.crystals - oldCrystals;
             this.floatingTexts.spawn(this.W / 2, this.H / 2 - 20, `+${diff} 💎`, N.lime, 14);
         }
+
+        // Wave preview
+        this.ui.updateWavePreview(state.state.next_wave_preview);
+
+        // Sound: wave start
+        if (state.wave_active && !oldWaveActive) {
+            sound.playWaveStart();
+        }
+
+        // Sound: wave clear (wave was active, now not active, and wave number increased)
+        if (!state.wave_active && oldWaveActive && state.state.current_wave > oldWave) {
+            sound.playWaveClear();
+        }
+
+        // Update spell cooldowns from server
+        if (state.state.spells) {
+            this._spellCooldowns.acid = state.state.spells.acid_strike_cooldown || 0;
+            this._spellCooldowns.frost = state.state.spells.frost_nova_cooldown || 0;
+        }
+
+        // Pause button sync
+        const pauseBtn = document.getElementById('btn-pause');
+        if (pauseBtn) pauseBtn.classList.toggle('active', state.state.time_scale === 0);
+
+        // Game over / Victory
         if (state.state.game_over || state.state.victory) {
+            if (state.state.victory) sound.playVictory();
+            else sound.playGameOver();
             this.ui.showGameOver(state.state.victory, state.state.score);
+            // Show highscore prompt
+            const hsPrompt = document.getElementById('go-hs-prompt');
+            if (hsPrompt) hsPrompt.classList.add('visible');
         }
     }
 
@@ -1766,6 +2321,18 @@ class Game {
         const gy = Math.floor(wy / CELL);
         if (gx < 0 || gx >= GW || gy < 0 || gy >= GH) return;
 
+        // AoE spell targeting
+        if (this._pendingSpell) {
+            const worldX = gx + 0.5;
+            const worldY = gy + 0.5;
+            this.net.castSpell(this._pendingSpell === 'acid' ? 'acid_strike' : 'frost_nova', worldX, worldY);
+            if (this._pendingSpell === 'acid') sound.playSpellAcid();
+            else sound.playSpellFrost();
+            this._pendingSpell = null;
+            this.canvas.classList.remove('aoe-cursor');
+            return;
+        }
+
         // Click on existing tower?
         const clicked = this.gameState?.towers?.find(t => t.x === gx && t.y === gy);
         if (clicked && !this.selectedTower) {
@@ -1779,6 +2346,7 @@ class Game {
             this.selectedPlacedTower = null;
             this.ui.hideTowerPanel();
             this.net.placeTower(gx, gy, this.selectedTower);
+            sound.playTowerPlace();
         } else {
             this.selectedPlacedTower = null;
             this.ui.hideTowerPanel();
@@ -1873,6 +2441,178 @@ class Game {
         if (this.net) this.net.toggleAutoWave();
         const autoBtn = document.getElementById('btn-auto-wave');
         if (autoBtn) autoBtn.classList.toggle('active');
+    }
+
+    // ── Spell Cooldown UI ───────────────────────────────────────
+    _updateSpellCooldowns() {
+        const ARC_LEN = 138.2; // 2 * PI * 22
+        for (const type of ['acid', 'frost']) {
+            const cd = this._spellCooldowns[type];
+            const btn = document.getElementById(`btn-${type}`);
+            const arcEl = document.getElementById(`cd-arc-${type}`);
+            const textEl = document.getElementById(`cd-text-${type}`);
+            if (!btn || !arcEl || !textEl) continue;
+            if (cd > 0) {
+                btn.classList.add('cooldown');
+                const maxCd = type === 'acid' ? 40 : 60;
+                const frac = Math.min(cd / maxCd, 1);
+                arcEl.setAttribute('stroke-dashoffset', ARC_LEN * frac);
+                textEl.textContent = Math.ceil(cd);
+            } else {
+                btn.classList.remove('cooldown');
+                arcEl.setAttribute('stroke-dashoffset', '0');
+                textEl.textContent = '0';
+            }
+            // Decrement locally for smooth countdown
+            if (cd > 0) this._spellCooldowns[type] = Math.max(0, cd - 1/60);
+        }
+    }
+
+    // ── Pause ─────────────────────────────────────────────────────
+    togglePause() {
+        if (!this.net) return;
+        const currentScale = this.gameState?.state?.time_scale ?? 1;
+        if (currentScale === 0) {
+            // Unpause: resume at 1x
+            this.net.setSpeed(1);
+        } else {
+            // Pause
+            this.net.setSpeed(0);
+        }
+    }
+
+    // ── Mute ──────────────────────────────────────────────────────
+    toggleMute() { sound.toggleMute(); }
+
+    // ── Spells ────────────────────────────────────────────────────
+    prepareSpell(type) {
+        if (this._spellCooldowns[type] > 0) return;
+        if (type === 'acid') {
+            // Acid: activate AoE targeting mode
+            this._pendingSpell = 'acid';
+            this.canvas.classList.add('aoe-cursor');
+            this.selectedTower = null;
+            document.querySelectorAll('.tower-btn').forEach(b => b.classList.remove('selected'));
+            this.ui.showMessage('🧪 Chuva de Ácido — clique no grid para lançar!');
+        } else if (type === 'frost') {
+            // Frost: cast immediately (no targeting needed, affects all enemies)
+            this.net.castSpell('frost_nova', 0, 0);
+            sound.playSpellFrost();
+        }
+    }
+
+    // ── Targeting ─────────────────────────────────────────────────
+    setTargetMode(towerId, mode) {
+        if (this.net) this.net.setTargetMode(towerId, mode);
+        // Optimistic update
+        if (this.selectedPlacedTower && this.selectedPlacedTower.id === towerId) {
+            this.selectedPlacedTower.target_mode = mode;
+            this.ui.showTowerPanel(this.selectedPlacedTower);
+        }
+    }
+
+    // ── L4 Branch Upgrade ─────────────────────────────────────────
+    upgradeTowerBranch(towerId, branch) {
+        if (this.net) this.net.upgradeTowerBranch(towerId, branch);
+        this.selectedPlacedTower = null;
+        this.ui.hideTowerPanel();
+    }
+
+    // ── Highscores ────────────────────────────────────────────────
+    async showHighscores() {
+        const overlay = document.getElementById('hs-overlay');
+        const list = document.getElementById('hs-list');
+        const tabs = document.getElementById('hs-difficulty-tabs');
+        if (!overlay || !list) return;
+
+        // Render difficulty tabs
+        const diffs = ['easy', 'normal', 'hard', 'insane'];
+        const diffLabels = { easy: '🌿 Fácil', normal: '⚔️ Normal', hard: '🔥 Difícil', insane: '💀 Insano' };
+        const currentDiff = this.gameState?.state?.difficulty || 'normal';
+        tabs.innerHTML = diffs.map(d =>
+            `<button class="target-pill ${d === currentDiff ? 'active' : ''}"
+                onclick="Game.instance._loadHighscores('${d}')">${diffLabels[d]}</button>`
+        ).join('');
+
+        overlay.classList.add('visible');
+        this._loadHighscores(currentDiff);
+    }
+
+    async _loadHighscores(difficulty) {
+        const list = document.getElementById('hs-list');
+        if (!list) return;
+        // Update tab active state
+        document.querySelectorAll('#hs-difficulty-tabs .target-pill').forEach(btn => {
+            btn.classList.toggle('active', btn.textContent.toLowerCase().includes(difficulty));
+        });
+        try {
+            const res = await fetch(`/tower-defense/highscores?difficulty=${difficulty}`);
+            if (!res.ok) { list.innerHTML = '<li>Nenhum highscore ainda</li>'; return; }
+            const scores = await res.json();
+            if (!scores || scores.length === 0) { list.innerHTML = '<li>Nenhum highscore ainda</li>'; return; }
+            list.innerHTML = scores.slice(0, 10).map((s, i) => {
+                const medals = ['🥇', '🥈', '🥉'];
+                const rank = i < 3 ? medals[i] : `${i + 1}.`;
+                return `<li><span class="hs-rank">${rank}</span><span class="hs-name">${s.name}</span><span class="hs-score">${s.score.toLocaleString()}</span><span class="hs-wave">W${s.waves_cleared || '?'}</span></li>`;
+            }).join('');
+        } catch (e) {
+            list.innerHTML = '<li>Erro ao carregar highscores</li>';
+        }
+    }
+
+    hideHighscores() {
+        const overlay = document.getElementById('hs-overlay');
+        if (overlay) overlay.classList.remove('visible');
+    }
+
+    async submitHighscore() {
+        const nameInput = document.getElementById('go-hs-name');
+        const name = nameInput?.value?.trim();
+        if (!name || !this.gameState) return;
+        const s = this.gameState.state;
+        try {
+            await fetch('/tower-defense/highscores', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: name,
+                    score: s.score,
+                    difficulty: s.difficulty || 'normal',
+                    waves_cleared: s.current_wave,
+                    victory: !!s.victory
+                })
+            });
+            this.ui.showMessage(`🏆 Score enviado! Olhe os Rankings!`);
+            const hsPrompt = document.getElementById('go-hs-prompt');
+            if (hsPrompt) hsPrompt.classList.remove('visible');
+        } catch (e) {
+            this.ui.showMessage('Erro ao enviar score');
+        }
+    }
+
+    async submitHighscoreFromModal() {
+        const nameInput = document.getElementById('hs-name-input');
+        const name = nameInput?.value?.trim();
+        if (!name || !this.gameState) return;
+        const s = this.gameState.state;
+        try {
+            await fetch('/tower-defense/highscores', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: name,
+                    score: s.score,
+                    difficulty: s.difficulty || 'normal',
+                    waves_cleared: s.current_wave,
+                    victory: !!s.victory
+                })
+            });
+            this.ui.showMessage(`🏆 Score enviado!`);
+            // Reload highscores
+            this._loadHighscores(s.difficulty || 'normal');
+        } catch (e) {
+            this.ui.showMessage('Erro ao enviar score');
+        }
     }
 }
 
