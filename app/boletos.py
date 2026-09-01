@@ -7,14 +7,15 @@ Gera PDFs no formato real de boletos brasileiros.
 
 from __future__ import annotations
 
+import html
 import io
+import ipaddress
 import os
 import random
 import string
 import time
 import uuid
 from datetime import datetime, timedelta
-
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
@@ -146,17 +147,30 @@ def _random_due_date() -> datetime:
 
 
 def _get_client_ip(request: Request) -> str:
-    """Obtém o IP real do cliente, considerando proxies."""
-    forwarded = request.headers.get("x-forwarded-for")
+    """Obtém o IP real do cliente, considerando proxies e validando formato."""
+    forwarded = request.headers.get("x-forwarded-for") or request.headers.get("X-Forwarded-For")
     if forwarded:
-        return forwarded.split(",")[0].strip()
-    real_ip = request.headers.get("x-real-ip")
+        candidate = forwarded.split(",")[0].strip()
+        try:
+            ipaddress.ip_address(candidate)
+            return candidate
+        except ValueError:
+            return "invalido"
+    real_ip = request.headers.get("x-real-ip") or request.headers.get("X-Real-IP")
     if real_ip:
-        return real_ip
-    if request.client:
-        return request.client.host
-    return "unknown"
-
+        candidate = real_ip.strip()
+        try:
+            ipaddress.ip_address(candidate)
+            return candidate
+        except ValueError:
+            return "invalido"
+    if request.client and request.client.host:
+        try:
+            ipaddress.ip_address(request.client.host)
+            return request.client.host
+        except ValueError:
+            return "invalido"
+    return "desconhecido"
 
 def _add_log(ip: str, action: str, details: str):
     """Registra uma ação no log."""

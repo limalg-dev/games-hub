@@ -7,12 +7,12 @@ from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, De
 from fastapi.responses import HTMLResponse, FileResponse
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
+import html
 import os
 import json
 import asyncio
 import time
 from datetime import datetime
-
 from games.tower_defense.logic import (
     TowerDefenseGame, 
     TowerType, EnemyType,
@@ -141,15 +141,15 @@ async def get_tower_defense_highscores(difficulty: Optional[str] = None, limit: 
 @router.post("/highscores")
 async def post_tower_defense_highscores(request: TowerDefenseHighScoreRequest):
     """Registra uma nova pontuação no Tower Defense"""
+    clean_name = html.escape(request.name.strip()[:16])
     entry = td_high_score_manager.add_score(
-        name=request.name,
+        name=clean_name,
         score=request.score,
         difficulty=request.difficulty,
         waves_cleared=request.waves_cleared,
         victory=request.victory,
     )
     return {"status": "success", "entry": entry}
-
 
 @router.post("/games/create")
 async def create_game(request: CreateGameRequest = CreateGameRequest()):

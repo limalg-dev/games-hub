@@ -5,6 +5,7 @@ submitting highscores, and serving the HTML5 canvas client.
 """
 
 from __future__ import annotations
+import html
 import os
 import time
 from typing import Dict, List, Optional, Any
@@ -52,13 +53,12 @@ class ActionRequest(BaseModel):
 
 
 class ScoreSubmission(BaseModel):
-    player_name: str = Field(..., max_length=20)
+    player_name: str = Field(..., max_length=50)
     score: int = Field(..., ge=0)
     difficulty: str = Field(default="medium")
     turns: int = Field(default=0, ge=0)
     map_size: str = Field(default="small")
     won: bool = Field(default=True)
-
 
 class ColoniaHexHighScoreManager:
     def __init__(self):
@@ -198,8 +198,9 @@ async def get_highscores(limit: int = Query(default=10, ge=1, le=50)):
 @router.post("/api/highscores")
 async def submit_highscore(submission: ScoreSubmission):
     """Submit a highscore entry."""
+    clean_name = html.escape(submission.player_name.strip()[:15])
     entry = high_score_manager.add_score(
-        name=submission.player_name,
+        name=clean_name,
         score=submission.score,
         difficulty=submission.difficulty,
         turns=submission.turns,

@@ -6,6 +6,9 @@ from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse, Response
 from sqlmodel import Session, select
 import json
+import os
+import html
+import logging
 from app.models import Game, PlayerRating
 from app.schemas import GameRead, GameCreate, WordCreate, WordRead
 from app.websocket import websocket_endpoint
@@ -17,8 +20,6 @@ from games.snake.routes import router as snake_router
 from games.tower_defense.routes import router as tower_defense_router, start_game_loop as start_tower_defense_loop
 from games.bomberman.routes import router as bomberman_router
 from games.colonia_hex.routes import router as colonia_hex_router
-import os
-
 DIFFICULTY_MAP = {"easy": 1, "medium": 2, "hard": 3}
 
 def seed_words():
@@ -35,8 +36,13 @@ async def lifespan(app: FastAPI):
     init_db()
     seed_words()
     start_tower_defense_loop()
+    if os.getenv("ENVIRONMENT") == "production":
+        boletos_pass = os.getenv("BOLETOS_PASS")
+        if not boletos_pass or boletos_pass in ("change-me", "123456secreta", "admin", "password", "root"):
+            logging.getLogger("uvicorn.error").warning(
+                "SECURITY WARNING: BOLETOS_PASS is using default/weak credentials in production environment!"
+            )
     yield
-
 def _include_optional_boletos(app: FastAPI) -> bool:
     """Register the optional boletos test router.
 
@@ -70,14 +76,25 @@ app.include_router(colonia_hex_router)
 _include_optional_boletos(app)
 
 @app.middleware("http")
-async def add_no_cache_headers(request: Request, call_next):
+async def security_and_cache_headers_middleware(request: Request, call_next):
     response = await call_next(request)
     if request.url.path.endswith(('.js', '.html', '.css')):
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
-    return response
 
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com data:; "
+        "img-src 'self' data:; "
+        "connect-src 'self' ws: wss:;"
+    )
+    return response
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Mount static files for all games
@@ -137,13 +154,21 @@ PLAYABLE_GAMES = ("checkers", "wordsearch", "crossword", "snake", "tower_defense
 
 @app.post("/api/words", response_model=WordRead)
 async def create_word(word_in: WordCreate):
+    clean_word = html.escape(word_in.word.strip()[:30])
+    clean_hint = html.escape(word_in.hint.strip()[:100])
+    if not clean_word or not clean_hint:
+        raise HTTPException(status_code=400, detail="Word and hint cannot be empty")
     with Session(engine) as session:
-        word = Word(**word_in.model_dump())
+        word = Word(
+            word=clean_word,
+            hint=clean_hint,
+            category=word_in.category,
+            difficulty=word_in.difficulty,
+        )
         session.add(word)
         session.commit()
         session.refresh(word)
         return word
-
 @app.get("/api/words", response_model=list[WordRead])
 async def list_words(
     category: str | None = Query(default=None),

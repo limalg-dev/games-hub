@@ -1,6 +1,7 @@
 """
 Super Bomberman API Routes
 """
+import html
 import os
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -18,7 +19,7 @@ from .logic import (
 router = APIRouter()
 
 class ScoreSubmission(BaseModel):
-    name: str = Field(..., max_length=20)
+    name: str = Field(..., max_length=50)
     score: int = Field(..., ge=0)
     mode: str = Field(default="battle")
     difficulty: str = Field(default="medium")
@@ -86,8 +87,9 @@ async def get_highscores(limit: int = Query(default=10, ge=1, le=50)):
 @router.post("/api/bomberman/highscores")
 async def submit_highscore(submission: ScoreSubmission):
     """Submit a highscore entry."""
+    clean_name = html.escape(submission.name.strip()[:15])
     entry = high_score_manager.add_score(
-        name=submission.name,
+        name=clean_name,
         score=submission.score,
         mode=submission.mode,
         difficulty=submission.difficulty,
