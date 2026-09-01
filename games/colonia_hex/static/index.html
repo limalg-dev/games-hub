@@ -110,6 +110,13 @@ canvas { background: #0a0e14; border: 1px solid var(--border); border-radius: 8p
 <script>
 "use strict";
 
+/** Escape HTML entities to prevent XSS */
+function escapeHTML(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  SOUND SYSTEM — WebAudio Procedural Synthesizer
 // ═══════════════════════════════════════════════════════════════
@@ -827,7 +834,7 @@ async function loadHighscores() {
   const list = await API.getHS(settings.difficulty);
   const el = document.getElementById('hsList');
   if (!list || list.length === 0) { el.innerHTML = '<div style="color:var(--dim)">Nenhum highscore ainda</div>'; return; }
-  el.innerHTML = list.slice(0, 10).map((s, i) => `<div class="hs-row"><span>#${i+1} ${s.name}</span><span style="color:var(--gold)">${s.score} pts</span></div>`).join('');
+  el.innerHTML = list.slice(0, 10).map((s, i) => `<div class="hs-row"><span>#${i+1} ${escapeHTML(s.name)}</span><span style="color:var(--gold)">${s.score} pts</span></div>`).join('');
 }
 
 async function saveHighscore() {

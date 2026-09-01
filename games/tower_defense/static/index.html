@@ -617,6 +617,13 @@
 
 "use strict";
 
+/** Escape HTML entities to prevent XSS */
+function escapeHTML(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
+
 // ═══════════════════════════════════════════════════════════════════
 //  SOUND SYSTEM — WebAudio Procedural Synthesizer
 // ═══════════════════════════════════════════════════════════════════
@@ -2553,7 +2560,7 @@ class Game {
             list.innerHTML = scores.slice(0, 10).map((s, i) => {
                 const medals = ['🥇', '🥈', '🥉'];
                 const rank = i < 3 ? medals[i] : `${i + 1}.`;
-                return `<li><span class="hs-rank">${rank}</span><span class="hs-name">${s.name}</span><span class="hs-score">${s.score.toLocaleString()}</span><span class="hs-wave">W${s.waves_cleared || '?'}</span></li>`;
+                return `<li><span class="hs-rank">${rank}</span><span class="hs-name">${escapeHTML(s.name)}</span><span class="hs-score">${s.score.toLocaleString()}</span><span class="hs-wave">W${s.waves_cleared || '?'}</span></li>`;
             }).join('');
         } catch (e) {
             list.innerHTML = '<li>Erro ao carregar highscores</li>';

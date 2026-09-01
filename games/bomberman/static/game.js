@@ -32,6 +32,13 @@ const COLORS = {
   yellow: { body: '#f1c40f', suit: '#2c3e50', head: '#e67e22', hat: '#d4ac0d', skin: '#f5cd79' },
 };
 
+/** Escape HTML entities to prevent XSS */
+function escapeHTML(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
 class Particle {
   constructor(x, y, color, vx, vy, size, life) {
     this.x = x;
@@ -2049,7 +2056,7 @@ export class BombermanGame {
     if (!listEl) return;
     listEl.innerHTML = scores.map((s, idx) => `
       <div class="score-row">
-        <span class="rank">#${idx + 1} ${s.name}</span>
+        <span class="rank">#${idx + 1} ${escapeHTML(s.name)}</span>
         <span class="score-pts">${s.score} PTS</span>
       </div>
     `).join('');

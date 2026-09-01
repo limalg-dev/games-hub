@@ -114,31 +114,49 @@ export class CrosswordGame {
     const acrossList = document.getElementById('cw-across-list');
     const downList = document.getElementById('cw-down-list');
     if (acrossList) {
-      acrossList.innerHTML = across.map(clue =>
-        `<li class="clue" data-row="${clue.row}" data-col="${clue.col}" data-direction="across">
-          <span class="clue-number">${clue.number}</span>
-          <span class="clue-text">${clue.clue}</span>
-        </li>`
-      ).join('');
-      acrossList.querySelectorAll('.clue').forEach(el => {
-        el.addEventListener('click', () => {
+      acrossList.innerHTML = '';
+      across.forEach(clue => {
+        const li = document.createElement('li');
+        li.className = 'clue';
+        li.dataset.row = clue.row;
+        li.dataset.col = clue.col;
+        li.dataset.direction = 'across';
+        const num = document.createElement('span');
+        num.className = 'clue-number';
+        num.textContent = clue.number;
+        const txt = document.createElement('span');
+        txt.className = 'clue-text';
+        txt.textContent = clue.clue;
+        li.appendChild(num);
+        li.appendChild(txt);
+        li.addEventListener('click', () => {
           this.direction = 'across';
-          this.focusCell(parseInt(el.dataset.row), parseInt(el.dataset.col));
+          this.focusCell(clue.row, clue.col);
         });
+        acrossList.appendChild(li);
       });
     }
     if (downList) {
-      downList.innerHTML = down.map(clue =>
-        `<li class="clue" data-row="${clue.row}" data-col="${clue.col}" data-direction="down">
-          <span class="clue-number">${clue.number}</span>
-          <span class="clue-text">${clue.clue}</span>
-        </li>`
-      ).join('');
-      downList.querySelectorAll('.clue').forEach(el => {
-        el.addEventListener('click', () => {
+      downList.innerHTML = '';
+      down.forEach(clue => {
+        const li = document.createElement('li');
+        li.className = 'clue';
+        li.dataset.row = clue.row;
+        li.dataset.col = clue.col;
+        li.dataset.direction = 'down';
+        const num = document.createElement('span');
+        num.className = 'clue-number';
+        num.textContent = clue.number;
+        const txt = document.createElement('span');
+        txt.className = 'clue-text';
+        txt.textContent = clue.clue;
+        li.appendChild(num);
+        li.appendChild(txt);
+        li.addEventListener('click', () => {
           this.direction = 'down';
-          this.focusCell(parseInt(el.dataset.row), parseInt(el.dataset.col));
+          this.focusCell(clue.row, clue.col);
         });
+        downList.appendChild(li);
       });
     }
   }

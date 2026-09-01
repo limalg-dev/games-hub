@@ -404,14 +404,30 @@
         container.innerHTML = '<p class="empty-state">Nenhum download registrado ainda.</p>';
         return;
       }
-      container.innerHTML = logs.map(l => `
-        <div class="log-entry">
-          <span class="log-time">${l.timestamp}</span>
-          <span class="log-ip">${l.ip}</span> —
-          <span class="log-action">${l.action}</span> —
-          ${l.details}
-        </div>
-      `).join('');
+      container.innerHTML = '';
+      logs.forEach(l => {
+        const entry = document.createElement('div');
+        entry.className = 'log-entry';
+        const timeEl = document.createElement('span');
+        timeEl.className = 'log-time';
+        timeEl.textContent = l.timestamp;
+        const ipEl = document.createElement('span');
+        ipEl.className = 'log-ip';
+        ipEl.textContent = l.ip;
+        const actionEl = document.createElement('span');
+        actionEl.className = 'log-action';
+        actionEl.textContent = l.action;
+        const detailsEl = document.createElement('span');
+        detailsEl.textContent = l.details;
+        entry.appendChild(timeEl);
+        entry.appendChild(document.createTextNode(' '));
+        entry.appendChild(ipEl);
+        entry.appendChild(document.createTextNode(' — '));
+        entry.appendChild(actionEl);
+        entry.appendChild(document.createTextNode(' — '));
+        entry.appendChild(detailsEl);
+        container.appendChild(entry);
+      });
     }
   </script>
 </body>
