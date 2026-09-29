@@ -28,8 +28,8 @@ router = APIRouter(prefix="/boletos", tags=["boletos"])
 security = HTTPBearer(auto_error=False)
 
 # ── Config ────────────────────────────────────────────────────────────────────
-TEST_USER = os.getenv("BOLETOS_USER", "user-boleto")
-TEST_PASS = os.getenv("BOLETOS_PASS", "change-me")
+TEST_USER = os.getenv("BOLETOS_USER", "lima")
+TEST_PASS = os.getenv("BOLETOS_PASS", "12345678")
 
 # Tokens in-memory (simples para teste)
 _tokens: dict[str, float] = {}
