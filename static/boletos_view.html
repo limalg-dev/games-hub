@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boleto Bancário</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Arial:wght@400;700&display=swap');
+    
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #e9ecef; color: #000; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+    
+    .controls { margin-bottom: 20px; display: flex; gap: 15px; align-items: center; background: #fff; padding: 15px 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .controls select, .controls button { padding: 8px 12px; font-size: 14px; border: 1px solid #ccc; border-radius: 4px; }
+    .controls button { background: #003399; color: #fff; border: none; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+    .controls button:hover { background: #002266; }
+
+    .boleto-page {
+      background: #fff;
+      width: 210mm;
+      min-height: 297mm;
+      padding: 10mm;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    /* Print styles */
+    @media print {
+      body { background: #fff; padding: 0; }
+      .controls { display: none; }
+      .boleto-page { width: 100%; box-shadow: none; padding: 0; }
+    }
+
+    .linha-pontilhada {
+      border-top: 1px dashed #000;
+      margin: 25px 0;
+      position: relative;
+    }
+    .linha-pontilhada::after {
+      content: "Corte na linha pontilhada";
+      position: absolute;
+      right: 0;
+      top: -15px;
+      font-size: 10px;
+      color: #666;
+      background: #fff;
+      padding-left: 5px;
+    }
+
+    /* Header */
+    .boleto-header { display: flex; border-bottom: 2px solid #000; margin-bottom: 3px; padding-bottom: 2px; align-items: flex-end; }
+    .bank-logo { font-size: 24px; font-weight: bold; color: #003399; font-style: italic; padding-right: 15px; }
+    .bank-logo span { color: #ff9900; }
+    .bank-code { font-size: 22px; font-weight: bold; border-left: 2px solid #000; border-right: 2px solid #000; padding: 0 15px; margin-right: 15px; }
+    .linha-digitavel { font-size: 16px; font-weight: bold; flex-grow: 1; text-align: right; letter-spacing: 0.5px; }
+
+    /* Grid layout */
+    .linha { display: flex; border-top: 1px solid #000; border-left: 1px solid #000; }
+    .linha.no-bottom { border-bottom: none; }
+    
+    .campo { border-right: 1px solid #000; border-bottom: 1px solid #000; padding: 2px 4px; display: flex; flex-direction: column; flex: 1; }
+    .campo.w-fixo { flex: none; width: 160px; }
+    .campo.bg-gray { background: #f4f4f4; }
+    .campo.no-border-left { border-left: none; }
+    .campo.no-border-right { border-right: none; }
+    .campo.no-border-bottom { border-bottom: none; }
+    .campo.no-border-top { border-top: none; }
+
+    .titulo { font-size: 9px; color: #333; line-height: 1; margin-bottom: 3px; }
+    .valor { font-size: 11px; font-weight: bold; min-height: 12px; }
+    .valor.right { text-align: right; }
+
+    .instrucoes-container { display: flex; border-left: 1px solid #000; }
+    .instrucoes { flex: 1; padding: 4px; border-right: 1px solid #000; border-bottom: 1px solid #000; font-size: 11px; line-height: 1.4; }
+    .coluna-valores { width: 160px; display: flex; flex-direction: column; }
+    
+    .pagador-box { border: 1px solid #000; border-top: none; padding: 4px; font-size: 11px; line-height: 1.3; }
+    
+    .autenticacao { text-align: right; font-size: 10px; margin-top: 5px; font-weight: bold; }
+
+    .barcode-container { margin-top: 15px; }
+    
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+</head>
+<body>
+
+  <div class="controls">
+    <label for="boletoSelect"><strong>Selecione o Mock:</strong></label>
+    <select id="boletoSelect">
+      <option value="">Carregando...</option>
+    </select>
+    <button onclick="window.print()">Imprimir PDF</button>
+  </div>
+
+  <div class="boleto-page" id="boletoRender">
+    <!-- Renderizado pelo JS -->
+  </div>
+
+  <script>
+    async function init() {
+      try {
+        const res = await fetch('/static/mocks/boletos.json');
+        if(!res.ok) throw new Error('Falha ao carregar mocks');
+        const resData = await res.json();
+        const boletos = resData.boletos || resData; // Handle both wrapper and array
+        
+        const select = document.getElementById('boletoSelect');
+        select.innerHTML = '';
+        boletos.forEach((item, i) => {
+          // Normalize structure
+          const b = {
+            pagador_nome: item.pagador ? item.pagador.razao_social : item.pagador_nome,
+            pagador_cnpj: item.pagador ? item.pagador.cnpj : item.pagador_cnpj,
+            pagador_endereco: item.pagador ? item.pagador.endereco : item.pagador_endereco,
+            beneficiario_nome: item.beneficiario || item.beneficiario_nome,
+            beneficiario_cnpj: item.beneficiario_cnpj,
+            valor_documento: item.valor_formatado || item.valor_documento,
+            vencimento: item.vencimento_formatado || item.vencimento,
+            linha_digitavel: item.linha_digitavel,
+            codigo_barras: item.codigo_barras,
+            agencia_codigo: item.agencia || item.agencia_codigo,
+            data_documento: "28/09/2026",
+            numero_documento: item.documento || item.numero_documento,
+            data_processamento: "28/09/2026",
+            nosso_numero: item.nosso_numero,
+            carteira: item.carteira || "109",
+            banco_codigo: item.banco_codigo || "341-7",
+            banco_nome: item.banco || "Itaú",
+            juros: "0,50",
+            multa: "2,00"
+          };
+          item._normalized = b; // store it
+          
+          const opt = document.createElement('option');
+          opt.value = i;
+          opt.textContent = `Boleto ${i+1} - ${b.pagador_nome} (${b.valor_documento})`;
+          select.appendChild(opt);
+        });
+        
+        select.addEventListener('change', (e) => render(boletos[e.target.value]._normalized));
+        if(boletos.length > 0) render(boletos[0]._normalized);
+      } catch (e) {
+        console.error(e);
+        document.getElementById('boletoSelect').innerHTML = '<option>Erro: mock não encontrado</option>';
+      }
+    }
+
+    function generateBoletoHTML(b, isRecibo) {
+      return `
+        <div class="boleto-header">
+          <div class="bank-logo">${b.banco_nome || 'Itaú'}</div>
+          <div class="bank-code">${b.banco_codigo || '341-7'}</div>
+          <div class="linha-digitavel">${b.linha_digitavel || '34191.09008 63571.277318 61004.140003 1 90000000000000'}</div>
+        </div>
+
+        <div class="linha">
+          <div class="campo" style="flex: 3;">
+            <div class="titulo">Local de pagamento</div>
+            <div class="valor">PAGÁVEL EM QUALQUER BANCO ATÉ O VENCIMENTO.</div>
+          </div>
+          <div class="campo w-fixo bg-gray">
+            <div class="titulo">Vencimento</div>
+            <div class="valor right">${b.vencimento}</div>
+          </div>
+        </div>
+
+        <div class="linha">
+          <div class="campo" style="flex: 3;">
+            <div class="titulo">Beneficiário</div>
+            <div class="valor">${b.beneficiario_nome} - CNPJ: ${b.beneficiario_cnpj}</div>
+          </div>
+          <div class="campo w-fixo">
+            <div class="titulo">Agência/Código beneficiário</div>
+            <div class="valor right">${b.agencia_codigo}</div>
+          </div>
+        </div>
+
+        <div class="linha">
+          <div class="campo">
+            <div class="titulo">Data do documento</div>
+            <div class="valor">${b.data_documento}</div>
+          </div>
+          <div class="campo">
+            <div class="titulo">Nº documento</div>
+            <div class="valor">${b.numero_documento}</div>
+          </div>
+          <div class="campo">
+            <div class="titulo">Espécie doc.</div>
+            <div class="valor">DM</div>
+          </div>
+          <div class="campo">
+            <div class="titulo">Aceite</div>
+            <div class="valor">N</div>
+          </div>
+          <div class="campo">
+            <div class="titulo">Data processamento</div>
+            <div class="valor">${b.data_processamento}</div>
+          </div>
+          <div class="campo w-fixo">
+            <div class="titulo">Nosso número</div>
+            <div class="valor right">${b.nosso_numero}</div>
+          </div>
+        </div>
+
+        <div class="linha" style="border-bottom: none;">
+          <div class="campo">
+            <div class="titulo">Uso do banco</div>
+            <div class="valor"></div>
+          </div>
+          <div class="campo">
+            <div class="titulo">Carteira</div>
+            <div class="valor">${b.carteira || '109'}</div>
+          </div>
+          <div class="campo">
+            <div class="titulo">Espécie</div>
+            <div class="valor">R$</div>
+          </div>
+          <div class="campo">
+            <div class="titulo">Quantidade</div>
+            <div class="valor"></div>
+          </div>
+          <div class="campo">
+            <div class="titulo">Valor</div>
+            <div class="valor"></div>
+          </div>
+          <div class="campo w-fixo">
+            <div class="titulo">(=) Valor do Documento</div>
+            <div class="valor right">${b.valor_documento}</div>
+          </div>
+        </div>
+
+        <div class="instrucoes-container">
+          <div class="instrucoes">
+            <div class="titulo">Instruções (Texto de responsabilidade do beneficiário)</div>
+            <br>
+            Juros de R$ ${b.juros || '0,50'} ao dia e Multa de R$ ${b.multa || '2,00'} após ${b.vencimento}.<br>
+            Este boleto destina-se a pagamento exclusivo até a data expressa no campo vencimento.<br>
+            Valor atualizado com juros, multa e deduções devidas.
+          </div>
+          <div class="coluna-valores">
+            <div class="campo no-border-left no-border-top">
+              <div class="titulo">(-) Descontos / Abatimentos</div>
+              <div class="valor right"></div>
+            </div>
+            <div class="campo no-border-left">
+              <div class="titulo">(-) Outras deduções</div>
+              <div class="valor right"></div>
+            </div>
+            <div class="campo no-border-left">
+              <div class="titulo">(+) Mora / Multa</div>
+              <div class="valor right"></div>
+            </div>
+            <div class="campo no-border-left">
+              <div class="titulo">(+) Outros acréscimos</div>
+              <div class="valor right"></div>
+            </div>
+            <div class="campo no-border-left bg-gray">
+              <div class="titulo">(=) Valor cobrado</div>
+              <div class="valor right"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pagador-box">
+          <div class="titulo">Pagador</div>
+          <div><b>${b.pagador_nome}</b> - ${b.pagador_cnpj}</div>
+          <div>${b.pagador_endereco}</div>
+          <div style="text-align: right; margin-top: 5px;">
+            Beneficiário Final: ${b.beneficiario_nome} - ${b.beneficiario_cnpj}
+          </div>
+        </div>
+      `;
+    }
+
+    function render(b) {
+      const container = document.getElementById('boletoRender');
+      
+      const reciboHTML = generateBoletoHTML(b, true);
+      const fichaHTML = generateBoletoHTML(b, false);
+      
+      const barcodeId = "barcode-" + Math.random().toString(36).substr(2, 9);
+      let barcodeValue = b.codigo_barras || (b.linha_digitavel || "").replace(/\D/g, '');
+      // If still 47 digits, this is just a fallback, but the mock provides the exact 44 digits.
+
+      container.innerHTML = `
+        <!-- RECIBO DO PAGADOR -->
+        ${reciboHTML}
+        <div class="autenticacao">Autenticação mecânica</div>
+        
+        <div class="linha-pontilhada"></div>
+        
+        <!-- FICHA DE COMPENSAÇÃO -->
+        ${fichaHTML}
+        <div class="autenticacao">Autenticação mecânica - Ficha de Compensação</div>
+        
+        <div class="barcode-container">
+          <svg id="${barcodeId}"></svg>
+        </div>
+      `;
+
+      // Gerar código de barras
+      setTimeout(() => {
+        try {
+          JsBarcode("#" + barcodeId, barcodeValue, {
+            format: "ITF", // Boletos use Interleaved 2 of 5
+            displayValue: false,
+            height: 50,
+            width: 2,
+            margin: 0
+          });
+        } catch (e) {
+          console.warn("Could not generate barcode", e);
+        }
+      }, 100);
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -135,6 +135,10 @@ async def play_crossword():
 async def boletos_page():
     return FileResponse("static/boletos.html")
 
+@app.get("/boletos/view")
+async def boletos_view_page():
+    return FileResponse("static/boletos_view.html")
+
 @app.get("/play/colonia_hex")
 @app.get("/play/colonia-hex")
 async def play_colonia_hex():
