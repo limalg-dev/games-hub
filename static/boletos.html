@@ -138,6 +138,15 @@
       .menu-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
       .menu-card { padding: 20px 14px; }
     }
+    /* Lista de boletos (teste do "Para cada" do robô) */
+    .lista-btn { margin: 0 0 18px; }
+    .lista-tabela { width: 100%; border-collapse: collapse; margin-top: 16px; font-size: .9rem; }
+    .lista-tabela th, .lista-tabela td { padding: 10px 8px; border-bottom: 1px solid #2a2f55; text-align: left; color: #c9cbe8; }
+    .lista-tabela th { color: #7a7faa; font-weight: 600; }
+    .lista-tabela .codigo { font-family: monospace; color: #fff; white-space: nowrap; }
+    .lista-tabela button { padding: 6px 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; margin-right: 6px; }
+    .lista-tabela .btn-baixar { background: #22c55e; color: #fff; }
+    .lista-tabela .btn-abrir { background: #3b82f6; color: #fff; }
   </style>
 </head>
 <body>
@@ -175,6 +184,7 @@
 
     <!-- Menu de Opções -->
     <div id="menuScreen">
+      <button class="logs-toggle lista-btn" onclick="abrirLista()">📑 Lista de Boletos</button>
       <p class="menu-title">Selecione o tipo de boleto que deseja gerar:</p>
       <div class="menu-grid">
         <div class="menu-card" onclick="selectBoleto('2a-via')">
@@ -246,6 +256,20 @@
       <div class="logs-panel" id="logsPanel">
         <h3>📋 Log de Downloads</h3>
         <div id="logsList"><p class="empty-state">Nenhum download registrado ainda.</p></div>
+      </div>
+    </div>
+
+
+    <!-- Lista de Boletos: 6 boletos, um novo por dia; alguns com senha (1234) -->
+    <div class="boleto-page" id="listaPage" style="max-width: 1000px">
+      <button class="back-btn" onclick="goBack()">← Voltar ao menu</button>
+      <div class="download-card">
+        <div class="boleto-title">Lista de Boletos</div>
+        <div class="boleto-sub">Um boleto novo entra por dia. Os marcados com 🔒 abrem só com a senha <strong>1234</strong>.</div>
+        <table class="lista-tabela">
+          <thead><tr><th>Código</th><th>Descrição</th><th>Vencimento</th><th>Valor</th><th>Arquivo</th><th>Ações</th></tr></thead>
+          <tbody id="listaBoletos"><tr><td colspan="6">Carregando…</td></tr></tbody>
+        </table>
       </div>
     </div>
 
@@ -332,7 +356,67 @@
       document.getElementById('password').value = '';
       document.getElementById('menuScreen').style.display = 'block';
       document.getElementById('boletoPage').style.display = 'none';
+      document.getElementById('listaPage').style.display = 'none';
       document.getElementById('logsPanel').style.display = 'none';
+    }
+
+    // ── Lista de Boletos ──
+    // Código estável por dia de emissão (o id da API leva um sufixo aleatório).
+    // As linhas 2 e 4 vêm com senha.
+    let listaAtual = [];
+    async function abrirLista() {
+      if (!token) { alert('Faça login primeiro.'); return; }
+      document.getElementById('menuScreen').style.display = 'none';
+      document.getElementById('listaPage').style.display = 'block';
+      const corpo = document.getElementById('listaBoletos');
+      corpo.innerHTML = '<tr><td colspan="6">Carregando…</td></tr>';
+      const res = await fetch(`${API}/list`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.status === 401) { alert('Sessão expirada.'); logout(); return; }
+      const data = await res.json();
+      listaAtual = data.boletos.map((b, i) => ({ ...b, codigo: b.id.slice(0, -4), comSenha: i === 1 || i === 3 }));
+      corpo.innerHTML = '';
+      listaAtual.forEach((b, i) => {
+        const tr = document.createElement('tr');
+        tr.className = 'linha-boleto';
+        const celulas = [b.codigo, b.description, b.due_date, b.amount_formatted, b.comSenha ? '🔒 PDF com senha' : 'PDF'];
+        celulas.forEach((texto, c) => {
+          const td = document.createElement('td');
+          if (c === 0) td.className = 'codigo';
+          td.textContent = texto;
+          tr.appendChild(td);
+        });
+        const acoes = document.createElement('td');
+        const baixar = document.createElement('button');
+        baixar.className = 'btn-baixar';
+        baixar.textContent = 'Baixar';
+        baixar.onclick = () => baixarDaLista(i, false);
+        const abrir = document.createElement('button');
+        abrir.className = 'btn-abrir';
+        abrir.textContent = 'Abrir em nova aba';
+        abrir.onclick = () => baixarDaLista(i, true);
+        acoes.append(baixar, abrir);
+        tr.appendChild(acoes);
+        corpo.appendChild(tr);
+      });
+    }
+
+    async function baixarDaLista(i, novaAba) {
+      const b = listaAtual[i];
+      // A aba nova abre já no clique (senão o navegador bloqueia o pop-up).
+      const aba = novaAba ? window.open('', '_blank') : null;
+      const res = await fetch(`${API}/download/${encodeURIComponent(b.codigo)}?type=${encodeURIComponent(b.description)}${b.comSenha ? '&senha=1' : ''}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) { if (aba) aba.close(); alert('Erro ao gerar boleto'); return; }
+      const url = URL.createObjectURL(await res.blob());
+      if (aba) { aba.location.href = url; return; }
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `boleto_${b.codigo}${b.comSenha ? '_senha' : ''}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
     // ── Menu → Boleto ──
@@ -355,6 +439,7 @@
 
     function goBack() {
       document.getElementById('boletoPage').style.display = 'none';
+      document.getElementById('listaPage').style.display = 'none';
       document.getElementById('menuScreen').style.display = 'block';
       document.getElementById('logsPanel').style.display = 'none';
     }
