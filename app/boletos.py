@@ -23,6 +23,7 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm, cm
 from reportlab.pdfgen import canvas
+from reportlab.lib.pdfencrypt import StandardEncryption
 
 router = APIRouter(prefix="/boletos", tags=["boletos"])
 security = HTTPBearer(auto_error=False)
@@ -199,12 +200,18 @@ def _authenticate(credentials: HTTPAuthorizationCredentials = Depends(security))
 
 
 # ── PDF Generator ─────────────────────────────────────────────────────────────
-def _draw_boleto_pdf(boleto: dict) -> bytes:
+# Senha do boleto "com senha" — testa o pedido de senha do PDF no VisãoCerta.
+PDF_PASSWORD = "1234"
+
+
+def _draw_boleto_pdf(boleto: dict, password: str | None = None) -> bytes:
     """
     Gera um PDF de boleto bancário no formato real brasileiro.
+    Com `password`, o PDF sai criptografado (abre só com a senha).
     """
     buffer = io.BytesIO()
-    c = canvas.Canvas(buffer, pagesize=A4)
+    encrypt = StandardEncryption(userPassword=password, ownerPassword=password) if password else None
+    c = canvas.Canvas(buffer, pagesize=A4, encrypt=encrypt)
     width, height = A4
 
     bank_code = boleto["bank_code"]
@@ -489,10 +496,14 @@ async def get_random_boleto(request: Request, _token: str = Depends(_authenticat
 
 @router.get("/api/download/{boleto_id}")
 async def download_boleto(
-    boleto_id: str, request: Request, _token: str = Depends(_authenticate), type: str = Query(default="")
+    boleto_id: str,
+    request: Request,
+    _token: str = Depends(_authenticate),
+    type: str = Query(default=""),
+    senha: bool = Query(default=False),
 ):
     """
-    Gera e baixa o PDF do boleto.
+    Gera e baixa o PDF do boleto. Com `?senha=1`, o PDF vem protegido pela senha PDF_PASSWORD.
     """
     ip = _get_client_ip(request)
 
@@ -531,21 +542,23 @@ async def download_boleto(
     }
 
     # Gerar PDF
-    pdf_bytes = _draw_boleto_pdf(boleto)
+    pdf_bytes = _draw_boleto_pdf(boleto, PDF_PASSWORD if senha else None)
+    sufixo = "_senha" if senha else ""
 
     from starlette.responses import Response
 
     _add_log(
         ip,
         "DOWNLOAD",
-        f"Boleto '{boleto_id}' ({boleto['bank_name']}, R$ {amount:.2f}) baixado em PDF",
+        f"Boleto '{boleto_id}' ({boleto['bank_name']}, R$ {amount:.2f}) baixado em PDF"
+        + (f" com senha {PDF_PASSWORD}" if senha else ""),
     )
 
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
         headers={
-            "Content-Disposition": f'attachment; filename="boleto_{boleto_id}.pdf"'
+            "Content-Disposition": f'attachment; filename="boleto_{boleto_id}{sufixo}.pdf"'
         },
     )
 

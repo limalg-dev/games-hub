@@ -101,6 +101,7 @@
     .dl-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(34,197,94,.4); }
     .dl-btn:active { transform: translateY(0); }
     .dl-btn .dl-icon { font-size: 1.3rem; }
+    .dl-btn-senha { margin-top: 12px; background: linear-gradient(135deg, #f59e0b, #d97706); box-shadow: 0 4px 15px rgba(245,158,11,.3); }
 
     .download-info {
       margin-top: 24px; padding: 16px; background: #0d1030; border-radius: 8px;
@@ -263,7 +264,13 @@
           <span class="dl-icon">⬇</span>
           Baixar Boleto PDF
         </button>
+        <!-- Depois do botão normal: roteiros que clicam no primeiro "Baixar" seguem iguais. -->
+        <button class="dl-btn dl-btn-senha" onclick="downloadRandomBoleto(true)" id="dlSenhaBtn">
+          <span class="dl-icon">🔒</span>
+          Baixar Boleto PDF com senha
+        </button>
         <div class="download-info">
+          <strong>🔒 Boleto com senha:</strong> o PDF abre só com a senha <strong>1234</strong>.<br>
           <strong>ℹ️ Informações:</strong><br>
           • Cada download gera um boleto com dados aleatórios<br>
           • Banco, valor, vencimento e descrição mudam a cada clique<br>
@@ -340,6 +347,7 @@
         `Clique no botão abaixo para gerar e baixar <strong>${info.title}</strong> em formato PDF.<br>` +
         `Cada clique gera um novo boleto com banco, valor e vencimento diferentes.`;
       document.getElementById('dlBtn').innerHTML = '<span class="dl-icon">⬇</span> Baixar Boleto PDF';
+      document.getElementById('dlSenhaBtn').innerHTML = '<span class="dl-icon">🔒</span> Baixar Boleto PDF com senha';
 
       document.getElementById('menuScreen').style.display = 'none';
       document.getElementById('boletoPage').style.display = 'block';
@@ -352,16 +360,18 @@
     }
 
     // ── Download ──
-    async function downloadRandomBoleto() {
+    async function downloadRandomBoleto(comSenha = false) {
       if (!token || !currentType) { alert('Faça login primeiro.'); return; }
-      const btn = document.getElementById('dlBtn');
+      const btn = document.getElementById(comSenha ? 'dlSenhaBtn' : 'dlBtn');
+      const rotulo = comSenha ? 'Baixar Boleto PDF com senha' : 'Baixar Boleto PDF';
+      const icone = comSenha ? '🔒' : '⬇';
       btn.disabled = true;
       btn.innerHTML = '<span class="dl-icon">⏳</span> Gerando...';
 
       try {
         const info = BOLETO_TYPES[currentType];
         const randomId = Math.random().toString(36).substring(2, 10);
-        const res = await fetch(`${API}/download/${randomId}?type=${encodeURIComponent(info.keyword)}`, {
+        const res = await fetch(`${API}/download/${randomId}?type=${encodeURIComponent(info.keyword)}${comSenha ? '&senha=1' : ''}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.status === 401) { alert('Sessão expirada.'); logout(); return; }
@@ -371,16 +381,16 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `boleto_${currentType}_${randomId}.pdf`;
+        a.download = `boleto_${currentType}_${randomId}${comSenha ? '_senha' : ''}.pdf`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        btn.innerHTML = '<span class="dl-icon">✅</span> Baixar Outro Boleto';
+        btn.innerHTML = `<span class="dl-icon">✅</span> ${comSenha ? 'Baixar Outro Boleto com senha' : 'Baixar Outro Boleto'}`;
       } catch (err) {
         alert('Erro ao baixar: ' + err.message);
-        btn.innerHTML = '<span class="dl-icon">⬇</span> Baixar Boleto PDF';
+        btn.innerHTML = `<span class="dl-icon">${icone}</span> ${rotulo}`;
       }
       btn.disabled = false;
     }
